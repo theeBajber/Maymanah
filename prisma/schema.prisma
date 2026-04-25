@@ -1,0 +1,315 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// ─── Auth.js Required Models ───
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ─── Core User ───
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // Only for credentials login; null for OAuth users
+  role          UserRole  @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+
+  profile       Profile?
+  enrollments   Enrollment[]
+  teachings     Mentorship[]     @relation("TeacherMentorships")
+  learnings     Mentorship[]     @relation("StudentMentorships")
+  sentMessages  Message[]        @relation("SentMessages")
+  receivedMessages Message[]     @relation("ReceivedMessages")
+  donations     Donation[]
+  appointments  Appointment[]    @relation("TeacherAppointments")
+  availabilities Availability[]
+  assessments   Assessment[]
+  ijazahs       Ijazah[]
+  bookmarks     Bookmark[]
+}
+
+model Profile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio        String?
+  timezone   String   @default("Africa/Nairobi")
+  phone      String?
+  country    String?
+  quranLevel String?  // beginner, intermediate, advanced
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ─── Curriculum ───
+model Course {
+  id          String         @id @default(cuid())
+  title       String
+  slug        String         @unique
+  description String?
+  category    CourseCategory
+  image       String?
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  enrollments Enrollment[]
+  lessons     Lesson[]
+  ijazahs     Ijazah[]
+}
+
+model Lesson {
+  id       String  @id @default(cuid())
+  courseId String
+  course   Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title    String
+  content  String? // Rich text or video URL
+  order    Int
+  duration Int?    // minutes
+
+  @@index([courseId])
+}
+
+model Enrollment {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status      EnrollmentStatus  @default(ACTIVE)
+  progress    Int               @default(0) // 0-100
+  enrolledAt  DateTime          @default(now())
+  completedAt DateTime?
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+// ─── Mentorship (Teacher → Student) ───
+model Mentorship {
+  id        String            @id @default(cuid())
+  teacherId String
+  teacher   User              @relation("TeacherMentorships", fields: [teacherId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User              @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
+  status    MentorshipStatus  @default(ACTIVE)
+  startedAt DateTime          @default(now())
+  endedAt   DateTime?
+
+  appointments Appointment[]
+
+  @@unique([teacherId, studentId])
+  @@index([teacherId])
+  @@index([studentId])
+}
+
+// ─── Calendar / Appointments ───
+model Appointment {
+  id           String             @id @default(cuid())
+  mentorshipId String
+  mentorship   Mentorship         @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+  teacherId    String
+  teacher      User               @relation("TeacherAppointments", fields: [teacherId], references: [id])
+  title        String?
+  description  String?
+  startTime    DateTime
+  endTime      DateTime?
+  meetingUrl   String?            // Jitsi / Daily room link
+  status       AppointmentStatus  @default(SCHEDULED)
+  createdAt    DateTime           @default(now())
+
+  @@index([mentorshipId])
+  @@index([teacherId])
+  @@index([startTime])
+}
+
+model Availability {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int       // 0 = Sunday, 6 = Saturday
+  startTime    String    // "09:00"
+  endTime      String    // "17:00"
+  isRecurring  Boolean   @default(true)
+  specificDate DateTime?
+
+  @@index([userId])
+}
+
+// ─── Chat ───
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+// ─── Ijazah & Progress ───
+model Ijazah {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         Course   @relation(fields: [courseId], references: [id])
+  issuedAt       DateTime @default(now())
+  issuedBy       String?  // Admin name or "SYSTEM"
+  certificateUrl String?
+  isVerified     Boolean  @default(false)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  surah     Int
+  ayah      Int
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, surah, ayah])
+  @@index([userId])
+}
+
+// ─── AI Assessments ───
+model Assessment {
+  id         String         @id @default(cuid())
+  studentId  String
+  student    User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type       AssessmentType
+  audioUrl   String?
+  transcript String?
+  score      Float?         // 0-100
+  feedback   String?
+  assessedBy String?        // "AI" or teacherId
+  createdAt  DateTime       @default(now())
+
+  @@index([studentId])
+}
+
+// ─── Donations ───
+model Donation {
+  id            String        @id @default(cuid())
+  donorId       String?
+  donor         User?         @relation(fields: [donorId], references: [id])
+  amount        Float
+  currency      String        @default("USD")
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       @unique
+  createdAt     DateTime      @default(now())
+
+  @@index([donorId])
+  @@index([status])
+}
+
+// ─── Enums ───
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+  SUPERADMIN
+}
+
+enum CourseCategory {
+  TAJWEED
+  HIFDH
+  ARABIC
+  TRANSLATION
+  TAFSEER
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+enum MentorshipStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum AssessmentType {
+  HIFDH_LISTENING
+  TAJWEED_EXAM
+  VERBAL_TEST
+}
+
+enum PaymentMethod {
+  MPESA
+  CARD
+  PAYPAL
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}

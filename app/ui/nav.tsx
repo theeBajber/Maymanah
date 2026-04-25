@@ -8,9 +8,12 @@ import {
   faChalkboardUser,
   faCircleInfo,
   faHandHoldingHeart,
+  faRightFromBracket,
+  faTableColumns,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
 
 const links = [
   { name: "Home", path: "/", icon: faChalkboardUser },
@@ -20,6 +23,8 @@ const links = [
 ];
 export function TopNav({ className }: { className?: string }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
   return (
     <header
       className={`${className} w-full h-16 border-b sticky top-0 z-20 bg-bg-primary border-bg-elevated lg:px-16 px-4 flex justify-between items-center`}
@@ -46,18 +51,37 @@ export function TopNav({ className }: { className?: string }) {
         ))}
       </nav>
       <div className="md:flex hidden items-center gap-4">
-        <Link
-          href={"/register"}
-          className="w-23 h-9 flex items-center justify-center bg-primary hover:bg-primary-dark rounded-2xl text-text-inverse font-semibold"
-        >
-          Enroll
-        </Link>
-        <Link
-          href={"/login"}
-          className="w-23 h-9 flex items-center justify-center hover:bg-secondary-subtle/20 border border-primary-dark/70 rounded-2xl font-semibold"
-        >
-          Log In
-        </Link>
+        {isLoggedIn ? (
+          <>
+            <Link
+              href="/dashboard"
+              className="w-24 h-9 flex items-center justify-center bg-primary hover:bg-primary-dark rounded-2xl text-text-inverse font-semibold gap-2"
+            >
+              Portal
+            </Link>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="w-24 h-9 flex items-center justify-center hover:bg-secondary-subtle/20 border border-primary-dark/70 rounded-2xl font-semibold gap-2"
+            >
+              Log Out
+            </button>
+          </>
+        ) : (
+          <>
+            <Link
+              href="/register"
+              className="w-23 h-9 flex items-center justify-center bg-primary hover:bg-primary-dark rounded-2xl text-text-inverse font-semibold"
+            >
+              Enroll
+            </Link>
+            <Link
+              href="/login"
+              className="w-23 h-9 flex items-center justify-center hover:bg-secondary-subtle/20 border border-primary-dark/70 rounded-2xl font-semibold"
+            >
+              Log In
+            </Link>
+          </>
+        )}
       </div>
       <button
         className="md:hidden p-1"
@@ -69,13 +93,22 @@ export function TopNav({ className }: { className?: string }) {
         />
       </button>
       {isMobileMenuOpen && (
-        <MobileNav onCloseAction={() => setIsMobileMenuOpen(false)} />
+        <MobileNav
+          onCloseAction={() => setIsMobileMenuOpen(false)}
+          isLoggedIn={isLoggedIn}
+        />
       )}
     </header>
   );
 }
 
-export function MobileNav({ onCloseAction }: { onCloseAction: () => void }) {
+export function MobileNav({
+  onCloseAction,
+  isLoggedIn,
+}: {
+  onCloseAction: () => void;
+  isLoggedIn: boolean;
+}) {
   const handleAsideClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -87,7 +120,7 @@ export function MobileNav({ onCloseAction }: { onCloseAction: () => void }) {
     >
       <aside
         onClick={handleAsideClick}
-        className="h-screen w-[85%] p-6 bg-bg-primary border-l border-border md:hidden flex flex-col gap-6 fixed bottom-0 right-0 max-w-100 z-40 animate-slide-in"
+        className="h-dvh w-[85%] p-6 bg-bg-primary border-l border-border md:hidden flex flex-col gap-6 fixed bottom-0 right-0 max-w-100 z-40 animate-slide-in"
       >
         <div className="w-full flex justify-between items-center">
           <div className={`flex items-center gap-2 text-2xl font-extrabold`}>
@@ -112,6 +145,7 @@ export function MobileNav({ onCloseAction }: { onCloseAction: () => void }) {
             <Link
               key={index}
               href={link.path}
+              onClick={onCloseAction}
               className="w-full h-14 rounded-4xl text-sm px-6 bg-bg-card text-text-secondary flex items-center gap-4 font-bold uppercase tracking-widest hover:text-primary hover:translate-x-1.5 transition-all"
             >
               <FontAwesomeIcon icon={link.icon} className="size-5" />
@@ -120,18 +154,40 @@ export function MobileNav({ onCloseAction }: { onCloseAction: () => void }) {
           ))}
         </nav>
         <div className="mt-auto flex flex-col gap-2">
-          <Link
-            href="/register"
-            className="w-full h-12 flex items-center justify-center bg-primary hover:bg-primary-light transition-colors rounded-full text-text-inverse font-bold"
-          >
-            Enroll Now
-          </Link>
-          <Link
-            href="/login"
-            className="w-full h-12 flex items-center justify-center hover:bg-bg-hover transition-colors border border-primary-dark/70 rounded-full font-bold text-text-primary"
-          >
-            Log In
-          </Link>
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/dashboard"
+                onClick={onCloseAction}
+                className="w-full h-12 flex items-center justify-center gap-2 bg-primary hover:bg-primary-light transition-colors rounded-full text-text-inverse font-bold"
+              >
+                Portal
+              </Link>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="w-full h-12 flex items-center justify-center gap-2 hover:bg-bg-hover transition-colors border border-primary-dark/70 rounded-full font-bold text-text-primary"
+              >
+                Log Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/register"
+                onClick={onCloseAction}
+                className="w-full h-12 flex items-center justify-center bg-primary hover:bg-primary-light transition-colors rounded-full text-text-inverse font-bold"
+              >
+                Enroll Now
+              </Link>
+              <Link
+                href="/login"
+                onClick={onCloseAction}
+                className="w-full h-12 flex items-center justify-center hover:bg-bg-hover transition-colors border border-primary-dark/70 rounded-full font-bold text-text-primary"
+              >
+                Log In
+              </Link>
+            </>
+          )}
         </div>
       </aside>
     </div>

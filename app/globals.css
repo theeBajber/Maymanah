@@ -128,22 +128,6 @@ body {
   text-wrap: balance;
 }
 
-.islamic-pattern {
-  background-image:
-    linear-gradient(
-      to bottom,
-      transparent 0%,
-      rgba(13, 21, 23, 0.2) 60%,
-      rgba(13, 21, 23, 0.8) 95%,
-      rgba(13, 21, 23, 1) 100%
-    ),
-    url("/pattern.png");
-  background-repeat: no-repeat;
-  background-color: var(--color-bg-primary);
-  background-size: cover;
-  background-position: top center;
-}
-
 button {
   cursor: pointer;
 }

@@ -22,7 +22,7 @@ export default function Home() {
 
 function Hero() {
   return (
-    <section className="w-full flex items-center justify-center islamic-pattern py-16">
+    <section className="w-full flex items-center justify-center bg-[linear-gradient(to_bottom,transparent_0%,#fdfcf8cc_60%,#fdfcf8f2_95%,#fdfcf8ff_100%),url('/pattern-light.png')] bg-no-repeat dark:bg-[linear-gradient(to_bottom,transparent_0%,#0d151733_60%,#0d1517cc_95%,#0d1517ff_100%),url('/pattern.png')] bg-bg-primary bg-cover bg-top py-16">
       <div className="grid lg:grid-cols-2 grid-cols-1 items-center gap-16 w-full max-w-7xl">
         <div className="flex flex-col gap-8">
           <div className="flex items-center gap-2 rounded-full bg-secondary-subtle/70 border-border w-fit py-2 px-4 text-primary">
@@ -184,17 +184,17 @@ function Principles() {
             className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-black/10 transition-opacity duration-500 group-hover:from-black/90 group-hover:via-black/50"
             aria-hidden="true"
           />
-          <h4 className="text-3xl z-4 font-black text-text-primary">
+          <h4 className="text-3xl z-4 invert-100 dark:invert-0 font-black text-text-primary">
             1-on-1 Sessions
           </h4>
-          <p className="text-lg z-4 text-text-secondary">
+          <p className="text-lg z-4 text-text-secondary invert-100 dark:invert-0">
             Dedicated time with vetted teachers to master Tajweed and Hifdh at
             your own speed. Experience a personalized curriculum tailored to
             your specific spiritual goals and learning pace.
           </p>
           <Link
             href={"/curriculum"}
-            className="uppercase z-4 w-fit text-sm font-semibold tracking-wide text-text-primary flex items-center gap-2 hover:gap-4 hover:text-primary-dark transition-all"
+            className="uppercase z-4 w-fit text-sm font-semibold tracking-wide text-text-primary invert-100 dark:invert-0 hover:invert-0 flex items-center gap-2 hover:gap-4 hover:text-primary-dark transition-all"
           >
             Explore learning paths
             <FontAwesomeIcon icon={faArrowRight} className="size-4" />
@@ -209,16 +209,16 @@ function Principles() {
             className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-black/10 transition-opacity duration-500 group-hover:from-black/90 group-hover:via-black/50"
             aria-hidden="true"
           />
-          <h4 className="text-2xl z-4 font-black text-text-primary">
+          <h4 className="text-2xl z-4 font-black text-text-primary invert-100 dark:invert-0">
             Universal Access
           </h4>
-          <p className="text-lg z-4 text-text-secondary">
+          <p className="text-lg z-4 text-text-secondary invert-100 dark:invert-0">
             Our global network ensures that sessions are available across every
             timezone, 24/7.
           </p>
           <Link
             href={"/about"}
-            className="uppercase z-4 w-fit text-sm font-semibold tracking-wide text-text-primary flex items-center gap-2 hover:gap-4 hover:text-primary-dark transition-all"
+            className="uppercase z-4 w-fit text-sm font-semibold tracking-wide text-text-primary invert-100 dark:invert-0 hover:invert-0 flex items-center gap-2 hover:gap-4 hover:text-primary-dark transition-all"
           >
             Learn More
             <FontAwesomeIcon icon={faArrowRight} className="size-4" />
@@ -233,16 +233,16 @@ function Principles() {
             className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-black/10 transition-opacity duration-500 group-hover:from-black/90 group-hover:via-black/50"
             aria-hidden="true"
           />
-          <h4 className="text-2xl z-4 font-black text-text-primary">
+          <h4 className="text-2xl z-4 font-black text-text-primary invert-100 dark:invert-0">
             Vetted Teachers
           </h4>
-          <p className="text-lg text-text-secondary z-4">
+          <p className="text-lg text-text-secondary z-4 invert-100 dark:invert-0">
             Each teacher undergoes rigorous evaluation of recitation and
             pedagogy to ensure quality.
           </p>
           <Link
             href={"/teachers"}
-            className="uppercase z-4 w-fit text-sm font-semibold tracking-wide text-text-primary flex items-center gap-2 hover:gap-4 hover:text-primary-dark transition-all"
+            className="uppercase z-4 w-fit text-sm font-semibold tracking-wide text-text-primary invert-100 dark:invert-0 hover:invert-0 flex items-center gap-2 hover:gap-4 hover:text-primary-dark transition-all"
           >
             Find a teacher
             <FontAwesomeIcon icon={faArrowRight} className="size-4" />
