@@ -1,3 +1,5 @@
+"use client";
+import { useState } from "react";
 import {
   faBookOpen,
   faBrain,
@@ -15,6 +17,37 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
+
+const reviews = [
+  {
+    quote:
+      "Rahiq didn't just teach me a skill, it offered a profound shift in how I perceive the intersection of tradition and technology.",
+    name: "Idris Abkar",
+    title: "Architect of Thought",
+    portrait: "/portraits/abkar.jpg",
+  },
+  {
+    quote:
+      "The aesthetic alone induces a state of focus. The content depth is unparalleled in the current digital education landscape.",
+    name: "YasserAl-Dossari",
+    title: "Digital Ethicist",
+    portrait: "/portraits/yasser.jpg",
+  },
+  {
+    quote:
+      "A sanctuary for the soul. Rahiq has transformed my relationship with the Quran in ways I never thought possible.",
+    name: "Hazza Al-Balushi",
+    title: "Student of Knowledge",
+    portrait: "/portraits/balushi.jpg",
+  },
+  {
+    quote:
+      "The teachers here carry an ijazah chain that connects you to the earliest generations. That lineage is priceless.",
+    name: "Maher Al-Muaiqly",
+    title: "Recitation Scholar",
+    portrait: "/portraits/maher.jpg",
+  },
+];
 
 export default function About() {
   return (
@@ -193,89 +226,92 @@ function Exellence() {
 }
 
 function Reviews() {
+  const [page, setPage] = useState(0);
+  const perPage = 2;
+  const totalPages = Math.ceil(reviews.length / perPage);
+  const visible = reviews.slice(page * perPage, page * perPage + perPage);
+
   return (
-    <section className="">
+    <section>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between md:items-end mb-16 gap-8">
           <div className="max-w-2xl">
             <h2 className="text-5xl font-black tracking-tighter mb-6">
               <span className="text-primary">VOICES</span> OF THE SANCTUARY
             </h2>
-            <p className="text-slate-400 tracking-wide">
+            <p className="text-text-secondary tracking-wide">
               Reflections from those who have journeyed through our corridors
               and found clarity.
             </p>
           </div>
-          <div className="flex gap-4">
-            <button className="w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-tertiary hover:text-on-tertiary transition-all">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
               <FontAwesomeIcon icon={faChevronLeft} className="size-4!" />
             </button>
-            <button className="w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-tertiary hover:text-on-tertiary transition-all">
+            <span className="text-xs text-text-muted font-bold tabular-nums">
+              {page + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page === totalPages - 1}
+              className="w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
               <FontAwesomeIcon icon={faChevronRight} className="size-4!" />
             </button>
           </div>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="p-12 bg-bg-card rounded-xl border border-border flex flex-col justify-between group hover:border-tertiary/20 transition-all duration-500">
-            <div>
-              <FontAwesomeIcon
-                icon={faQuoteLeft}
-                className="opacity-30 text-primary mb-6 size-12!"
-              />
-              <p className="text-2xl font-light text-text-secondary leading-snug italic">
-                &quot;Rahiq didn&apos;t just teach me a skill, it offered a
-                profound shift in how I perceive the intersection of tradition
-                and technology.&quot;
-              </p>
-            </div>
-            <div className="mt-12 flex items-center gap-6">
-              <Image
-                alt=""
-                width={225}
-                height={225}
-                className="w-16 h-16 rounded-full border-2 border-primary/40"
-                data-alt="Portrait of a sophisticated young professional woman with a serene expression, soft architectural lighting"
-                src="/portraits/abkar.jpg"
-              />
+          {visible.map((review: any) => (
+            <div
+              key={review.name}
+              className="p-12 bg-bg-card rounded-xl border border-border flex flex-col justify-between group hover:border-primary/20 transition-all duration-500"
+            >
               <div>
-                <p className="text-lg font-bold text-on-surface tracking-tight">
-                  Idris Abkar
-                </p>
-                <p className="text-xs uppercase text-primary tracking-widest">
-                  Architect of Thought
+                <FontAwesomeIcon
+                  icon={faQuoteLeft}
+                  className="opacity-30 text-primary mb-6 size-12!"
+                />
+                <p className="text-2xl font-light text-text-secondary leading-snug italic">
+                  &quot;{review.quote}&quot;
                 </p>
               </div>
-            </div>
-          </div>
-          <div className="p-12 bg-bg-card rounded-xl border border-border flex flex-col justify-between group hover:border-tertiary/20 transition-all duration-500">
-            <div>
-              <FontAwesomeIcon
-                icon={faQuoteLeft}
-                className="opacity-30 text-primary mb-6 size-12!"
-              />
-              <p className="text-2xl font-light text-text-secondary leading-snug italic">
-                &quot;The aesthetic alone induces a state of focus. The content
-                depth is unparalleled in the current digital education
-                landscape.&quot;
-              </p>
-            </div>
-            <div className="mt-12 flex items-center gap-6">
-              <Image
-                alt=""
-                width={320}
-                height={320}
-                className="w-16 h-16 rounded-full border-2 border-primary/40"
-                data-alt="Close-up portrait of a thoughtful man with a minimalist aesthetic, looking away from camera, warm dramatic side light"
-                src="/portraits/yasser.jpg"
-              />
-              <div>
-                <p className="text-lg font-bold tracking-tight">Ishak Twahir</p>
-                <p className="text-xs uppercase text-primary tracking-widest">
-                  Digital Ethicist
-                </p>
+              <div className="mt-12 flex items-center gap-6">
+                <Image
+                  alt={review.name}
+                  width={225}
+                  height={225}
+                  className="w-16 h-16 rounded-full border-2 border-primary/40 object-cover"
+                  src={review.portrait}
+                />
+                <div>
+                  <p className="text-lg font-bold text-text-primary tracking-tight">
+                    {review.name}
+                  </p>
+                  <p className="text-xs uppercase text-primary tracking-widest">
+                    {review.title}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ))}
+        </div>
+
+        {/* Dot indicators */}
+        <div className="flex justify-center gap-2 mt-8">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === page ? "w-6 bg-primary" : "w-1.5 bg-primary/20"
+              }`}
+            />
+          ))}
         </div>
       </div>
     </section>

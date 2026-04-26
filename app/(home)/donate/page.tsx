@@ -1,3 +1,4 @@
+"use client";
 import { faWebAwesome } from "@fortawesome/free-brands-svg-icons/faWebAwesome";
 import {
   faChartColumn,
@@ -6,6 +7,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
+import { useState } from "react";
 
 export default function Donate() {
   return (
@@ -37,6 +39,9 @@ function Hero() {
 }
 
 function Bento() {
+  const [monthly, setMonthly] = useState(true);
+  const [amount, setAmount] = useState(5);
+  const [isCustom, setIsCustom] = useState(false);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl">
       <div className="flex flex-col gap-6">
@@ -120,35 +125,66 @@ function Bento() {
       <div className="bg-bg-card rounded-xl border border-border p-8 shadow-md">
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-center p-1 bg-bg-primary/20 rounded-lg w-full max-w-xs mx-auto border border-border">
-            <button className="flex-1 py-2 text-sm font-bold bg-primary text-text-inverse rounded-md shadow-sm">
+            <button
+              className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${monthly ? "bg-primary text-text-inverse shadow-sm" : "text-text-secondary hover:text-text-primary"}`}
+              onClick={() => setMonthly(true)}
+            >
               Monthly
             </button>
-            <button className="flex-1 py-2 text-sm font-bold text-text-secondary hover:text-text-primary transition-colors">
+            <button
+              className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${!monthly ? "bg-primary text-text-inverse shadow-sm" : "text-text-secondary hover:text-text-primary"}`}
+              onClick={() => setMonthly(false)}
+            >
               One-time
             </button>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex flex-col items-center justify-center py-4 rounded-xl border-2 border-primary bg-primary/10 transition-all group">
-              <span className="text-2xl font-black text-primary">$5</span>
-            </button>
-            <button className="flex flex-col items-center justify-center py-4 rounded-xl border-2 border-border hover:border-primary-dark transition-all group">
-              <span className="text-2xl font-black group-hover:text-primary transition-colors">
-                $10
-              </span>
-            </button>
-            <button className="flex flex-col items-center justify-center py-4 rounded-xl border-2 border-white/10 hover:border-primary/50 transition-all group">
-              <span className="text-2xl font-black group-hover:text-primary transition-colors">
-                $25
-              </span>
-            </button>
-            <div className="relative group">
+            {[5, 10, 25].map((preset) => (
+              <button
+                key={preset}
+                onClick={() => {
+                  setAmount(preset);
+                  setIsCustom(false);
+                }}
+                className={`flex flex-col items-center justify-center py-4 rounded-xl border-2 transition-all duration-200 active:scale-95 ${
+                  amount === preset && !isCustom
+                    ? "border-primary bg-primary/10 text-primary shadow-md shadow-primary/10 scale-[1.03]"
+                    : "border-border hover:border-primary/50 hover:bg-primary/5"
+                }`}
+              >
+                <span className="text-2xl font-black">${preset}</span>
+              </button>
+            ))}
+
+            <div
+              className={`relative rounded-xl border-2 transition-all duration-200 ${
+                isCustom
+                  ? "border-primary bg-primary/10 shadow-md shadow-primary/10"
+                  : "border-border hover:border-primary/50 hover:bg-primary/5"
+              }`}
+            >
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <span className="group-focus-within:text-primary">$</span>
+                <span
+                  className={`font-black text-xl transition-colors duration-200 ${isCustom ? "text-primary" : "text-text-muted"}`}
+                >
+                  $
+                </span>
               </div>
               <input
-                className="w-full h-full py-4 pl-8 pr-4 rounded-xl border-2 border-border focus:border-primary ring-0 text-2xl font-black placeholder-text-primary text-center"
+                className="w-full h-full py-4 pl-8 pr-4 rounded-xl bg-transparent focus:outline-none text-2xl font-black placeholder:text-text-muted text-center"
                 placeholder="Custom"
                 type="text"
+                inputMode="numeric"
+                value={isCustom ? (amount === 0 ? "" : amount) : ""}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9]/g, "");
+                  setIsCustom(true);
+                  setAmount(val ? Number(val) : 0);
+                }}
+                onFocus={() => {
+                  setIsCustom(true);
+                  setAmount(0);
+                }}
               />
             </div>
           </div>
