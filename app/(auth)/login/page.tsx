@@ -1,8 +1,8 @@
 "use client";
 import { faApple, faGoogle } from "@fortawesome/free-brands-svg-icons";
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRight, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,8 @@ export default function LogIn() {
   const [password, setpassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setError("");
@@ -26,6 +28,9 @@ export default function LogIn() {
     setLoading(false);
     if (result?.error) {
       setError("Invalid email or password");
+      setpassword("");
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
       return;
     }
 
@@ -55,7 +60,9 @@ export default function LogIn() {
         </div>
       </div>
       {error && (
-        <div className="mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium">
+        <div
+          className={`mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium ${shake ? "shake" : ""}`}
+        >
           {error}
         </div>
       )}
@@ -101,22 +108,34 @@ export default function LogIn() {
               className="w-full placeholder:text-primary/30 focus:outline-none"
               id="password"
               placeholder="•••••••••••"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setpassword(e.target.value)}
               required
             />
+            <button
+              type="button"
+              tabIndex={-1}
+              className="text-primary hover:text-primary-dark transition-colors"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeOff className="size-4!" />
+              ) : (
+                <Eye className="size-4!" />
+              )}
+            </button>
           </div>
         </div>
         <button
-          disabled={loading}
-          className="w-full h-14 bg-primary text-text-inverse rounded-xl font-black text-lg tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          disabled={loading || !email || !password}
+          className="w-full h-14 bg-primary text-text-inverse rounded-xl font-black text-lg tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 group disabled:hover:shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed! disabled:hover:translate-y-0"
           type="submit"
         >
-          {loading ? "Signing In..." : "Sign In"}
+          {loading ? "Signing In" : "Sign In"}
           <FontAwesomeIcon
-            icon={faArrowRight}
-            className="size-4! group-hover:translate-x-1 transition-transform"
+            icon={loading ? faSpinner : faArrowRight}
+            className={`size-4! transition-transform ${loading ? "animate-spin" : ""} ${!loading && email && password ? "group-hover:translate-x-1" : ""}`}
           />
         </button>
         <div className="flex justify-between w-full items-center px-1">
@@ -131,32 +150,6 @@ export default function LogIn() {
           </a>
         </div>
       </form>
-      <div className="my-4 text-center relative">
-        <div aria-hidden="true" className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-primary/10"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-bg-card text-text-secondary font-medium uppercase tracking-wider">
-            Or continue with
-          </span>
-        </div>
-      </div>
-      <div className="flex gap-4 w-full items-center">
-        <button
-          onClick={() => signIn("google", { callbackUrl: "/portal/dashboard" })}
-          className="bg-text-primary text-text-inverse rounded-xl w-full h-14 flex items-center justify-center gap-px tracking-wider font-bold"
-        >
-          <FontAwesomeIcon icon={faGoogle} className="size-5!" />
-          oogle
-        </button>
-        <button
-          onClick={() => signIn("apple", { callbackUrl: "/portal/dashboard" })}
-          className="bg-bg-primary rounded-xl w-full h-14 flex items-center justify-center gap-2 tracking-wider font-bold"
-        >
-          <FontAwesomeIcon icon={faApple} className="size-5!" />
-          Apple
-        </button>
-      </div>
     </main>
   );
 }

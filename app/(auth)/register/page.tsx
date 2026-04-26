@@ -1,7 +1,7 @@
 "use client";
 
 import { faApple, faGoogle } from "@fortawesome/free-brands-svg-icons";
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRight, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { signIn } from "next-auth/react";
@@ -19,6 +19,19 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const getPasswordStrength = (pwd: string) => {
+    if (pwd.length === 0) return null;
+    if (pwd.length < 6)
+      return { label: "Too short", color: "bg-danger", width: "w-1/4" };
+    if (pwd.length < 8)
+      return { label: "Weak", color: "bg-warning", width: "w-2/4" };
+    if (!/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd))
+      return { label: "Fair", color: "bg-yellow-400", width: "w-3/4" };
+    return { label: "Strong", color: "bg-success", width: "w-full" };
+  };
+
+  const strength = getPasswordStrength(password);
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -40,7 +53,12 @@ export default function Register() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+          role,
+        }),
       });
 
       const data = await res.json();
@@ -53,7 +71,12 @@ export default function Register() {
         return;
       }
 
-      router.push("/login");
+      await signIn("credentials", {
+        email: email.trim().toLowerCase(),
+        password,
+        redirect: false,
+      });
+      router.push("/dashboard");
     } catch {
       setLoading(false);
       setError("Something went wrong. Please try again.");
@@ -83,7 +106,7 @@ export default function Register() {
       </div>
 
       {error && (
-        <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center font-medium">
+        <div className="mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium">
           {error}
         </div>
       )}
@@ -225,16 +248,53 @@ export default function Register() {
             </div>
           </div>
         </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex w-full flex-col gap-1 px-1">
+            {strength && (
+              <>
+                <div className="h-1 w-full bg-border rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${strength.color} ${strength.width}`}
+                  />
+                </div>
+                <span
+                  className={`text-[10px] font-bold ${strength.color.replace("bg-", "text-")}`}
+                >
+                  {strength.label}
+                </span>
+              </>
+            )}
+          </div>
+
+          <div className="flex w-full px-1">
+            {confirmPassword && (
+              <p
+                className={`text-[10px] font-bold ${password === confirmPassword ? "text-success" : "text-danger"}`}
+              >
+                {password === confirmPassword
+                  ? "✓ Passwords match"
+                  : "✗ Passwords do not match"}
+              </p>
+            )}
+          </div>
+        </div>
 
         <button
-          disabled={loading}
-          className="w-full h-14 bg-primary text-text-inverse rounded-xl font-black text-lg tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          disabled={
+            loading ||
+            !name ||
+            !email ||
+            !password ||
+            password !== confirmPassword ||
+            password.length < 8
+          }
+          className="w-full h-14 bg-primary text-text-inverse rounded-xl font-black text-lg tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed! disabled:hover:shadow-primary/20 disabled:hover:translate-y-0"
           type="submit"
         >
-          {loading ? "Creating Account..." : "Create Account"}
+          {loading ? "Creating Account" : "Create Account"}
           <FontAwesomeIcon
-            icon={faArrowRight}
-            className="size-4! group-hover:translate-x-1 transition-transform"
+            icon={loading ? faSpinner : faArrowRight}
+            className={`size-4! transition-transform ${loading ? "animate-spin" : ""} ${!loading && email && password && name && password === confirmPassword && password.length >= 7 ? "group-hover:translate-x-1" : ""}`}
           />
         </button>
 
@@ -250,36 +310,6 @@ export default function Register() {
           </a>
         </div>
       </form>
-
-      <div className="my-4 text-center relative">
-        <div aria-hidden="true" className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-primary/10"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-bg-card text-text-secondary font-medium uppercase tracking-wider">
-            Or continue with
-          </span>
-        </div>
-      </div>
-
-      <div className="flex gap-4 w-full flex-col sm:flex-row items-center">
-        <button
-          type="button"
-          onClick={() => signIn("google", { callbackUrl: "/portal/dashboard" })}
-          className="bg-text-primary text-text-inverse rounded-xl w-full h-14 flex items-center justify-center gap-px tracking-wider font-bold hover:opacity-90 transition-opacity"
-        >
-          <FontAwesomeIcon icon={faGoogle} className="size-5!" />
-          oogle
-        </button>
-        <button
-          type="button"
-          onClick={() => signIn("apple", { callbackUrl: "/portal/dashboard" })}
-          className="bg-bg-primary rounded-xl w-full h-14 flex items-center justify-center gap-2 tracking-wider font-bold hover:bg-bg-primary/80 transition-colors"
-        >
-          <FontAwesomeIcon icon={faApple} className="size-5!" />
-          Apple
-        </button>
-      </div>
     </main>
   );
 }
