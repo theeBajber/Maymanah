@@ -1,5 +1,4 @@
 "use client";
-import { faApple, faGoogle } from "@fortawesome/free-brands-svg-icons";
 import { faArrowRight, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";

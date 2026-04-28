@@ -30,9 +30,8 @@ function Hero() {
         support our servers
       </h1>
       <p className="text-text-secondary text-lg font-normal leading-relaxed max-w-2xl">
-        Your contribution helps us connect thousands of students with the words
-        of Allah. Rahiq remains 100% free for students and teachers thanks to
-        donors like you.
+        Rahiq runs almost entirely on free tiers and volunteer time. Donations
+        go toward scaling infrastructure as the community grows.
       </p>
     </section>
   );

@@ -1,6 +1,5 @@
 "use client";
 
-import { faApple, faGoogle } from "@fortawesome/free-brands-svg-icons";
 import { faArrowRight, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
@@ -14,6 +13,7 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [shake, setShake] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"STUDENT" | "TEACHER">("STUDENT");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,6 +30,8 @@ export default function Register() {
       return { label: "Fair", color: "bg-yellow-400", width: "w-3/4" };
     return { label: "Strong", color: "bg-success", width: "w-full" };
   };
+  const isValidName = (n: string) =>
+    /^[a-zA-Z]+([\s'-][a-zA-Z]+)+$/.test(n.trim());
 
   const strength = getPasswordStrength(password);
 
@@ -39,15 +41,23 @@ export default function Register() {
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
       return;
     }
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
       return;
     }
-
-    setLoading(true);
+    if (!isValidName(name)) {
+      setError("Please enter a valid name!");
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
+      return;
+    }
 
     try {
       const res = await fetch("/api/auth/register", {
@@ -68,6 +78,8 @@ export default function Register() {
         setError(
           data.error?.[0]?.message || data.error || "Registration failed",
         );
+        setShake(true);
+        setTimeout(() => setShake(false), 400);
         return;
       }
 
@@ -80,6 +92,8 @@ export default function Register() {
     } catch {
       setLoading(false);
       setError("Something went wrong. Please try again.");
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
     }
   };
 
@@ -104,13 +118,6 @@ export default function Register() {
           <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
         </div>
       </div>
-
-      {error && (
-        <div className="mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium">
-          {error}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="w-full justify-center flex items-center">
           <div className="bg-bg-primary p-1.5 rounded-xl flex gap-1 border border-primary/10 w-fit">
@@ -139,6 +146,13 @@ export default function Register() {
           </div>
         </div>
 
+        {error && (
+          <div
+            className={`mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium ${shake ? "shake" : ""}`}
+          >
+            {error}
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           <label
             className="text-[10px] uppercase tracking-widest font-bold px-1"
