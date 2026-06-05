@@ -21,7 +21,7 @@ import Image from "next/image";
 const reviews = [
   {
     quote:
-      "Rahiq didn't just teach me a skill, it offered a profound shift in how I perceive the intersection of tradition and technology.",
+      "Maymanah didn't just teach me a skill, it offered a profound shift in how I perceive the intersection of tradition and technology.",
     name: "Idris Abkar",
     title: "Architect of Thought",
     portrait: "/portraits/abkar.jpg",
@@ -35,7 +35,7 @@ const reviews = [
   },
   {
     quote:
-      "A sanctuary for the soul. Rahiq has transformed my relationship with the Quran in ways I never thought possible.",
+      "A sanctuary for the soul. Maymanah has transformed my relationship with the Quran in ways I never thought possible.",
     name: "Hazza Al-Balushi",
     title: "Student of Knowledge",
     portrait: "/portraits/balushi.jpg",
@@ -84,7 +84,7 @@ function WhyItsFree() {
           <div className="h-0.5 w-24 bg-primary/50 rounded-full"></div>
           <div className="space-y-6 text-xl text-text-secondary leading-relaxed">
             <p>
-              Rahiq operates on the principle of{" "}
+              Maymanah operates on the principle of{" "}
               <span className="text-primary font-bold">Sadaqah Jariyah</span>{" "}
               (Voluntary ongoing charity). We believe that the teaching of the
               Quran is a prophetic mission that should never be commodified.
@@ -151,7 +151,7 @@ function Exellence() {
               Verified Excellence
             </h2>
             <p className="text-xl text-text-secondary leading-relaxed italic border-l-2 border-primary-dark pl-6">
-              Quality is never sacrificed for cost. Every teacher at Rahiq
+              Quality is never sacrificed for cost. Every teacher at Maymanah
               undergoes a rigorous screening process to ensure authentic
               transmission of knowledge.
             </p>

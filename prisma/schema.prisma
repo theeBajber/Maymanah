@@ -46,44 +46,68 @@ model VerificationToken {
 
 // ─── Core User ───
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?   // Only for credentials login; null for OAuth users
-  role          UserRole  @default(STUDENT)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String?   @unique
+  emailVerified         DateTime?
+  image                 String?
+  password              String?   // Only for credentials login; null for OAuth users
+  role                  UserRole  @default(STUDENT)
+  twoFactorEnabled      Boolean   @default(false)
+  twoFactorSecret       String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
+  accounts              Account[]
+  sessions              Session[]
+  loginSessions         LoginSession[]
 
-  profile       Profile?
-  enrollments   Enrollment[]
-  teachings     Mentorship[]     @relation("TeacherMentorships")
-  learnings     Mentorship[]     @relation("StudentMentorships")
-  sentMessages  Message[]        @relation("SentMessages")
-  receivedMessages Message[]     @relation("ReceivedMessages")
-  donations     Donation[]
-  appointments  Appointment[]    @relation("TeacherAppointments")
-  availabilities Availability[]
-  assessments   Assessment[]
-  ijazahs       Ijazah[]
-  bookmarks     Bookmark[]
+  profile               Profile?
+  enrollments           Enrollment[]
+  teachings             Mentorship[]     @relation("TeacherMentorships")
+  learnings             Mentorship[]     @relation("StudentMentorships")
+  sentMessages          Message[]        @relation("SentMessages")
+  receivedMessages      Message[]        @relation("ReceivedMessages")
+  donations             Donation[]
+  appointments          Appointment[]    @relation("TeacherAppointments")
+  availabilities        Availability[]
+  assessments           Assessment[]
+  ijazahs               Ijazah[]
+  bookmarks             Bookmark[]
 }
 
 model Profile {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio        String?
-  timezone   String   @default("Africa/Nairobi")
-  phone      String?
-  country    String?
-  quranLevel String?  // beginner, intermediate, advanced
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                  String?
+  timezone             String   @default("Africa/Nairobi")
+  phone                String?
+  country              String?
+  quranLevel           String?  // beginner, intermediate, advanced
+  theme                String   @default("system") // light, dark, system
+  language             String   @default("en") // en, ar, etc.
+  quranFont            String   @default("default") // default, uthmani, etc.
+  emailNotifications   Boolean  @default(true)
+  studyReminders       Boolean  @default(true)
+  reminderTime         String   @default("09:00") // HH:MM format
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ─── Login Sessions ───
+model LoginSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceName      String   // e.g., "Chrome on Windows"
+  ipAddress       String
+  lastActivity    DateTime @default(now()) @updatedAt
+  createdAt       DateTime @default(now())
+  isActive        Boolean  @default(true)
+
+  @@index([userId])
+  @@index([isActive])
 }
 
 // ─── Curriculum ───

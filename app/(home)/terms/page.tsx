@@ -18,10 +18,10 @@ export default function Terms() {
             </h2>
           </div>
           <p className="text-lg text-slate-400 font-body leading-relaxed">
-            By accessing or using Rahiq, you agree to be bound by these Terms
+            By accessing or using Maymanah, you agree to be bound by these Terms
             and Conditions. If you disagree with any part of the terms, you may
             not access the service. These terms constitute a legally binding
-            agreement made between you and Rahiq.
+            agreement made between you and Maymanah.
           </p>
         </article>
         <hr className="border-t border-primary/20" />

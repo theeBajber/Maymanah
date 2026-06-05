@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Rahiq - Auth",
+  title: "Maymanah - Auth",
   description: "Quran learning platform",
 };
 

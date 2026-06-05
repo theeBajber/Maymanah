@@ -37,7 +37,7 @@ function Hero() {
             <span className="text-primary">Without Borders.</span>
           </h1>
           <p className="text-lg md:text-xl max-w-lg text-text-secondary">
-            Rahiq connects expert volunteer teachers with dedicated students
+            Maymanah connects expert volunteer teachers with dedicated students
             worldwide, transcending geography to bring Quranic excellence to
             every home.
           </p>
@@ -264,7 +264,7 @@ function Support() {
             Fuel The <span className="text-primary text-justify">Mission</span>
           </h2>
           <p className="text-lg md:max-w-2xl text-text-secondary text-justify">
-            Rahiq is a non-profit sanctuary. Your contributions help us keep the
+            Maymanah is a non-profit sanctuary. Your contributions help us keep the
             divine word accessible to thousands of students worldwide,
             completely free of charge.
           </p>

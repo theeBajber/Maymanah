@@ -48,7 +48,7 @@ export default function LogIn() {
             width={439}
             alt=""
           />
-          Rahiq
+          Maymanah
         </h1>
         <div className="flex items-center justify-center">
           <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
@@ -78,7 +78,7 @@ export default function LogIn() {
             <input
               className="w-full placeholder:text-primary/30 focus:outline-none"
               id="email"
-              placeholder="scholar@rahiq.com"
+              placeholder="scholar@Maymanah.com"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

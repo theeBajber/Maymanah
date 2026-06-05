@@ -30,12 +30,12 @@ export function TopNav({ className }: { className?: string }) {
       <div className="flex items-center gap-2">
         <Image
           src="/logo.png"
-          alt="Rahiq"
+          alt="Maymanah"
           className="h-10 w-auto"
           width={439}
           height={339}
         />
-        <h1 className={`font-extrabold text-2xl`}>Rahiq</h1>
+        <h1 className={`font-extrabold text-2xl`}>Maymanah</h1>
       </div>
       <nav className="md:flex items-center hidden gap-6">
         {links.map((link, index) => (
@@ -124,12 +124,12 @@ export function MobileNav({
           <div className={`flex items-center gap-2 text-2xl font-extrabold`}>
             <Image
               src="/logo.png"
-              alt="Rahiq"
+              alt="Maymanah"
               className="h-10 w-auto"
               width={439}
               height={339}
             />
-            Rahiq
+            Maymanah
           </div>
           <button onClick={onCloseAction} className="p-1">
             <FontAwesomeIcon

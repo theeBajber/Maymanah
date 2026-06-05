@@ -1,183 +1,330 @@
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { CourseCard, LeaderBoardCard } from "@/app/ui/cards";
+import { amiri } from "@/app/ui/fonts";
+import { TopNav } from "@/app/ui/PortalNav";
 import {
-  faBookOpen,
-  faChartLine,
-  faStar,
+  faAlarmClock,
   faArrowRight,
-  faBullhorn,
-  faGlobe,
-  faRoute,
+  faBookOpen,
+  faCheckSquare,
+  faFireAlt,
+  faMedal,
+  faMusic,
+  faPlay,
+  faSun,
 } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Image from "next/image";
 import Link from "next/link";
 
-export default async function Dash() {
-  const session = await auth();
+type Course = {
+  id: string;
+  title: string;
+  slug: string;
+  image?: string;
+  progress?: number;
+};
 
-  const [enrollmentCount, profile] = await Promise.all([
-    prisma.enrollment.count({
-      where: { userId: session?.user?.id, status: "ACTIVE" },
-    }),
-    prisma.profile.findUnique({
-      where: { userId: session?.user?.id },
-    }),
-  ]);
+type LeaderboardUser = {
+  id: string;
+  name: string;
+  image?: string;
+  xp: number;
+};
+
+type Appointment = {
+  id: string;
+  title: string;
+  startTime: string;
+  teacherName: string;
+  teacherImage?: string;
+  meetingUrl?: string;
+};
+
+export default async function Dash() {
+  const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
+
+  let dashboardData: {
+    user?: { id: string; name: string; image: string };
+    weeklyProgress?: number;
+    streak?: number;
+    leaderboard?: LeaderboardUser[];
+    activeEnrollments?: Course[];
+    upcomingAppointment?: Appointment;
+  } | undefined;
+  try {
+    const res = await fetch(`/api/dashboard`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      dashboardData = await res.json();
+    }
+  } catch (e) {
+    console.error("Failed to fetch dashboard data", e);
+  }
+
+  const userName = dashboardData?.user?.name?.split(" ")[0] ?? "Ahmed";
+  const weeklyProgress = dashboardData?.weeklyProgress ?? 0;
+  const streak = dashboardData?.streak ?? 0;
+  const leaderboardData = dashboardData?.leaderboard ?? [];
+  const enrollments = dashboardData?.activeEnrollments ?? [];
+
+  const upcomingAppointment = dashboardData?.upcomingAppointment ?? null;
 
   return (
-    <main className="relative z-10 max-w-7xl mx-auto px-6 pt-16 pb-32">
-      {/* Header */}
-      <section className="mb-12">
-        <div className="flex flex-col gap-2">
-          <span className="text-xs text-primary font-bold uppercase tracking-widest">
-            Student Portal
-          </span>
-          <h1 className="text-4xl md:text-5xl font-black text-text-primary tracking-tight">
-            Dashboard
-          </h1>
-        </div>
-      </section>
-
-      {/* Main Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Left Column */}
-        <div className="md:col-span-8 flex flex-col gap-6">
-          {/* Welcome Card */}
-          <div className="bg-bg-card border border-border rounded-xl p-8 md:p-12 relative overflow-hidden group shadow-sm">
-            {/* Background Icon */}
-            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
-              <FontAwesomeIcon
-                icon={faBookOpen}
-                className="text-primary"
-                style={{ fontSize: "8rem" }}
-              />
+    <div className="flex flex-col max-w-7xl w-full h-full pt-16">
+      <TopNav />
+      <div className="flex-1 p-6 flex flex-col gap-6">
+        <section className="w-full bg-bg-card rounded-xl p-8 flex items-center gap-4 justify-between *:h-full">
+          <div className="flex flex-col max-w-2xl gap-2 p-2">
+            <h1 className={`text-primary ${amiri.className} text-3xl`}>
+              Hey, {userName}
+            </h1>
+            <p className="text-text-secondary">
+              {enrollments.length > 0
+                ? `You're 3 lessons away from completing your weekly goal — ${enrollments[0].title} awaits.`
+                : "No active courses yet. Start learning today!"}
+            </p>
+            <div className="flex items-center gap-4 my-4">
+              <Link
+                href="/learn"
+                className="rounded-xl py-1.5 px-4 flex items-center gap-2 bg-primary text-text-inverse"
+              >
+                <FontAwesomeIcon icon={faPlay} className="text-xs" />
+                Resume Learning
+              </Link>
+              <Link
+                href="/Courses"
+                className="rounded-xl border border-primary py-1.5 px-4"
+              >
+                View Study Plan
+              </Link>
             </div>
-
-            <div className="relative z-10">
-              <div className="mb-8">
-                <h2 className="text-2xl font-black text-text-primary mb-1">
-                  Welcome, {session?.user?.name}
-                </h2>
-                <p className="text-text-secondary">
-                  Your role:{" "}
-                  <span className="text-primary font-bold">
-                    {session?.user?.role}
-                  </span>
+          </div>
+          <div className="h-full text-center p-6 rounded-2xl flex flex-col justify-center bg-primary-subtle items-center gap-2">
+            <div className="text-3xl font-bold text-text-primary">
+              {weeklyProgress}%
+            </div>
+            <div className="text-text-primary/70 text-sm">WEEKLY PROGRESS</div>
+          </div>
+        </section>
+        <section className="w-full flex gap-6 h-162">
+          <div className="w-full flex flex-col py-4">
+            <div className="flex w-full justify-between items-center">
+              <div className=" flex flex-col">
+                <h2 className="text-2xl">Active Courses</h2>
+                <p className="text-sm text-text-secondary">
+                  Pick up where you left off
                 </p>
               </div>
-
-              {/* Divider */}
-              <div className="h-px bg-linear-to-r from-transparent via-primary/30 to-transparent mb-8" />
-
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon
-                      icon={faBullhorn}
-                      className="text-primary size-6!"
-                    />
-                    Announcement
-                  </h3>
-                  <div className="bg-bg-primary border border-border rounded-2xl p-5">
-                    <p className="text-text-secondary font-medium">
-                      Portal coming soon. Stay tuned!
-                    </p>
-                  </div>
+              <Link
+                href={"/Courses"}
+                className="text-primary hover:text-primary-dark transition-colors flex gap-2 items-center"
+              >
+                View All <FontAwesomeIcon icon={faArrowRight} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              {enrollments.length > 0 ? (
+                enrollments.map((c) => (
+                  <CourseCard
+                    key={c.id}
+                    image={c.image}
+                    title={c.title}
+                    progress={c.progress}
+                    href={`/courses/${c.slug}`}
+                  />
+                ))
+              ) : (
+                <div className="col-span-2 h-64 rounded-xl flex flex-col gap-2 p-6 bg-bg-card items-center justify-center text-text-secondary">
+                  <FontAwesomeIcon icon={faBookOpen} className="text-3xl mb-2" />
+                  <p>No active courses yet. Browse our catalog to get started.</p>
                 </div>
-
-                <div className="shrink-0">
-                  <Link
-                    className="bg-primary text-text-inverse font-bold px-8 py-4 rounded-full flex items-center gap-2 hover:bg-primary-light active:scale-95 transition-all shadow-lg shadow-primary/20"
-                    href={"/curriculum"}
+              )}
+              <div className="bg-bg-card col-span-2 h-64 rounded-xl flex flex-col gap-2 p-6">
+                <h4 className="uppercase text-text-secondary mb-2 tracking-wider">
+                  Leaderboard
+                </h4>
+                <div className="flex flex-col gap-2">
+                  {leaderboardData.length > 0 ? (
+                    leaderboardData.map((u, idx) => (
+                      <LeaderBoardCard
+                        key={u.id}
+                        currentUser={u.id === dashboardData?.user?.id}
+                        rank={idx + 1}
+                        name={u.name}
+                        xp={u.xp}
+                        image={u.image}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-text-secondary text-sm">No leaderboard data yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="md:w-lg md:h-full overflow-x-hidden overflow-y-scroll flex flex-col gap-4">
+            <div className="bg-bg-card border-border border h-40 rounded-xl shadow-sm flex flex-col p-6 relative">
+              <h4 className="uppercase tracking-wider text-sm text-text-secondary">
+                Learning Streak
+              </h4>
+              <div className="text-xl font-bold mb-2">
+                {streak} Day Streak!{" "}
+                <FontAwesomeIcon
+                  icon={faFireAlt}
+                  className="text-primary animate-pulse duration-700"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                {weekDays.map((day, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-full flex items-center justify-center size-8 bg-primary-subtle text-text-primary/80 uppercase font-bold text-sm"
                   >
-                    Explore Courses
-                    <FontAwesomeIcon icon={faArrowRight} className="size-4!" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="bg-bg-card border border-border rounded-xl p-6 flex items-start gap-4 hover:border-primary/30 transition-colors shadow-sm">
-              <div className="w-12 h-12 rounded-xl bg-primary-muted flex items-center justify-center text-primary shrink-0">
-                <FontAwesomeIcon icon={faBookOpen} className="size-6!" />
-              </div>
-              <div>
-                <p className="text-text-tertiary text-sm font-medium mb-0.5">
-                  Curriculum
-                </p>
-                <p className="text-text-primary font-bold text-lg">
-                  {enrollmentCount} Module{enrollmentCount !== 1 ? "s" : ""}{" "}
-                  Active
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-bg-card border border-border rounded-xl p-6 flex items-start gap-4 hover:border-primary/30 transition-colors shadow-sm">
-              <div className="w-12 h-12 rounded-xl bg-primary-muted flex items-center justify-center text-primary shrink-0">
-                <FontAwesomeIcon icon={faChartLine} className="size-6!" />
-              </div>
-              <div>
-                <p className="text-text-tertiary text-sm font-medium mb-0.5">
-                  Progress
-                </p>
-                <p className="text-text-primary font-bold text-lg">
-                  {profile?.quranLevel
-                    ? profile.quranLevel.charAt(0).toUpperCase() +
-                      profile.quranLevel.slice(1)
-                    : "Level 1 — Initiate"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="md:col-span-4 flex flex-col gap-6">
-          <div className="bg-bg-card border border-border rounded-xl overflow-hidden shadow-sm h-full">
-            {/* Image */}
-            <div className="h-48 relative">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJdXNwp9xbYpzhC9XcY2Joxhs9YWVSguXxhVjs2bgAt9AI5qxue_HE-YFacROURqShp9Pj4S0sbDuxY7yzuP4uO-ZdkwW5PeXKoeJO0DOAN5kBNsr-wR4zFo8ZlT1zF5_6xrJqj-CzcwDzRmYxKCajAW3hlN42yn2geaaRSTJtyP_XVreR5LYEHGwTmsUDAUyYnaykpc9mf2iQwpoYuZI6ZF-DeGhFf5aNIItRlFV1aUhjgNpxNKecjxbZbl_Ij_ynw0hCS2mJZ82Y"
-                alt="Spiritual Sanctuary"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-linear-to-t from-bg-card to-transparent" />
-            </div>
-
-            {/* Content */}
-            <div className="p-8">
-              <h3 className="text-xl font-bold text-text-primary mb-3">
-                Spiritual Journey
-              </h3>
-              <p className="text-text-secondary text-sm mb-6 italic leading-relaxed">
-                &ldquo;Seeking knowledge is a mandatory path for every explorer
-                of truth.&rdquo;
-              </p>
-
-              <div className="space-y-3">
-                {[
-                  { icon: faStar, label: "Weekly Wisdom Series" },
-                  { icon: faGlobe, label: "Global Community Access" },
-                  { icon: faRoute, label: "Interactive Learning Paths" },
-                ].map(({ icon, label }) => (
-                  <div key={label} className="flex items-center gap-3">
-                    <FontAwesomeIcon
-                      icon={icon}
-                      className="text-primary text-sm w-4"
-                    />
-                    <span className="text-sm font-medium text-text-secondary">
-                      {label}
-                    </span>
+                    {day}
                   </div>
                 ))}
               </div>
+              <FontAwesomeIcon
+                icon={faFireAlt}
+                className="absolute -right-2 bottom-0 text-5xl opacity-10"
+              />
+            </div>
+            {upcomingAppointment ? (
+              <div className="bg-bg-card w-full h-120 rounded-xl p-6 border border-border shadow-xl shadow-primary/5 overflow-hidden">
+                <h3 className="text-sm text-text-secondary uppercase mb-4">
+                  Upcoming Session
+                </h3>
+                <div className="flex items-start gap-4 mb-6">
+                  {upcomingAppointment.teacherImage ? (
+                    <Image
+                      alt={upcomingAppointment.teacherName}
+                      className="w-14 h-14 rounded-full object-cover border-2 border-primary"
+                      src={upcomingAppointment.teacherImage}
+                      width={56}
+                      height={56}
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-primary-subtle border-2 border-primary flex items-center justify-center text-primary font-bold">
+                      {upcomingAppointment.teacherName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)}
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-bold">{upcomingAppointment.title}</h4>
+                    <div className="flex items-center gap-2 text-primary font-semibold mt-1">
+                      <FontAwesomeIcon
+                        icon={faAlarmClock}
+                        className="text-sm"
+                      />
+                      <span>
+                        {new Date(
+                          upcomingAppointment.startTime
+                        ).toLocaleString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}{" "}
+                        (Today)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {upcomingAppointment.meetingUrl ? (
+                  <a
+                    href={upcomingAppointment.meetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-block text-center bg-primary text-text-inverse py-4 rounded-2xl font-bold hover:shadow-lg transition-all active:scale-[0.98]"
+                  >
+                    Join Session
+                  </a>
+                ) : (
+                  <button className="w-full bg-primary text-text-inverse py-4 rounded-2xl font-bold hover:shadow-lg transition-all active:scale-[0.98]">
+                    Join Session
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="bg-bg-card w-full h-120 rounded-xl p-6 border border-border shadow-xl shadow-primary/5 overflow-hidden">
+                <h3 className="text-sm text-text-secondary uppercase mb-4">
+                  Upcoming Session
+                </h3>
+                <p className="text-text-secondary">No upcoming sessions.</p>
+              </div>
+            )}
+            <div className="bg-bg-card rounded-xl border border-border p-6 shadow-sm">
+              <h3 className="text-sm text-text-secondary uppercase mb-4">
+                Recent Achievements
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col items-center text-center gap-1 group">
+                  <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-primary border-2 border-primary shadow-inner transition-transform group-hover:scale-110">
+                    <FontAwesomeIcon
+                      icon={faSun}
+                      className="text-text-inverse"
+                    />
+                  </div>
+                  <p className="text-[10px] font-bold leading-tight">
+                    Early Bird
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center gap-1 group">
+                  <div className="w-14 h-14 rounded-full bg-bg-primary flex items-center justify-center text-tertiary border-2 border-bg-primary shadow-inner transition-transform group-hover:scale-110">
+                    <FontAwesomeIcon icon={faMedal} />
+                  </div>
+                  <p className="text-[10px] font-bold leading-tight">
+                    Juz Amma Master
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center gap-1 group">
+                  <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-secondary border-2 border-secondary shadow-inner transition-transform group-hover:scale-110">
+                    <FontAwesomeIcon
+                      icon={faCheckSquare}
+                      className="text-text-inverse"
+                    />
+                  </div>
+                  <p className="text-[10px] font-bold leading-tight">
+                    Consistency King
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl w-full bg-bg-card shadow-sm border border-border flex flex-col gap-2 p-6">
+              <h3 className="text-sm text-text-secondary uppercase mb-4">
+                Quick Resources
+              </h3>
+              <Link
+                href={""}
+                className="rounded-lg bg-primary-subtle w-full px-4 py-1.5 flex gap-4 items-center"
+              >
+                <FontAwesomeIcon icon={faMusic} />
+                <div className="flex flex-col">
+                  Audio Library
+                  <p className="text-text-secondary text-xs">
+                    Listen to master reciters
+                  </p>
+                </div>
+              </Link>
+              <Link
+                href={""}
+                className="rounded-lg bg-primary-subtle w-full px-4 py-1.5 flex gap-4 items-center"
+              >
+                <FontAwesomeIcon icon={faBookOpen} />
+                <div className="flex flex-col">
+                  Mushaf
+                  <p className="text-text-secondary text-xs">
+                    Read from the holy Quran
+                  </p>
+                </div>
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </div>
+    </div>
   );
 }

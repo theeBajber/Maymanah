@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Rahiq - Home",
-  description: "Welcome to Rahiq! Your journey of learning Quran awaits",
+  title: "Maymanah - Home",
+  description: "Welcome to Maymanah! Your journey of learning Quran awaits",
 };
 
 export default function RootLayout({

@@ -14,8 +14,9 @@ export function Footer() {
     <footer className="w-full border-t bg-bg-secondary/20 border-border p-8 md:p-16 flex flex-col">
       <div className="flex w-full justify-between flex-col md:flex-row gap-4 md:gap-0 border-b border-border pb-8">
         <div className="flex flex-col gap-4">
-          <h1
-            className={`text-2xl ${inter.className} font-black flex items-center gap-2`}
+          <Link
+            href={"/"}
+            className={`text-2xl ${inter.className} font-black flex items-center gap-2 cursor-pointer`}
           >
             <Image
               width={439}
@@ -24,8 +25,8 @@ export function Footer() {
               src={"/logo.png"}
               alt=""
             />
-            Rahiq
-          </h1>
+            Maymanah
+          </Link>
           <p className="text-text-secondary md:max-w-sm ">
             A non-profit initiative dedicated to preserving the tradition of
             Quranic transmission through technology.
@@ -132,7 +133,7 @@ export function Footer() {
       </div>
       <div className="w-full flex flex-col md:flex-row gap-4 items-center justify-between py-4">
         <span className="text-sm text-text-secondary">
-          &copy; 2026 Rahiq Global. Teaching the Quran to the world.
+          &copy; 2026 Maymanah Global. Teaching the Quran to the world.
         </span>
         <div className="flex items-center gap-4">
           <Link

@@ -30,7 +30,7 @@ function Hero() {
         support our servers
       </h1>
       <p className="text-text-secondary text-lg font-normal leading-relaxed max-w-2xl">
-        Rahiq runs almost entirely on free tiers and volunteer time. Donations
+        Maymanah runs almost entirely on free tiers and volunteer time. Donations
         go toward scaling infrastructure as the community grows.
       </p>
     </section>
@@ -212,7 +212,7 @@ function Bento() {
             </button>
           </div>
           <button className="w-full bg-primary text-text-inverse py-4 rounded-xl font-black text-lg shadow-lg shadow-primary/20 hover:bg-primary-light transition-all mt-4">
-            Support Rahiq Now
+            Support Maymanah Now
           </button>
           <p className="text-center text-xs text-text-secondary">
             Secure, encrypted transaction. Tax-deductible in many regions.
