@@ -95,6 +95,8 @@ export default async function Dash() {
   if (!dashboardData) redirect("/login");
 
   const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
+  const todayIdx = new Date().getDay(); // 0=Sun → shift to Mon=0
+  const monBasedIdx = todayIdx === 0 ? 6 : todayIdx - 1;
   const userName = dashboardData.user.name?.split(" ")[0] ?? "Student";
   const enrollments = dashboardData.activeEnrollments;
   const nextCourse = enrollments[0];
@@ -129,11 +131,38 @@ export default async function Dash() {
               </Link>
             </div>
           </div>
-          <div className="h-full text-center p-6 rounded-2xl flex flex-col justify-center bg-primary-subtle items-center gap-2">
-            <div className="text-3xl font-bold text-text-primary">
-              {dashboardData.weeklyProgress}%
+          <div className="h-full flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-primary-subtle">
+            <div className="relative size-24">
+              <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  fill="none"
+                  className="stroke-bg-primary"
+                  strokeWidth="2.5"
+                />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  fill="none"
+                  className="stroke-primary"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeDasharray={`${dashboardData.weeklyProgress}, ${100 - dashboardData.weeklyProgress}`}
+                  pathLength="100"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center z-5">
+                <span className="text-2xl font-bold text-text-primary">
+                  {dashboardData.weeklyProgress}%
+                </span>
+              </div>
             </div>
-            <div className="text-text-primary/70 text-sm">WEEKLY PROGRESS</div>
+            <div className="text-text-primary/70 text-xs tracking-widest">
+              WEEKLY PROGRESS
+            </div>
           </div>
         </section>
         <section className="w-full flex gap-6 h-162">
@@ -209,22 +238,37 @@ export default async function Dash() {
                 {dashboardData.streak} Day Streak{" "}
                 <FontAwesomeIcon
                   icon={faFireAlt}
-                  className="text-primary animate-pulse duration-700"
+                  className={
+                    dashboardData.streak >= 7
+                      ? "text-orange-500 animate-bounce duration-700"
+                      : dashboardData.streak > 0
+                        ? "text-primary animate-pulse duration-700"
+                        : "text-text-muted"
+                  }
                 />
               </div>
               <div className="flex items-center gap-2">
-                {weekDays.map((day, idx) => (
-                  <div
-                    key={`${day}-${idx}`}
-                    className={`rounded-full flex items-center justify-center size-8 uppercase font-bold text-sm ${
-                      idx < dashboardData.streak
-                        ? "bg-primary text-text-inverse"
-                        : "bg-primary-subtle text-text-primary/80"
-                    }`}
-                  >
-                    {day}
-                  </div>
-                ))}
+                {weekDays.map((day, idx) => {
+                  const isStreakDay = idx < dashboardData.streak;
+                  const isFuture = idx > monBasedIdx;
+                  const isToday = idx === monBasedIdx;
+                  return (
+                    <div
+                      key={`${day}-${idx}`}
+                      className={`rounded-full flex items-center justify-center size-8 uppercase font-bold text-sm transition-colors ${
+                        isToday
+                          ? "bg-success text-text-inverse ring-2 ring-success ring-offset-2 ring-offset-bg-card"
+                          : isFuture
+                            ? "bg-bg-hover text-text-muted"
+                            : isStreakDay
+                              ? "bg-primary text-text-inverse"
+                              : "bg-primary-subtle text-text-primary/80"
+                      }`}
+                    >
+                      {day}
+                    </div>
+                  );
+                })}
               </div>
               <FontAwesomeIcon
                 icon={faFireAlt}

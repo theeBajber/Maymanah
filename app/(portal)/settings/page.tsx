@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { TopNav } from "@/components/ui/PortalNav";
 import { ThemeSelector } from "@/components/ui/theme-selector";
+import { useToast } from "@/components/ui/toast";
+import { Dropdown } from "@/components/ui/Dropdown";
 import Image from "next/image";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
@@ -18,6 +20,7 @@ import {
   faX,
   faBars,
   faChalkboardUser,
+  faPen,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -49,10 +52,6 @@ const baseTabs: SettingsTab[] = [
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<TabType>("profile");
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const tabs: SettingsTab[] =
@@ -146,46 +145,14 @@ export default function SettingsPage() {
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-8">
-            {message && (
-              <div
-                className={`mb-6 p-4 rounded-lg flex items-start justify-between gap-4 ${
-                  message.type === "success"
-                    ? "bg-success-muted text-success border border-success"
-                    : "bg-danger-muted text-danger border border-danger"
-                }`}
-              >
-                <p className="flex-1">{message.text}</p>
-                <button
-                  onClick={() => setMessage(null)}
-                  className="shrink-0 hover:opacity-70 transition-opacity"
-                >
-                  <FontAwesomeIcon icon={faX} className="size-4" />
-                </button>
-              </div>
-            )}
-
             {/* Tab content */}
-            {activeTab === "profile" && (
-              <ProfileSettings onMessage={setMessage} />
-            )}
-            {activeTab === "security" && (
-              <SecuritySettings onMessage={setMessage} />
-            )}
-            {activeTab === "notifications" && (
-              <NotificationsSettings onMessage={setMessage} />
-            )}
-            {activeTab === "interface" && (
-              <InterfaceSettings onMessage={setMessage} />
-            )}
-            {activeTab === "sessions" && (
-              <SessionsSettings onMessage={setMessage} />
-            )}
-            {activeTab === "danger" && (
-              <DangerZoneSettings onMessage={setMessage} />
-            )}
-            {activeTab === "ustadh" && (
-              <UstadhSettings onMessage={setMessage} />
-            )}
+            {activeTab === "profile" && <ProfileSettings />}
+            {activeTab === "security" && <SecuritySettings />}
+            {activeTab === "notifications" && <NotificationsSettings />}
+            {activeTab === "interface" && <InterfaceSettings />}
+            {activeTab === "sessions" && <SessionsSettings />}
+            {activeTab === "danger" && <DangerZoneSettings />}
+            {activeTab === "ustadh" && <UstadhSettings />}
           </div>
         </main>
       </div>
@@ -194,12 +161,9 @@ export default function SettingsPage() {
 }
 
 // Profile Settings Component
-function ProfileSettings({
-  onMessage,
-}: {
-  onMessage: (msg: { type: "success" | "error"; text: string }) => void;
-}) {
-  const { data: session } = useSession();
+function ProfileSettings() {
+  const { data: session, update } = useSession();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: session?.user?.name || "",
     email: session?.user?.email || "",
@@ -211,6 +175,39 @@ function ProfileSettings({
     portrait: "/portraits/pattern-6.png",
   });
   const [loading, setLoading] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const avatarPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (avatarPickerRef.current && !avatarPickerRef.current.contains(e.target as Node)) {
+        setShowAvatarPicker(false);
+      }
+    }
+    if (showAvatarPicker) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAvatarPicker]);
+
+  useEffect(() => {
+    fetch("/api/user/update-profile")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.name) {
+          setFormData((prev) => ({
+            ...prev,
+            name: data.name ?? prev.name,
+            email: data.email ?? prev.email,
+            bio: data.bio ?? "",
+            phone: data.phone ?? "",
+            country: data.country ?? "",
+            timezone: data.timezone ?? "Africa/Nairobi",
+            quranLevel: data.quranLevel ?? "beginner",
+            portrait: data.image ?? prev.portrait,
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const portraitOptions = [
     "/portraits/pattern-1.png",
@@ -244,7 +241,7 @@ function ProfileSettings({
       const res = await fetch("/api/user/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, image: formData.portrait }),
       });
 
       if (!res.ok) {
@@ -252,12 +249,14 @@ function ProfileSettings({
         throw new Error(error.error || "Failed to update profile");
       }
 
-      onMessage({ type: "success", text: "Profile updated successfully" });
+      toast({ title: "Profile updated successfully", variant: "success" });
+      await update({ name: formData.name, image: formData.portrait });
+      setLoading(false);
+      setShowAvatarPicker(false);
     } catch (error) {
-      onMessage({
-        type: "error",
-        text:
-          error instanceof Error ? error.message : "Failed to update profile",
+      toast({
+        title: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -282,15 +281,11 @@ function ProfileSettings({
             />
             <button
               type="button"
-              className="absolute bottom-0 right-0 bg-primary text-text-inverse rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
-              title="Change profile picture"
-              onClick={() => {
-                const currentIndex = portraitOptions.indexOf(formData.portrait);
-                const nextIndex = (currentIndex + 1) % portraitOptions.length;
-                handlePortraitSelect(portraitOptions[nextIndex]);
-              }}
+              onClick={() => setShowAvatarPicker((p) => !p)}
+              className="absolute -bottom-1 -right-1 bg-primary text-text-inverse rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors text-xs"
+              title="Change avatar"
             >
-              <FontAwesomeIcon icon={faCog} className="size-3" />
+              <FontAwesomeIcon icon={faPen} className="size-3" />
             </button>
           </div>
           <div>
@@ -303,33 +298,50 @@ function ProfileSettings({
           </div>
         </div>
 
-        {/* Portrait Options Grid */}
-        <div>
-          <label className="block text-sm font-medium text-text-secondary mb-3">
-            Choose Avatar
-          </label>
-          <div className="grid grid-cols-5 gap-3">
-            {portraitOptions.map((portrait) => (
-              <button
-                key={portrait}
-                type="button"
-                onClick={() => handlePortraitSelect(portrait)}
-                className={`relative size-12 rounded-full overflow-hidden border-2 transition-all ${
-                  formData.portrait === portrait
-                    ? "border-primary scale-110"
-                    : "border-border-strong hover:border-primary/50"
-                }`}
-              >
-                <Image
-                  src={portrait}
-                  alt="Avatar option"
-                  fill
-                  className="object-cover"
-                />
-              </button>
-            ))}
+        {/* Avatar Picker Popover */}
+        {showAvatarPicker && (
+          <div className="relative">
+            <div
+              ref={avatarPickerRef}
+              className="absolute z-10 mt-2 bg-bg-card border border-border-strong rounded-xl p-4 shadow-xl"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-text-primary">Choose Avatar</span>
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarPicker(false)}
+                  className="text-text-muted hover:text-text-primary transition-colors"
+                >
+                  <FontAwesomeIcon icon={faX} className="size-3" />
+                </button>
+              </div>
+              <div className="flex gap-3 flex-wrap">
+                {portraitOptions.map((portrait) => (
+                  <button
+                    key={portrait}
+                    type="button"
+                    onClick={() => {
+                      handlePortraitSelect(portrait);
+                      setShowAvatarPicker(false);
+                    }}
+                    className={`relative size-14 rounded-full overflow-hidden border-2 transition-all hover:scale-110 ${
+                      formData.portrait === portrait
+                        ? "border-primary scale-110 ring-2 ring-primary/20"
+                        : "border-border-strong hover:border-primary/50"
+                    }`}
+                  >
+                    <Image
+                      src={portrait}
+                      alt="Avatar option"
+                      fill
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -400,37 +412,31 @@ function ProfileSettings({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
-              Timezone
-            </label>
-            <select
-              name="timezone"
+            <Dropdown
+              label="Timezone"
+              options={[
+                { value: "Africa/Nairobi", label: "Africa/Nairobi" },
+                { value: "Africa/Cairo", label: "Africa/Cairo" },
+                { value: "Asia/Dubai", label: "Asia/Dubai" },
+                { value: "Europe/London", label: "Europe/London" },
+                { value: "America/New York", label: "America/New York" },
+                { value: "Asia/Kolkata", label: "Asia/Kolkata" },
+              ]}
               value={formData.timezone}
-              onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="Africa/Nairobi">Africa/Nairobi</option>
-              <option value="Africa/Cairo">Africa/Cairo</option>
-              <option value="Asia/Dubai">Asia/Dubai</option>
-              <option value="Europe/London">Europe/London</option>
-              <option value="America/New_York">America/New York</option>
-              <option value="Asia/Kolkata">Asia/Kolkata</option>
-            </select>
+              onChange={(v) => setFormData((prev) => ({ ...prev, timezone: v }))}
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
-              Quran Level
-            </label>
-            <select
-              name="quranLevel"
+            <Dropdown
+              label="Quran Level"
+              options={[
+                { value: "beginner", label: "Beginner" },
+                { value: "intermediate", label: "Intermediate" },
+                { value: "advanced", label: "Advanced" },
+              ]}
               value={formData.quranLevel}
-              onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-            </select>
+              onChange={(v) => setFormData((prev) => ({ ...prev, quranLevel: v }))}
+            />
           </div>
         </div>
 
@@ -448,11 +454,8 @@ function ProfileSettings({
 }
 
 // Security Settings Component
-function SecuritySettings({
-  onMessage,
-}: {
-  onMessage: (msg: { type: "success" | "error"; text: string }) => void;
-}) {
+function SecuritySettings() {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -481,17 +484,16 @@ function SecuritySettings({
         throw new Error(error.error || "Failed to change password");
       }
 
-      onMessage({ type: "success", text: "Password changed successfully" });
+      toast({ title: "Password changed successfully", variant: "success" });
       setFormData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
     } catch (error) {
-      onMessage({
-        type: "error",
-        text:
-          error instanceof Error ? error.message : "Failed to change password",
+      toast({
+        title: error instanceof Error ? error.message : "Failed to change password",
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -595,17 +597,30 @@ function SecuritySettings({
 }
 
 // Notifications Settings Component
-function NotificationsSettings({
-  onMessage,
-}: {
-  onMessage: (msg: { type: "success" | "error"; text: string }) => void;
-}) {
+function NotificationsSettings() {
+  const { toast } = useToast();
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
     studyReminders: true,
     reminderTime: "09:00",
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/update-preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.emailNotifications !== undefined) {
+          setPreferences((prev) => ({
+            ...prev,
+            emailNotifications: data.emailNotifications,
+            studyReminders: data.studyReminders,
+            reminderTime: data.reminderTime ?? "09:00",
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleToggle = (field: string) => {
     setPreferences((prev) => ({
@@ -634,12 +649,11 @@ function NotificationsSettings({
         throw new Error("Failed to update preferences");
       }
 
-      onMessage({ type: "success", text: "Notification preferences saved" });
+      toast({ title: "Notification preferences saved", variant: "success" });
     } catch (error) {
-      onMessage({
-        type: "error",
-        text:
-          error instanceof Error ? error.message : "Failed to save preferences",
+      toast({
+        title: error instanceof Error ? error.message : "Failed to save preferences",
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -726,21 +740,28 @@ function NotificationsSettings({
 }
 
 // Interface Settings Component
-function InterfaceSettings({
-  onMessage,
-}: {
-  onMessage: (msg: { type: "success" | "error"; text: string }) => void;
-}) {
+function InterfaceSettings() {
+  const { toast } = useToast();
   const [preferences, setPreferences] = useState({
     language: "en",
     quranFont: "default",
   });
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setPreferences((prev) => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    fetch("/api/user/update-preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.language) {
+          setPreferences((prev) => ({
+            ...prev,
+            language: data.language ?? "en",
+            quranFont: data.quranFont ?? "default",
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSave = async () => {
     setLoading(true);
@@ -755,12 +776,11 @@ function InterfaceSettings({
         throw new Error("Failed to update preferences");
       }
 
-      onMessage({ type: "success", text: "Interface settings saved" });
+      toast({ title: "Interface settings saved", variant: "success" });
     } catch (error) {
-      onMessage({
-        type: "error",
-        text:
-          error instanceof Error ? error.message : "Failed to save settings",
+      toast({
+        title: error instanceof Error ? error.message : "Failed to save settings",
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -790,20 +810,17 @@ function InterfaceSettings({
 
         {/* Language */}
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-2">
-            Language
-          </label>
-          <select
-            name="language"
+          <Dropdown
+            label="Language"
+            options={[
+              { value: "en", label: "English" },
+              { value: "ar", label: "العربية (Arabic)" },
+              { value: "fr", label: "Français (French)" },
+              { value: "es", label: "Español (Spanish)" },
+            ]}
             value={preferences.language}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="en">English</option>
-            <option value="ar">العربية (Arabic)</option>
-            <option value="fr">Français (French)</option>
-            <option value="es">Español (Spanish)</option>
-          </select>
+            onChange={(v) => setPreferences((prev) => ({ ...prev, language: v }))}
+          />
           <p className="text-xs text-text-secondary mt-1">
             Select your preferred interface language
           </p>
@@ -811,19 +828,16 @@ function InterfaceSettings({
 
         {/* Quran Font */}
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-2">
-            Quran Font
-          </label>
-          <select
-            name="quranFont"
+          <Dropdown
+            label="Quran Font"
+            options={[
+              { value: "default", label: "Default" },
+              { value: "uthmani", label: "Uthmani" },
+              { value: "madina", label: "Madina" },
+            ]}
             value={preferences.quranFont}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="default">Default</option>
-            <option value="uthmani">Uthmani</option>
-            <option value="madina">Madina</option>
-          </select>
+            onChange={(v) => setPreferences((prev) => ({ ...prev, quranFont: v }))}
+          />
           <p className="text-xs text-text-secondary mt-1">
             Choose your preferred Quran font style
           </p>
@@ -842,11 +856,8 @@ function InterfaceSettings({
 }
 
 // Sessions Settings Component
-function SessionsSettings({
-  onMessage,
-}: {
-  onMessage: (msg: { type: "success" | "error"; text: string }) => void;
-}) {
+function SessionsSettings() {
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<
     {
       id: string;
@@ -883,10 +894,10 @@ function SessionsSettings({
 
       if (res.ok) {
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-        onMessage({ type: "success", text: "Session logged out" });
+        toast({ title: "Session logged out", variant: "success" });
       }
     } catch {
-      onMessage({ type: "error", text: "Failed to logout session" });
+      toast({ title: "Failed to logout session", variant: "error" });
     }
   };
 
@@ -948,18 +959,15 @@ function SessionsSettings({
 }
 
 // Danger Zone Component
-function DangerZoneSettings({
-  onMessage,
-}: {
-  onMessage: (msg: { type: "success" | "error"; text: string }) => void;
-}) {
+function DangerZoneSettings() {
+  const { toast } = useToast();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleDeleteAccount = async () => {
     if (!password) {
-      onMessage({ type: "error", text: "Password is required" });
+      toast({ title: "Password is required", variant: "error" });
       return;
     }
 
@@ -976,16 +984,14 @@ function DangerZoneSettings({
         throw new Error(error.error || "Failed to delete account");
       }
 
-      onMessage({ type: "success", text: "Account deleted successfully" });
-      // Redirect after a short delay
+      toast({ title: "Account deleted successfully", variant: "success" });
       setTimeout(() => {
         window.location.href = "/";
       }, 2000);
     } catch (error) {
-      onMessage({
-        type: "error",
-        text:
-          error instanceof Error ? error.message : "Failed to delete account",
+      toast({
+        title: error instanceof Error ? error.message : "Failed to delete account",
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -1054,11 +1060,8 @@ function DangerZoneSettings({
   );
 }
 
-function UstadhSettings({
-  onMessage,
-}: {
-  onMessage: (msg: { type: "success" | "error"; text: string }) => void;
-}) {
+function UstadhSettings() {
+  const { toast } = useToast();
   const [bio, setBio] = useState("");
   const [qualifications, setQualifications] = useState("");
   const [isApproved, setIsApproved] = useState(false);
@@ -1087,16 +1090,13 @@ function UstadhSettings({
         body: JSON.stringify({ bio, qualifications }),
       });
       if (res.ok) {
-        onMessage({
-          type: "success",
-          text: "Ustadh profile updated successfully.",
-        });
+        toast({ title: "Ustadh profile updated successfully.", variant: "success" });
       } else {
         const data = await res.json();
-        onMessage({ type: "error", text: data.error ?? "Failed to update." });
+        toast({ title: data.error ?? "Failed to update.", variant: "error" });
       }
     } catch {
-      onMessage({ type: "error", text: "Failed to update settings." });
+      toast({ title: "Failed to update settings.", variant: "error" });
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,38 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function GET() {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, name: true, email: true, image: true, profile: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      name: user.name,
+      email: user.email,
+      image: user.image,
+      bio: user.profile?.bio ?? "",
+      phone: user.profile?.phone ?? "",
+      country: user.profile?.country ?? "",
+      timezone: user.profile?.timezone ?? "Africa/Nairobi",
+      quranLevel: user.profile?.quranLevel ?? "beginner",
+    });
+  } catch (error) {
+    console.error("Fetch profile error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function PATCH(req: NextRequest) {
   try {
     const session = await auth();

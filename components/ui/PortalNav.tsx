@@ -42,7 +42,7 @@ export function TopNav({ children }: { children?: React.ReactNode }) {
   }, [popUp]);
 
   return (
-    <header className="w-full h-16 fixed top-0 left-0 bg-bg-primary px-4 flex items-center justify-between border-b border-border-strong gap-4">
+    <header className="w-full h-16 fixed top-0 left-0 z-50 bg-bg-primary px-4 flex items-center justify-between border-b border-border-strong gap-4">
       <Link
         href={"/"}
         className="text-xl text-primary font-extrabold uppercase flex items-center gap-2 w-40"
@@ -76,7 +76,7 @@ export function TopNav({ children }: { children?: React.ReactNode }) {
             <Image
               width={404}
               height={398}
-              src={"/portraits/pattern-6.png"}
+              src={session?.user?.image || "/portraits/pattern-6.png"}
               alt="Profile"
               className="size-10 rounded-full hover:opacity-80 transition-opacity"
             />
@@ -86,7 +86,7 @@ export function TopNav({ children }: { children?: React.ReactNode }) {
       {popUp && (
         <div
           ref={popUpRef}
-          className="border border-border-strong rounded-xl absolute top-18 right-2 w-56 flex flex-col bg-bg-primary shadow-lg"
+          className="border border-border-strong rounded-xl absolute top-18 right-2 w-56 flex flex-col bg-bg-primary shadow-lg z-50"
         >
           <div className="w-full py-3 px-4 border-b border-border flex flex-col gap-1">
             <p className="font-semibold text-text-primary">

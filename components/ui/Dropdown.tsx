@@ -46,7 +46,9 @@ export function Dropdown<T extends string>({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 h-12 rounded-xl border border-primary-dark/80 focus:border-primary focus:outline-none bg-transparent hover:border-primary transition-colors"
+        className={`w-full flex items-center justify-between px-4 h-12 rounded-xl border focus:outline-none bg-transparent transition-colors ${
+          open ? "border-primary" : "border-primary-dark/80"
+        } hover:border-primary focus:border-primary`}
       >
         <span className={`truncate text-sm ${selected ? "text-text-primary" : "text-text-muted"}`}>
           {selected ? selected.label : placeholder}
