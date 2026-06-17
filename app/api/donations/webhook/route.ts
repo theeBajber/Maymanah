@@ -3,7 +3,13 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+let stripe: Stripe | null = null;
+function getStripe() {
+  if (stripe) return stripe;
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return stripe;
+}
 
 async function handleMpesaCallback(body: string) {
   const data = JSON.parse(body) as {
@@ -49,7 +55,14 @@ async function handleStripeWebhook(body: string, signature: string) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    const s = getStripe();
+    if (!s) {
+      return NextResponse.json(
+        { error: "Stripe is not configured" },
+        { status: 503 },
+      );
+    }
+    event = s.webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET,

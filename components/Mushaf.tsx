@@ -1,10 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import useSWR from 'swr';
-import { Play, Pause, SkipBack, SkipForward, Loader2, Music, ChevronDown, Check } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import useSWR from "swr";
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Loader2,
+  Music,
+  ChevronDown,
+  Check,
+} from "lucide-react";
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface Chapter {
   id: number;
@@ -19,7 +28,7 @@ interface Verse {
   text_uthmani: string;
 }
 
-type MushafMode = 'standalone' | 'revision' | 'session';
+type MushafMode = "standalone" | "revision" | "session";
 
 interface WordResultData {
   position: number;
@@ -41,9 +50,9 @@ interface SessionSummaryData {
 }
 
 type AiMessage =
-  | { type: 'word_result'; data: WordResultData }
-  | { type: 'verse_complete'; data: VerseCompleteData }
-  | { type: 'session_summary'; data: SessionSummaryData };
+  | { type: "word_result"; data: WordResultData }
+  | { type: "verse_complete"; data: VerseCompleteData }
+  | { type: "session_summary"; data: SessionSummaryData };
 
 interface MushafProps {
   mode: MushafMode;
@@ -77,23 +86,29 @@ function CustomSelect({
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const selected = options.find((o) => o.value === value);
 
   return (
     <div ref={ref} className="relative">
-      <label className="block text-xs font-medium text-text-secondary mb-1">{label}</label>
+      <label className="block text-xs font-medium text-text-secondary mb-1">
+        {label}
+      </label>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl border border-border bg-bg-secondary text-text-primary hover:bg-bg-hover transition-colors"
       >
-        <span className="truncate">{selected?.label || 'Select...'}</span>
-        <ChevronDown size={14} className={`transition-transform shrink-0 ml-1 ${open ? 'rotate-180' : ''}`} />
+        <span className="truncate">{selected?.label || "Select..."}</span>
+        <ChevronDown
+          size={14}
+          className={`transition-transform shrink-0 ml-1 ${open ? "rotate-180" : ""}`}
+        />
       </button>
       {open && (
         <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border bg-bg-elevated shadow-lg animate-in">
@@ -105,13 +120,21 @@ function CustomSelect({
                 setOpen(false);
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-bg-hover ${
-                opt.value === value ? 'bg-primary-muted text-primary font-medium' : 'text-text-primary'
+                opt.value === value
+                  ? "bg-primary-muted text-primary font-medium"
+                  : "text-text-primary"
               }`}
             >
-              <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                opt.value === value ? 'border-primary bg-primary' : 'border-border'
-              }`}>
-                {opt.value === value && <Check size={10} className="text-text-inverse" />}
+              <span
+                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  opt.value === value
+                    ? "border-primary bg-primary"
+                    : "border-border"
+                }`}
+              >
+                {opt.value === value && (
+                  <Check size={10} className="text-text-inverse" />
+                )}
               </span>
               <span className="truncate">{opt.label}</span>
             </button>
@@ -123,7 +146,7 @@ function CustomSelect({
 }
 
 export default function Mushaf({
-  mode = 'standalone',
+  mode = "standalone",
   surahNumber: initialSurah = 1,
   verseNumber: initialVerse = 1,
   studentNotes = [],
@@ -140,7 +163,9 @@ export default function Mushaf({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [selectedRecitationIdx, setSelectedRecitationIdx] = useState<number>(0);
   const [isMicActive, setIsMicActive] = useState(false);
-  const [wordFeedback, setWordFeedback] = useState<Map<number, WordResultData>>(new Map());
+  const [wordFeedback, setWordFeedback] = useState<Map<number, WordResultData>>(
+    new Map(),
+  );
   const [showControls, setShowControls] = useState(true);
 
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -150,32 +175,37 @@ export default function Mushaf({
   const verseRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   const { data: chaptersData } = useSWR(
-    'https://api.quran.com/api/v4/chapters',
-    fetcher
+    "https://api.quran.com/api/v4/chapters",
+    fetcher,
   );
 
   const { data: versesData, error: versesError } = useSWR(
     selectedSurah
       ? `https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${selectedSurah}`
       : null,
-    fetcher
+    fetcher,
   );
 
   const { data: editionsData } = useSWR(
-    'https://api.alquran.cloud/v1/edition?format=audio&language=ar',
-    fetcher
+    "https://api.alquran.cloud/v1/edition?format=audio&language=ar",
+    fetcher,
   );
 
   type Edition = { identifier: string; englishName: string };
 
   const editions: Edition[] = useMemo(
-    () => (editionsData?.data || []).filter((e: Edition) => !e.identifier.endsWith('-2')),
-    [editionsData]
+    () =>
+      (editionsData?.data || []).filter(
+        (e: Edition) => !e.identifier.endsWith("-2"),
+      ),
+    [editionsData],
   );
 
   const effectiveRecitationIdx = useMemo(() => {
     if (editions.length > 0 && selectedRecitationIdx === 0) {
-      const idx = editions.findIndex((e: Edition) => e.identifier === 'ar.minshawi');
+      const idx = editions.findIndex(
+        (e: Edition) => e.identifier === "ar.minshawi",
+      );
       return idx >= 0 ? idx : 0;
     }
     return selectedRecitationIdx;
@@ -187,10 +217,11 @@ export default function Mushaf({
         label: e.englishName,
         value: i,
       })),
-    [editions]
+    [editions],
   );
 
-  const reciterIdentifier = editions[effectiveRecitationIdx]?.identifier || 'ar.minshawi';
+  const reciterIdentifier =
+    editions[effectiveRecitationIdx]?.identifier || "ar.minshawi";
   const audioUrl = selectedSurah
     ? `https://api.alquran.cloud/v1/surah/${selectedSurah}/${reciterIdentifier}`
     : null;
@@ -200,12 +231,17 @@ export default function Mushaf({
   const audioFiles = useMemo(() => {
     if (audioData?.data?.ayahs) {
       const fileMap = new Map<string, string>();
-      audioData.data.ayahs.forEach((ayah: { numberInSurah: number; audio: string }) => {
-        const verseKey = `${selectedSurah}:${ayah.numberInSurah}`;
-        if (ayah.audio) {
-          fileMap.set(verseKey, `/api/quran/audio?url=${encodeURIComponent(ayah.audio)}`);
-        }
-      });
+      audioData.data.ayahs.forEach(
+        (ayah: { numberInSurah: number; audio: string }) => {
+          const verseKey = `${selectedSurah}:${ayah.numberInSurah}`;
+          if (ayah.audio) {
+            fileMap.set(
+              verseKey,
+              `/api/quran/audio?url=${encodeURIComponent(ayah.audio)}`,
+            );
+          }
+        },
+      );
       return fileMap;
     }
     return new Map<string, string>();
@@ -215,17 +251,20 @@ export default function Mushaf({
   const verses = versesData?.verses || [];
 
   const currentSurah = chapters.find((c: Chapter) => c.id === selectedSurah);
-  const currentSurahName = currentSurah?.name_arabic || '';
-  const currentSurahNameLatin = currentSurah?.name_simple || '';
+  const currentSurahName = currentSurah?.name_arabic || "";
+  const currentSurahNameLatin = currentSurah?.name_simple || "";
 
   useEffect(() => {
-    if (mode === 'standalone' && selectedSurah && selectedVerse) {
+    if (mode === "standalone" && selectedSurah && selectedVerse) {
       const timer = setTimeout(async () => {
         try {
-          await fetch('/api/quran/progress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ surahNumber: selectedSurah, verseNumber: selectedVerse }),
+          await fetch("/api/quran/progress", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              surahNumber: selectedSurah,
+              verseNumber: selectedVerse,
+            }),
           });
         } catch {}
       }, 1000);
@@ -234,7 +273,10 @@ export default function Mushaf({
   }, [selectedSurah, selectedVerse, mode]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
       mediaRecorderRef.current.stop();
     }
     if (streamRef.current) {
@@ -243,39 +285,57 @@ export default function Mushaf({
     setIsMicActive(false);
   }, []);
 
-  const handleAiFeedback = useCallback((message: AiMessage) => {
-    if (message.type === 'word_result') {
-      const { position, status, description } = message.data;
-      setWordFeedback((prev) => new Map(prev).set(position, { position, status, description }));
-    } else if (message.type === 'verse_complete') {
-      //
-    } else if (message.type === 'session_summary') {
-      if (onSessionEnd) onSessionEnd(message.data);
-      stopRecording();
-    }
-  }, [onSessionEnd, stopRecording]);
+  const handleAiFeedback = useCallback(
+    (message: AiMessage) => {
+      if (message.type === "word_result") {
+        const { position, status, description } = message.data;
+        setWordFeedback((prev) =>
+          new Map(prev).set(position, { position, status, description }),
+        );
+      } else if (message.type === "verse_complete") {
+        //
+      } else if (message.type === "session_summary") {
+        if (onSessionEnd) onSessionEnd(message.data);
+        stopRecording();
+      }
+    },
+    [onSessionEnd, stopRecording],
+  );
 
   const mockAiFeedback = useCallback(() => {
     const mock = [
-      { position: 0, status: 'correct' as const },
-      { position: 1, status: 'correct' as const },
-      { position: 2, status: 'error' as const, description: 'Pronunciation unclear' },
-      { position: 3, status: 'correct' as const },
+      { position: 0, status: "correct" as const },
+      { position: 1, status: "correct" as const },
+      {
+        position: 2,
+        status: "error" as const,
+        description: "Pronunciation unclear",
+      },
+      { position: 3, status: "correct" as const },
     ];
     let delay = 0;
     mock.forEach((fb) => {
-      setTimeout(() => handleAiFeedback({ type: 'word_result', data: fb }), delay);
+      setTimeout(
+        () => handleAiFeedback({ type: "word_result", data: fb }),
+        delay,
+      );
       delay += 500;
     });
-    setTimeout(() => handleAiFeedback({ type: 'verse_complete', data: { accuracy: 85 } }), delay);
+    setTimeout(
+      () =>
+        handleAiFeedback({ type: "verse_complete", data: { accuracy: 85 } }),
+      delay,
+    );
   }, [handleAiFeedback]);
 
   useEffect(() => {
-    if (mode !== 'revision' || !isMicActive) return;
+    if (mode !== "revision" || !isMicActive) return;
 
     const startRecording = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
         streamRef.current = stream;
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
@@ -285,14 +345,23 @@ export default function Mushaf({
           const ws = new WebSocket(wsUrl);
           websocketRef.current = ws;
           ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'init', surah: selectedSurah, verse: selectedVerse, focusAreas: studentNotes }));
+            ws.send(
+              JSON.stringify({
+                type: "init",
+                surah: selectedSurah,
+                verse: selectedVerse,
+                focusAreas: studentNotes,
+              }),
+            );
             mediaRecorder.ondataavailable = (event) => {
               if (event.data.size > 0) ws.send(event.data);
             };
             mediaRecorder.start(100);
           };
           ws.onmessage = (event) => {
-            try { handleAiFeedback(JSON.parse(event.data)); } catch {}
+            try {
+              handleAiFeedback(JSON.parse(event.data));
+            } catch {}
           };
           ws.onerror = () => mockAiFeedback();
         } else {
@@ -307,22 +376,37 @@ export default function Mushaf({
     startRecording();
 
     return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
         mediaRecorderRef.current.stop();
       }
-      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
-      if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
+      if (streamRef.current)
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      if (
+        websocketRef.current &&
+        websocketRef.current.readyState === WebSocket.OPEN
+      ) {
         websocketRef.current.close();
       }
     };
-  }, [isMicActive, selectedSurah, selectedVerse, studentNotes, mode, mockAiFeedback, handleAiFeedback]);
+  }, [
+    isMicActive,
+    selectedSurah,
+    selectedVerse,
+    studentNotes,
+    mode,
+    mockAiFeedback,
+    handleAiFeedback,
+  ]);
 
   const getAudioUrl = useCallback(
     (verse: number) => {
       const verseKey = `${selectedSurah}:${verse}`;
-      return audioFiles.get(verseKey) || '';
+      return audioFiles.get(verseKey) || "";
     },
-    [audioFiles, selectedSurah]
+    [audioFiles, selectedSurah],
   );
 
   const handlePlayVerse = useCallback(
@@ -345,7 +429,7 @@ export default function Mushaf({
         setIsLoading(false);
       }
     },
-    [playbackSpeed, getAudioUrl]
+    [playbackSpeed, getAudioUrl],
   );
 
   const handleNextVerse = useCallback(() => {
@@ -376,7 +460,7 @@ export default function Mushaf({
     if (!audio) return;
 
     const handleEnded = () => {
-      if (mode === 'standalone') {
+      if (mode === "standalone") {
         handleNextVerse();
       } else {
         setIsPlaying(false);
@@ -401,37 +485,40 @@ export default function Mushaf({
       setIsPlaying(true);
     };
 
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('waiting', handleWaiting);
-    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("playing", handlePlaying);
 
     return () => {
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('waiting', handleWaiting);
-      audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("playing", handlePlaying);
     };
   }, [handleNextVerse, mode]);
 
   useEffect(() => {
-    if (currentVerse && mode === 'standalone') {
+    if (currentVerse && mode === "standalone") {
       const el = verseRefs.current.get(currentVerse);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }
   }, [currentVerse, mode]);
 
-  const setVerseRef = useCallback((verse: number, el: HTMLDivElement | null) => {
-    if (el) {
-      verseRefs.current.set(verse, el);
-    } else {
-      verseRefs.current.delete(verse);
-    }
-  }, []);
+  const setVerseRef = useCallback(
+    (verse: number, el: HTMLDivElement | null) => {
+      if (el) {
+        verseRefs.current.set(verse, el);
+      } else {
+        verseRefs.current.delete(verse);
+      }
+    },
+    [],
+  );
 
   const surahNames = useMemo(() => {
     return chapters.map((ch: Chapter) => ({
@@ -446,9 +533,12 @@ export default function Mushaf({
       <div dir="rtl" className="flex flex-wrap gap-1.5">
         {words.map((word, index) => {
           const fb = wordFeedback.get(index);
-          let cls = 'px-2 py-0.5 rounded-lg transition-colors border border-border';
-          if (fb?.status === 'correct') cls += ' bg-success-muted text-success border-success/30';
-          if (fb?.status === 'error') cls += ' bg-danger-muted text-danger border-danger/30';
+          let cls =
+            "px-2 py-0.5 rounded-lg transition-colors border border-border";
+          if (fb?.status === "correct")
+            cls += " bg-success-muted text-success border-success/30";
+          if (fb?.status === "error")
+            cls += " bg-danger-muted text-danger border-danger/30";
           return (
             <span key={index} className={cls}>
               {word}
@@ -460,9 +550,9 @@ export default function Mushaf({
   };
 
   const renderVerse = (verse: Verse) => {
-    const verseNum = parseInt(verse.verse_key.split(':')[1]);
+    const verseNum = parseInt(verse.verse_key.split(":")[1]);
     const isActive =
-      mode === 'session'
+      mode === "session"
         ? verse.verse_key === activeVerse
         : verseNum === currentVerse;
 
@@ -471,17 +561,17 @@ export default function Mushaf({
         key={verse.id}
         ref={(el) => setVerseRef(verseNum, el)}
         onClick={() => {
-          if (mode === 'session' && onVerseSelect) {
+          if (mode === "session" && onVerseSelect) {
             onVerseSelect(verse.verse_key);
-          } else if (mode === 'standalone') {
+          } else if (mode === "standalone") {
             setSelectedVerse(verseNum);
             handlePlayVerse(verseNum);
           }
         }}
         className={`group relative p-6 rounded-2xl cursor-pointer transition-all duration-300 border ${
           isActive
-            ? 'border-primary bg-primary-muted shadow-md scale-[1.01]'
-            : 'border-transparent bg-transparent hover:bg-bg-hover hover:border-border'
+            ? "border-primary bg-primary-muted shadow-md scale-[1.01]"
+            : "border-transparent bg-transparent hover:bg-bg-hover hover:border-border"
         }`}
         dir="rtl"
       >
@@ -489,13 +579,13 @@ export default function Mushaf({
           <span
             className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${
               isActive
-                ? 'bg-primary text-text-inverse'
-                : 'bg-bg-secondary text-text-tertiary'
+                ? "bg-primary text-text-inverse"
+                : "bg-bg-secondary text-text-tertiary"
             }`}
           >
             {verseNum}
           </span>
-          {mode === 'standalone' && (
+          {mode === "standalone" && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -503,8 +593,8 @@ export default function Mushaf({
               }}
               className={`p-2 rounded-full transition-all duration-200 ${
                 isActive && isPlaying
-                  ? 'bg-primary text-text-inverse'
-                  : 'opacity-0 group-hover:opacity-100 bg-bg-secondary text-text-secondary hover:bg-primary hover:text-text-inverse'
+                  ? "bg-primary text-text-inverse"
+                  : "opacity-0 group-hover:opacity-100 bg-bg-secondary text-text-secondary hover:bg-primary hover:text-text-inverse"
               }`}
             >
               {isActive && isLoading ? (
@@ -521,7 +611,7 @@ export default function Mushaf({
           className="text-3xl leading-[2.5] font-serif tracking-wide"
           style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
         >
-          {mode === 'revision' && isMicActive && verseNum === currentVerse
+          {mode === "revision" && isMicActive && verseNum === currentVerse
             ? renderVerseWithFeedback(verse)
             : verse.text_uthmani}
         </p>
@@ -529,15 +619,17 @@ export default function Mushaf({
     );
   };
 
-  if (mode === 'standalone') {
+  if (mode === "standalone") {
     return (
       <>
         <div className="w-full max-w-2xl mx-auto px-4 pb-32 space-y-4">
-          <div className="bg-bg-elevated rounded-2xl border border-border p-4 space-y-4 sticky top-0 z-10 backdrop-blur-sm bg-bg-elevated/95">
+          <div className="rounded-2xl border border-border p-4 space-y-4 sticky top-0 z-10 backdrop-blur-sm bg-bg-elevated/95">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Music size={20} className="text-primary" />
-                <h1 className="text-lg font-bold text-text-primary">Al-Mushaf</h1>
+                <h1 className="text-lg font-bold text-text-primary">
+                  Al-Mushaf
+                </h1>
               </div>
               <button
                 onClick={() => setShowControls(!showControls)}
@@ -545,7 +637,7 @@ export default function Mushaf({
               >
                 <ChevronDown
                   size={20}
-                  className={`transition-transform ${showControls ? 'rotate-180' : ''}`}
+                  className={`transition-transform ${showControls ? "rotate-180" : ""}`}
                 />
               </button>
             </div>
@@ -583,8 +675,8 @@ export default function Mushaf({
                         onClick={() => setPlaybackSpeed(speed)}
                         className={`flex-1 px-3 py-1.5 text-sm rounded-lg font-medium transition-all ${
                           playbackSpeed === speed
-                            ? 'bg-primary text-text-inverse shadow-sm'
-                            : 'bg-bg-secondary text-text-secondary border border-border hover:bg-bg-hover'
+                            ? "bg-primary text-text-inverse shadow-sm"
+                            : "bg-bg-secondary text-text-secondary border border-border hover:bg-bg-hover"
                         }`}
                       >
                         {speed}x
@@ -611,7 +703,9 @@ export default function Mushaf({
                     }}
                     className="w-20 px-3 py-1.5 text-sm rounded-xl border border-border bg-bg-secondary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
-                  <span className="text-xs text-text-tertiary">/ {verses.length}</span>
+                  <span className="text-xs text-text-tertiary">
+                    / {verses.length}
+                  </span>
                 </div>
               </div>
             )}
@@ -645,7 +739,9 @@ export default function Mushaf({
           <div className="max-w-2xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs text-text-secondary min-w-0">
-                <span className="truncate max-w-[120px]">{currentSurahNameLatin || currentSurahName}</span>
+                <span className="truncate max-w-30">
+                  {currentSurahNameLatin || currentSurahName}
+                </span>
                 <span className="shrink-0">·</span>
                 <span className="shrink-0 font-semibold text-text-primary">
                   {currentVerse}:{verses.length}
@@ -700,7 +796,7 @@ export default function Mushaf({
     );
   }
 
-  if (mode === 'revision') {
+  if (mode === "revision") {
     return (
       <div className="w-full max-w-2xl mx-auto p-4 space-y-4">
         <div className="flex justify-between items-center">
@@ -711,11 +807,11 @@ export default function Mushaf({
             onClick={() => setIsMicActive(!isMicActive)}
             className={`flex gap-2 items-center px-4 py-2 rounded-xl font-medium text-sm transition-all ${
               isMicActive
-                ? 'bg-danger text-text-inverse'
-                : 'bg-secondary text-text-inverse'
+                ? "bg-danger text-text-inverse"
+                : "bg-secondary text-text-inverse"
             }`}
           >
-            {isMicActive ? 'Stop Recording' : 'Start Recording'}
+            {isMicActive ? "Stop Recording" : "Start Recording"}
           </button>
         </div>
 
@@ -728,14 +824,17 @@ export default function Mushaf({
             <h3 className="font-semibold text-secondary mb-3">Live Feedback</h3>
             <div className="space-y-2">
               {aiMessages.map((msg, idx) => (
-                <div key={idx} className="text-sm text-text-primary bg-bg-elevated p-3 rounded-xl border border-border">
-                  {msg.type === 'word_result' && (
+                <div
+                  key={idx}
+                  className="text-sm text-text-primary bg-bg-elevated p-3 rounded-xl border border-border"
+                >
+                  {msg.type === "word_result" && (
                     <span>
                       Word {msg.data.position}: {msg.data.status}
                       {msg.data.description && ` - ${msg.data.description}`}
                     </span>
                   )}
-                  {msg.type === 'verse_complete' && (
+                  {msg.type === "verse_complete" && (
                     <span>Verse complete - Accuracy: {msg.data.accuracy}%</span>
                   )}
                 </div>
@@ -754,8 +853,10 @@ export default function Mushaf({
           <h3 className="font-semibold text-text-primary">
             {currentSurahName} : {selectedVerse}
           </h3>
-          {mode === 'session' && onVerseSelect && (
-            <span className="text-xs text-text-muted">Click to select verse</span>
+          {mode === "session" && onVerseSelect && (
+            <span className="text-xs text-text-muted">
+              Click to select verse
+            </span>
           )}
         </div>
         <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -766,14 +867,25 @@ export default function Mushaf({
       {aiMessages.length > 0 && (
         <div className="space-y-2">
           {aiMessages.map((msg, idx) => (
-            <div key={idx} className="bg-bg-secondary rounded-xl p-3 text-sm border border-border">
-              {msg.type === 'word_result' && (
-                <span className={msg.data.status === 'correct' ? 'text-success' : 'text-danger'}>
+            <div
+              key={idx}
+              className="bg-bg-secondary rounded-xl p-3 text-sm border border-border"
+            >
+              {msg.type === "word_result" && (
+                <span
+                  className={
+                    msg.data.status === "correct"
+                      ? "text-success"
+                      : "text-danger"
+                  }
+                >
                   {msg.data.status}: {msg.data.description}
                 </span>
               )}
-              {msg.type === 'verse_complete' && (
-                <span className="text-secondary">Accuracy: {msg.data.accuracy}%</span>
+              {msg.type === "verse_complete" && (
+                <span className="text-secondary">
+                  Accuracy: {msg.data.accuracy}%
+                </span>
               )}
             </div>
           ))}
