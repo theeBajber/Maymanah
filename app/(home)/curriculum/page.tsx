@@ -1,4 +1,4 @@
-import { amiri, inter } from "@/app/ui/fonts";
+import { amiri, inter } from "@/components/ui/fonts";
 import {
   faBookOpen,
   faBrain,

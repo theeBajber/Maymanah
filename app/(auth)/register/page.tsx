@@ -88,7 +88,7 @@ export default function Register() {
         password,
         redirect: false,
       });
-      router.push("/dashboard");
+      router.push("/onboarding");
     } catch {
       setLoading(false);
       setError("Something went wrong. Please try again.");

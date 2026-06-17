@@ -7,34 +7,20 @@ import {
   faGear,
   faHome,
   faSignOut,
-  faMoon,
-  faSun,
+  faUsers,
+  faCalendarDays,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function TopNav({ children }: { children?: React.ReactNode }) {
   const [popUp, setPopUp] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const { data: session } = useSession();
   const popUpRef = useRef<HTMLDivElement>(null);
-
-  // Initialize theme from localStorage
-  useEffect(() => {
-    const theme = localStorage.getItem("theme") || "system";
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-
-    if (theme === "dark" || (theme === "system" && prefersDark)) {
-      setIsDark(true);
-    } else {
-      setIsDark(false);
-    }
-  }, []);
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -55,18 +41,12 @@ export function TopNav({ children }: { children?: React.ReactNode }) {
     }
   }, [popUp]);
 
-  const toggleTheme = () => {
-    const newTheme = isDark ? "light" : "dark";
-    setIsDark(!isDark);
-    localStorage.setItem("theme", newTheme);
-
-    const htmlElement = document.documentElement;
-    htmlElement.classList.toggle("dark", !isDark);
-  };
-
   return (
     <header className="w-full h-16 fixed top-0 left-0 bg-bg-primary px-4 flex items-center justify-between border-b border-border-strong gap-4">
-      <h1 className="text-xl text-primary font-extrabold uppercase flex items-center gap-2 w-40">
+      <Link
+        href={"/"}
+        className="text-xl text-primary font-extrabold uppercase flex items-center gap-2 w-40"
+      >
         <Image
           src="/logo.png"
           alt="Maymanah"
@@ -75,23 +55,13 @@ export function TopNav({ children }: { children?: React.ReactNode }) {
           height={339}
         />
         Maymanah
-      </h1>
+      </Link>
       <div
         className={`w-full flex items-center ${children ? "justify-between" : "justify-end"}`}
       >
         {children}
         <div className="flex items-center w-fit gap-4">
-          <button
-            onClick={toggleTheme}
-            className="text-text-secondary hover:text-text-primary transition-colors"
-            aria-label="Toggle theme"
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            <FontAwesomeIcon
-              icon={isDark ? faSun : faMoon}
-              className="size-5"
-            />
-          </button>
+          <ThemeToggle />
           <button
             className="text-text-secondary hover:text-text-primary transition-colors"
             aria-label="Notifications"
@@ -150,28 +120,22 @@ export function TopNav({ children }: { children?: React.ReactNode }) {
 }
 
 export function SideNav() {
-  const links = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: faHome,
-    },
-    {
-      name: "Courses",
-      href: "/courses",
-      icon: faChalkboardUser,
-    },
-    {
-      name: "Mushaf",
-      href: "/mushaf",
-      icon: faBookOpen,
-    },
-    {
-      name: "AI Revision",
-      href: "/revision",
-      icon: faArrowsToDot,
-    },
-  ];
+  const { data: session } = useSession();
+  const isUstadh = session?.user?.role === "TEACHER";
+
+  const links = isUstadh
+    ? [
+        { name: "Dashboard", href: "/dashboard", icon: faHome },
+        { name: "My Students", href: "/students", icon: faUsers },
+        { name: "Availability", href: "/availability", icon: faCalendarDays },
+        { name: "Settings", href: "/settings", icon: faGear },
+      ]
+    : [
+        { name: "Dashboard", href: "/dashboard", icon: faHome },
+        { name: "Courses", href: "/courses", icon: faChalkboardUser },
+        { name: "Mushaf", href: "/mushaf", icon: faBookOpen },
+        { name: "AI Revision", href: "/revision", icon: faArrowsToDot },
+      ];
   return (
     <>
       {/* Desktop Sidebar */}

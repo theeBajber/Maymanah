@@ -1,5 +1,5 @@
 import { Globe } from "lucide-react";
-import { amiri } from "../ui/fonts";
+import { amiri } from "@/components/ui/fonts";
 import Link from "next/link";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -22,7 +22,7 @@ export default function Home() {
 
 function Hero() {
   return (
-    <section className="w-full flex items-center justify-center bg-[linear-gradient(to_bottom,transparent_0%,#fdfcf8cc_60%,#fdfcf8f2_95%,#fdfcf8ff_100%),url('/pattern-light.png')] bg-no-repeat dark:bg-[linear-gradient(to_bottom,transparent_0%,#0d151733_60%,#0d1517cc_95%,#0d1517ff_100%),url('/pattern.png')] bg-bg-primary bg-cover bg-top py-16">
+    <section className="w-full flex items-center justify-center hero-pattern bg-bg-primary py-16">
       <div className="grid lg:grid-cols-2 grid-cols-1 items-center gap-16 w-full max-w-7xl">
         <div className="flex flex-col gap-8">
           <div className="flex items-center gap-2 rounded-full bg-secondary-subtle/70 border-border w-fit py-2 px-4 text-primary">

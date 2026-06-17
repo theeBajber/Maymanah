@@ -13,11 +13,15 @@ export async function proxy(req: NextRequest) {
   });
 
   const isLoggedIn = !!token;
-  const isPortal = nextUrl.pathname.startsWith("/dashboard");
+  const isPortal =
+    nextUrl.pathname.startsWith("/dashboard") ||
+    nextUrl.pathname.startsWith("/students") ||
+    nextUrl.pathname.startsWith("/availability");
+  const isOnboarding = nextUrl.pathname.startsWith("/onboarding");
   const isAuthPage =
     nextUrl.pathname === "/login" || nextUrl.pathname === "/register";
 
-  if (isPortal && !isLoggedIn) {
+  if ((isPortal || isOnboarding) && !isLoggedIn) {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
   if (isAuthPage && isLoggedIn) {
@@ -27,5 +31,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/students/:path*", "/availability/:path*", "/onboarding", "/login", "/register"],
 };

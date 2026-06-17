@@ -10,13 +10,16 @@ export function CourseCard({
   href,
 }: {
   className?: string;
-  image?: string;
-  title?: string;
-  progress?: number;
-  lessons?: number;
+  image?: string | null;
+  title?: string | null;
+  progress?: number | null;
+  lessons?: number | null;
   href?: string;
 }) {
-  const completedLessons = Math.round((progress ?? 0) / 100 * (lessons ?? 20));
+  const totalLessons = lessons ?? 0;
+  const completedLessons = totalLessons > 0
+    ? Math.round(((progress ?? 0) / 100) * totalLessons)
+    : 0;
   return (
     <Link
       href={href ?? ""}
@@ -41,11 +44,11 @@ export function CourseCard({
         <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-bg-card"></div>
       </div>
       <div className="p-8 flex flex-col gap-2">
-        <h4 className="mb-2 font-bold text-xl">{title ?? "Tajweed Level 1"}</h4>
+        <h4 className="mb-2 font-bold text-xl">{title ?? "Untitled Course"}</h4>
         <div className="flex w-full items-center justify-between text-sm text-text-secondary">
           <span>{progress ?? 0}% Complete</span>
           <span>
-            {completedLessons}/{lessons ?? 20} Lessons
+            {completedLessons}/{totalLessons} Lessons
           </span>
         </div>
         <div className="rounded-full w-full h-2 bg-bg-primary relative">
@@ -68,9 +71,9 @@ export function LeaderBoardCard({
 }: {
   currentUser?: boolean;
   rank?: number;
-  name?: string;
+  name?: string | null;
   xp?: number;
-  image?: string;
+  image?: string | null;
 }) {
   return (
     <div
@@ -96,13 +99,13 @@ export function LeaderBoardCard({
       )}
       <div className="flex flex-col">
         <div className="font-semibold flex items-center gap-2">
-          {name ?? "Ahmed S."}
+          {name ?? "Student"}
           <span className={` font-normal ${currentUser ? "inline" : "hidden"}`}>
             (You)
           </span>
         </div>
         <div className="text-xs text-text-secondary">
-          {xp ?? 1250} xp
+          {xp ?? 0} xp
         </div>
       </div>
     </div>

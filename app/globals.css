@@ -1,85 +1,127 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #fdfcf8;
-  --bg-secondary: #f5f3ee;
-  --bg-elevated: #ffffff;
-  --bg-hover: #ede9e3;
-  --bg-card: #ffffff;
+    --bg-primary: #fdfcf8;
+    --bg-secondary: #f5f3ee;
+    --bg-elevated: #ffffff;
+    --bg-hover: #ede9e3;
+    --bg-card: #ffffff;
 
-  --primary: #b8860b;
-  --primary-light: #d4a73a;
-  --primary-dark: #8b6914;
-  --primary-muted: #f5efe6;
-  --primary-subtle: #e8dcc8;
+    --primary: #b8860b;
+    --primary-light: #d4a73a;
+    --primary-dark: #8b6914;
+    --primary-muted: #f5efe6;
+    --primary-subtle: #e8dcc8;
 
-  --secondary: #0d9488;
-  --secondary-light: #14b8a6;
-  --secondary-dark: #0f766e;
-  --secondary-muted: #e6f4f3;
-  --secondary-subtle: #cceae8;
+    --secondary: #0d9488;
+    --secondary-light: #14b8a6;
+    --secondary-dark: #0f766e;
+    --secondary-muted: #e6f4f3;
+    --secondary-subtle: #cceae8;
 
-  --success: #16a34a;
-  --success-muted: #dcfce7;
-  --warning: #d97706;
-  --warning-muted: #fef3c7;
-  --danger: #dc2626;
-  --danger-muted: #fee2e2;
-  --info: #2563eb;
-  --info-muted: #dbeafe;
+    --success: #16a34a;
+    --success-muted: #dcfce7;
+    --warning: #d97706;
+    --warning-muted: #fef3c7;
+    --danger: #dc2626;
+    --danger-muted: #fee2e2;
+    --info: #2563eb;
+    --info-muted: #dbeafe;
 
-  --text-primary: #1c1917;
-  --text-secondary: #57534e;
-  --text-tertiary: #78716c;
-  --text-muted: #a8a29e;
-  --text-inverse: #ffffff;
+    --text-primary: #1c1917;
+    --text-secondary: #57534e;
+    --text-tertiary: #78716c;
+    --text-muted: #a8a29e;
+    --text-inverse: #ffffff;
 
-  --border: #e7e5e4;
-  --border-strong: #d6d3d1;
-  --divider: #f5f5f4;
+    --border: #e7e5e4;
+    --border-strong: #d6d3d1;
+    --divider: #f5f5f4;
+    --pattern-image: url("/pattern-light.png");
 }
 
 @theme inline {
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-secondary: var(--bg-secondary);
-  --color-bg-elevated: var(--bg-elevated);
-  --color-bg-hover: var(--bg-hover);
-  --color-bg-card: var(--bg-card);
+    --color-bg-primary: var(--bg-primary);
+    --color-bg-secondary: var(--bg-secondary);
+    --color-bg-elevated: var(--bg-elevated);
+    --color-bg-hover: var(--bg-hover);
+    --color-bg-card: var(--bg-card);
 
-  --color-primary: var(--primary);
-  --color-primary-light: var(--primary-light);
-  --color-primary-dark: var(--primary-dark);
-  --color-primary-muted: var(--primary-muted);
-  --color-primary-subtle: var(--primary-subtle);
+    --color-primary: var(--primary);
+    --color-primary-light: var(--primary-light);
+    --color-primary-dark: var(--primary-dark);
+    --color-primary-muted: var(--primary-muted);
+    --color-primary-subtle: var(--primary-subtle);
 
-  --color-secondary: var(--secondary);
-  --color-secondary-light: var(--secondary-light);
-  --color-secondary-dark: var(--secondary-dark);
-  --color-secondary-muted: var(--secondary-muted);
-  --color-secondary-subtle: var(--secondary-subtle);
+    --color-secondary: var(--secondary);
+    --color-secondary-light: var(--secondary-light);
+    --color-secondary-dark: var(--secondary-dark);
+    --color-secondary-muted: var(--secondary-muted);
+    --color-secondary-subtle: var(--secondary-subtle);
 
-  --color-success: var(--success);
-  --color-success-muted: var(--success-muted);
-  --color-warning: var(--warning);
-  --color-warning-muted: var(--warning-muted);
-  --color-danger: var(--danger);
-  --color-danger-muted: var(--danger-muted);
-  --color-info: var(--info);
-  --color-info-muted: var(--info-muted);
+    --color-success: var(--success);
+    --color-success-muted: var(--success-muted);
+    --color-warning: var(--warning);
+    --color-warning-muted: var(--warning-muted);
+    --color-danger: var(--danger);
+    --color-danger-muted: var(--danger-muted);
+    --color-info: var(--info);
+    --color-info-muted: var(--info-muted);
 
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-  --color-text-muted: var(--text-muted);
-  --color-text-inverse: var(--text-inverse);
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-tertiary: var(--text-tertiary);
+    --color-text-muted: var(--text-muted);
+    --color-text-inverse: var(--text-inverse);
 
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-divider: var(--divider);
+    --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
+    --color-divider: var(--divider);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+    :root {
+        --bg-primary: #0d1517;
+        --bg-secondary: #111e21;
+        --bg-elevated: #162226;
+        --bg-hover: #1a2e33;
+        --bg-card: #162226;
+
+        --primary: #d4a73a;
+        --primary-light: #e5b94a;
+        --primary-dark: #b8922e;
+        --primary-muted: #2a2418;
+        --primary-subtle: #3d3220;
+
+        --secondary: #14b8a6;
+        --secondary-light: #2dd4bf;
+        --secondary-dark: #0d9488;
+        --secondary-muted: #1a2e2c;
+        --secondary-subtle: #244745;
+
+        --success: #22c55e;
+        --success-muted: #1e3a28;
+        --warning: #f59e0b;
+        --warning-muted: #3d3220;
+        --danger: #ef4444;
+        --danger-muted: #3d2020;
+        --info: #3b82f6;
+        --info-muted: #1e3a5f;
+
+        --text-primary: #ffffff;
+        --text-secondary: #94a3b8;
+        --text-tertiary: #64748b;
+        --text-muted: #475569;
+        --text-inverse: #0d1517;
+
+        --border: #1e3338;
+        --border-strong: #2a454d;
+        --divider: #18282b;
+    }
+}
+
+/* .dark block moved below so it overrides the media query when present */
+.dark {
     --bg-primary: #0d1517;
     --bg-secondary: #111e21;
     --bg-elevated: #162226;
@@ -95,7 +137,7 @@
     --secondary: #14b8a6;
     --secondary-light: #2dd4bf;
     --secondary-dark: #0d9488;
-    --secondary-muted: #1a2e2c;
+    --secondary-muted: #1e3a2c;
     --secondary-subtle: #244745;
 
     --success: #22c55e;
@@ -116,51 +158,107 @@
     --border: #1e3338;
     --border-strong: #2a454d;
     --divider: #18282b;
-  }
+    --pattern-image: url("/pattern.png");
+}
+
+/* Force light variables when .light class is present (override prefers-color-scheme) */
+.light {
+    --bg-primary: #fdfcf8;
+    --bg-secondary: #f5f3ee;
+    --bg-elevated: #ffffff;
+    --bg-hover: #ede9e3;
+    --bg-card: #ffffff;
+
+    --primary: #b8860b;
+    --primary-light: #d4a73a;
+    --primary-dark: #8b6914;
+    --primary-muted: #f5efe6;
+    --primary-subtle: #e8dcc8;
+
+    --secondary: #0d9488;
+    --secondary-light: #14b8a6;
+    --secondary-dark: #0f766e;
+    --secondary-muted: #e6f4f3;
+    --secondary-subtle: #cceae8;
+
+    --success: #16a34a;
+    --success-muted: #dcfce7;
+    --warning: #d97706;
+    --warning-muted: #fef3c7;
+    --danger: #dc2626;
+    --danger-muted: #fee2e2;
+    --info: #2563eb;
+    --info-muted: #dbeafe;
+
+    --text-primary: #1c1917;
+    --text-secondary: #57534e;
+    --text-tertiary: #78716c;
+    --text-muted: #a8a29e;
+    --text-inverse: #ffffff;
+
+    --border: #e7e5e4;
+    --border-strong: #d6d3d1;
+    --divider: #f5f5f4;
+}
+
+/* Hero background helper that uses the pattern image variable */
+.hero-pattern {
+    background-image:
+        linear-gradient(
+            to bottom,
+            transparent 0%,
+            color-mix(in srgb, var(--bg-primary) 80%, transparent) 60%,
+            color-mix(in srgb, var(--bg-primary) 95%, transparent) 95%,
+            color-mix(in srgb, var(--bg-primary) 100%, transparent) 100%
+        ),
+        var(--pattern-image);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: top;
 }
 
 body {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: Arial, Helvetica, sans-serif;
 }
 .text-balance {
-  text-wrap: balance;
+    text-wrap: balance;
 }
 
 button {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 @keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 .animate-slide-in {
-  animation: slide-in 0.3s ease-out;
+    animation: slide-in 0.3s ease-out;
 }
 
 @keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20%,
-  60% {
-    transform: translateX(-6px);
-  }
-  40%,
-  80% {
-    transform: translateX(6px);
-  }
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    20%,
+    60% {
+        transform: translateX(-6px);
+    }
+    40%,
+    80% {
+        transform: translateX(6px);
+    }
 }
 .shake {
-  animation: shake 0.4s ease;
+    animation: shake 0.4s ease;
 }

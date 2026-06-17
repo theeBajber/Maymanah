@@ -1,6 +1,6 @@
-import { inter } from "../ui/fonts";
-import { Footer } from "../ui/footer";
-import { TopNav } from "../ui/nav";
+import { inter } from "@/components/ui/fonts";
+import { Footer } from "@/components/ui/footer";
+import { TopNav } from "@/components/ui/nav";
 
 export default function HomeLayout({
   children,

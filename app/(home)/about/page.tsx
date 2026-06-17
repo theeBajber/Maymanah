@@ -266,7 +266,7 @@ function Reviews() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {visible.map((review: any) => (
+          {visible.map((review: { quote: string; name: string; title: string; portrait: string }) => (
             <div
               key={review.name}
               className="p-12 bg-bg-card rounded-xl border border-border flex flex-col justify-between group hover:border-primary/20 transition-all duration-500"

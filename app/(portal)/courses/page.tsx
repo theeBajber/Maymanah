@@ -1,22 +1,11 @@
-import { CourseCard } from "@/app/ui/cards";
-import { TopNav } from "@/app/ui/PortalNav";
-import { amiri } from "@/app/ui/fonts";
+import { CourseCard } from "@/components/ui/cards";
+import { TopNav } from "@/components/ui/PortalNav";
 import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import Link from "next/link";
 import { getCoursesData } from "@/lib/courses";
 import { redirect } from "next/navigation";
-
-type Course = {
-  id: string;
-  title: string;
-  slug: string;
-  image?: string;
-  category?: string;
-  progress?: number;
-  lessons?: number;
-};
 
 export default async function Courses() {
   const data = await getCoursesData();
@@ -32,7 +21,7 @@ export default async function Courses() {
       <TopNav />
       <main className="h-full w-full p-6 flex-col flex">
         <section className="mb-8">
-          <h1 className={`text-3xl font-bold text-primary mb-2 ${amiri.className}`}>
+          <h1 className={`text-3xl font-bold text-primary mb-2`}>
             My Courses
           </h1>
           <p className="text-text-secondary">
@@ -41,7 +30,7 @@ export default async function Courses() {
         </section>
 
         {enrolledCourses.length > 0 ? (
-          <section className="mb-12">
+          <section className="mb-12 pl-8">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-2xl font-bold">Currently Enrolled</h2>
@@ -64,7 +53,7 @@ export default async function Courses() {
             </div>
           </section>
         ) : (
-          <section className="mb-12">
+          <section className="mb-12 pl-8">
             <div className="flex flex-col items-center justify-center h-64 rounded-xl bg-bg-card p-6 text-center">
               <FontAwesomeIcon icon={faBookOpen} className="text-4xl text-primary mb-4" />
               <h3 className="text-lg font-semibold mb-2">No enrolled courses yet</h3>
@@ -75,7 +64,7 @@ export default async function Courses() {
           </section>
         )}
 
-        <section>
+        <section className="pl-8">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold">Available Courses</h2>

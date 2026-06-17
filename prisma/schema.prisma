@@ -1,10 +1,9 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 // ─── Auth.js Required Models ───
@@ -52,6 +51,7 @@ model User {
   emailVerified         DateTime?
   image                 String?
   password              String?   // Only for credentials login; null for OAuth users
+  gender                String?
   role                  UserRole  @default(STUDENT)
   twoFactorEnabled      Boolean   @default(false)
   twoFactorSecret       String?
@@ -74,6 +74,13 @@ model User {
   assessments           Assessment[]
   ijazahs               Ijazah[]
   bookmarks             Bookmark[]
+  recitationJournals    RecitationJournal[]
+  quranProgress         QuranProgress[]
+  ustadhProfile         UstadhProfile?
+  studentNotes          StudentNote[]     @relation("UstadhNotes")
+  studentNoteSubjects   StudentNote[]     @relation("StudentNotes")
+
+  @@index([role])
 }
 
 model Profile {
@@ -91,8 +98,24 @@ model Profile {
   emailNotifications   Boolean  @default(true)
   studyReminders       Boolean  @default(true)
   reminderTime         String   @default("09:00") // HH:MM format
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// ─── Ustadh Profile ───
+model UstadhProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isApproved        Boolean  @default(false)
+  reliabilityScore  Float?   // admin-only, never exposed to ustadh
+  bio               String?
+  qualifications    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isApproved])
 }
 
 // ─── Login Sessions ───
@@ -186,6 +209,11 @@ model Appointment {
   endTime      DateTime?
   meetingUrl   String?            // Jitsi / Daily room link
   status       AppointmentStatus  @default(SCHEDULED)
+  startedAt    DateTime?
+  endedAt      DateTime?
+  surahNumber  Int?
+  verseNumber  Int?
+  notes        StudentNote[]
   createdAt    DateTime           @default(now())
 
   @@index([mentorshipId])
@@ -269,18 +297,44 @@ model Assessment {
 
 // ─── Donations ───
 model Donation {
-  id            String        @id @default(cuid())
-  donorId       String?
-  donor         User?         @relation(fields: [donorId], references: [id])
-  amount        Float
-  currency      String        @default("USD")
-  method        PaymentMethod
-  status        PaymentStatus @default(PENDING)
-  transactionId String?       @unique
-  createdAt     DateTime      @default(now())
+  id        String   @id @default(cuid())
+  amount    Float
+  currency  String   @default("USD")
+  provider  String   // "stripe" | "mpesa"
+  status    String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  reference String?  @unique // provider transaction ID or CheckoutRequestID
+  anonymous Boolean  @default(false)
+  donorId   String?  // null for anonymous
+  donor     User?    @relation(fields: [donorId], references: [id])
+  createdAt DateTime @default(now())
+}
 
-  @@index([donorId])
-  @@index([status])
+// ─── Student Notes (ustadh-facing) ───
+enum NotePriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model StudentNote {
+  id         String        @id @default(cuid())
+  studentId  String
+  student    User          @relation("StudentNotes", fields: [studentId], references: [id], onDelete: Cascade)
+  ustadhId   String
+  ustadh     User          @relation("UstadhNotes", fields: [ustadhId], references: [id], onDelete: Cascade)
+  sessionId  String?
+  session    Appointment?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  content    String
+  priority   NotePriority  @default(MEDIUM)
+  resolved   Boolean       @default(false)
+  resolvedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([studentId])
+  @@index([ustadhId])
+  @@index([resolved])
+  @@index([sessionId])
 }
 
 // ─── Enums ───
@@ -292,11 +346,11 @@ enum UserRole {
 }
 
 enum CourseCategory {
-  TAJWEED
-  HIFDH
-  ARABIC
-  TRANSLATION
-  TAFSEER
+  Quran
+  Fiqh
+  History
+  Arabic
+  Aqeedah
 }
 
 enum EnrollmentStatus {
@@ -324,16 +378,31 @@ enum AssessmentType {
   VERBAL_TEST
 }
 
-enum PaymentMethod {
-  MPESA
-  CARD
-  PAYPAL
-  BANK_TRANSFER
+// ─── Quran Progress & Recitation ───
+model QuranProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSurah     Int      @default(1)
+  lastVerse     Int      @default(1)
+  lastRecitation DateTime @default(now()) @updatedAt
+
+  @@unique([userId])
+  @@index([userId])
 }
 
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
+model RecitationJournal {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  surahNumber   Int
+  fromVerse     Int
+  toVerse       Int
+  errors        Json?    // Array of error details
+  accuracy      Float    @default(0)
+  duration      Int      @default(0) // seconds
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }

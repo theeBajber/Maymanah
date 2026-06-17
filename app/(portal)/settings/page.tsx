@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { TopNav } from "@/app/ui/PortalNav";
+import { TopNav } from "@/components/ui/PortalNav";
+import { ThemeSelector } from "@/components/ui/theme-selector";
 import Image from "next/image";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faCog,
   faLock,
@@ -15,10 +17,10 @@ import {
   faSave,
   faX,
   faBars,
-  faMoon,
-  faSun,
+  faChalkboardUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type TabType =
   | "profile"
@@ -26,15 +28,16 @@ type TabType =
   | "notifications"
   | "interface"
   | "sessions"
-  | "danger";
+  | "danger"
+  | "ustadh";
 
 interface SettingsTab {
   id: TabType;
   label: string;
-  icon: any;
+  icon: IconDefinition;
 }
 
-const tabs: SettingsTab[] = [
+const baseTabs: SettingsTab[] = [
   { id: "profile", label: "Profile", icon: faCog },
   { id: "security", label: "Security", icon: faLock },
   { id: "notifications", label: "Notifications", icon: faBell },
@@ -46,12 +49,19 @@ const tabs: SettingsTab[] = [
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<TabType>("profile");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const tabs: SettingsTab[] =
+    session?.user?.role === "TEACHER"
+      ? [{ id: "ustadh", label: "Ustadh", icon: faChalkboardUser }, ...baseTabs]
+      : baseTabs;
+
   return (
-    <div className="flex flex-col h-screen pt-16 pb-16 md:pb-0">
+    <div className="flex flex-col h-screen w-full items-start pt-16 pb-16 md:pb-0">
       <TopNav />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Desktop */}
@@ -64,7 +74,7 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
                   activeTab === tab.id
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-text-inverse"
                     : "text-text-secondary hover:bg-bg-primary hover:text-text-primary"
                 }`}
               >
@@ -106,7 +116,7 @@ export default function SettingsPage() {
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
                   activeTab === tab.id
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-text-inverse"
                     : "text-text-secondary hover:bg-bg-primary hover:text-text-primary"
                 }`}
               >
@@ -140,14 +150,14 @@ export default function SettingsPage() {
               <div
                 className={`mb-6 p-4 rounded-lg flex items-start justify-between gap-4 ${
                   message.type === "success"
-                    ? "bg-green-100 text-green-700 border border-green-300"
-                    : "bg-red-100 text-red-700 border border-red-300"
+                    ? "bg-success-muted text-success border border-success"
+                    : "bg-danger-muted text-danger border border-danger"
                 }`}
               >
                 <p className="flex-1">{message.text}</p>
                 <button
                   onClick={() => setMessage(null)}
-                  className="flex-shrink-0 hover:opacity-70 transition-opacity"
+                  className="shrink-0 hover:opacity-70 transition-opacity"
                 >
                   <FontAwesomeIcon icon={faX} className="size-4" />
                 </button>
@@ -172,6 +182,9 @@ export default function SettingsPage() {
             )}
             {activeTab === "danger" && (
               <DangerZoneSettings onMessage={setMessage} />
+            )}
+            {activeTab === "ustadh" && (
+              <UstadhSettings onMessage={setMessage} />
             )}
           </div>
         </main>
@@ -211,7 +224,11 @@ function ProfileSettings({
     "/portraits/pattern-9.png",
   ];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -239,7 +256,8 @@ function ProfileSettings({
     } catch (error) {
       onMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "Failed to update profile",
+        text:
+          error instanceof Error ? error.message : "Failed to update profile",
       });
     } finally {
       setLoading(false);
@@ -248,7 +266,9 @@ function ProfileSettings({
 
   return (
     <div className="max-w-4xl">
-      <h2 className="text-2xl font-bold text-text-primary mb-6">Profile Settings</h2>
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Profile Settings
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Profile Picture Selector */}
         <div className="flex items-center gap-6">
@@ -262,7 +282,7 @@ function ProfileSettings({
             />
             <button
               type="button"
-              className="absolute bottom-0 right-0 bg-primary text-white rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
+              className="absolute bottom-0 right-0 bg-primary text-text-inverse rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
               title="Change profile picture"
               onClick={() => {
                 const currentIndex = portraitOptions.indexOf(formData.portrait);
@@ -274,8 +294,12 @@ function ProfileSettings({
             </button>
           </div>
           <div>
-            <h3 className="font-semibold text-text-primary">{session?.user?.name}</h3>
-            <p className="text-sm text-text-secondary">{session?.user?.email}</p>
+            <h3 className="font-semibold text-text-primary">
+              {session?.user?.name}
+            </h3>
+            <p className="text-sm text-text-secondary">
+              {session?.user?.email}
+            </p>
           </div>
         </div>
 
@@ -413,7 +437,7 @@ function ProfileSettings({
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+          className="px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           <FontAwesomeIcon icon={faSave} className="size-4" />
           {loading ? "Saving..." : "Save Changes"}
@@ -458,11 +482,16 @@ function SecuritySettings({
       }
 
       onMessage({ type: "success", text: "Password changed successfully" });
-      setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch (error) {
       onMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "Failed to change password",
+        text:
+          error instanceof Error ? error.message : "Failed to change password",
       });
     } finally {
       setLoading(false);
@@ -472,11 +501,15 @@ function SecuritySettings({
   return (
     <div className="max-w-4xl space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Security Settings</h2>
+        <h2 className="text-2xl font-bold text-text-primary mb-6">
+          Security Settings
+        </h2>
 
         {/* Change Password */}
         <div className="mb-8 p-6 rounded-lg border border-border-strong bg-bg-card">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">Change Password</h3>
+          <h3 className="text-lg font-semibold text-text-primary mb-4">
+            Change Password
+          </h3>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-2">
@@ -519,7 +552,7 @@ function SecuritySettings({
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {loading ? "Updating..." : "Update Password"}
             </button>
@@ -538,15 +571,17 @@ function SecuritySettings({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <span className="text-text-primary">2FA Status:</span>
             <div className="flex items-center gap-4">
-              <span className={`text-sm ${twoFAEnabled ? "text-green-600" : "text-red-600"}`}>
+              <span
+                className={`text-sm ${twoFAEnabled ? "text-success" : "text-danger"}`}
+              >
                 {twoFAEnabled ? "Enabled" : "Disabled"}
               </span>
               <button
                 onClick={() => setTwoFAEnabled(!twoFAEnabled)}
                 className={`px-4 py-2 rounded-lg transition-colors ${
                   twoFAEnabled
-                    ? "bg-red-600 hover:bg-red-700 text-white"
-                    : "bg-primary hover:bg-primary/90 text-white"
+                    ? "bg-danger hover:bg-danger/90 text-text-inverse"
+                    : "bg-primary hover:bg-primary/90 text-text-inverse"
                 }`}
               >
                 {twoFAEnabled ? "Disable" : "Enable"}
@@ -603,7 +638,8 @@ function NotificationsSettings({
     } catch (error) {
       onMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "Failed to save preferences",
+        text:
+          error instanceof Error ? error.message : "Failed to save preferences",
       });
     } finally {
       setLoading(false);
@@ -612,7 +648,9 @@ function NotificationsSettings({
 
   return (
     <div className="max-w-2xl">
-      <h2 className="text-2xl font-bold text-text-primary mb-6">Notification Settings</h2>
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Notification Settings
+      </h2>
 
       <div className="space-y-6">
         {/* Email Notifications */}
@@ -624,12 +662,14 @@ function NotificationsSettings({
             <button
               onClick={() => handleToggle("emailNotifications")}
               className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                preferences.emailNotifications ? "bg-primary" : "bg-gray-300"
+                preferences.emailNotifications ? "bg-primary" : "bg-text-muted"
               }`}
             >
               <span
                 className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                  preferences.emailNotifications ? "translate-x-7" : "translate-x-1"
+                  preferences.emailNotifications
+                    ? "translate-x-7"
+                    : "translate-x-1"
                 }`}
               />
             </button>
@@ -648,7 +688,7 @@ function NotificationsSettings({
             <button
               onClick={() => handleToggle("studyReminders")}
               className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                preferences.studyReminders ? "bg-primary" : "bg-gray-300"
+                preferences.studyReminders ? "bg-primary" : "bg-text-muted"
               }`}
             >
               <span
@@ -677,7 +717,7 @@ function NotificationsSettings({
       <button
         onClick={handleSave}
         disabled={loading}
-        className="mt-6 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+        className="mt-6 px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
       >
         {loading ? "Saving..." : "Save Preferences"}
       </button>
@@ -691,37 +731,11 @@ function InterfaceSettings({
 }: {
   onMessage: (msg: { type: "success" | "error"; text: string }) => void;
 }) {
-  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
   const [preferences, setPreferences] = useState({
     language: "en",
     quranFont: "default",
   });
   const [loading, setLoading] = useState(false);
-
-  // Initialize theme from localStorage on mount
-  useEffect(() => {
-    const savedTheme = (localStorage.getItem("theme") as "light" | "dark" | "system") || "system";
-    setTheme(savedTheme);
-    applyTheme(savedTheme);
-  }, []);
-
-  const applyTheme = (themeValue: "light" | "dark" | "system") => {
-    const htmlElement = document.documentElement;
-    
-    if (themeValue === "system") {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      htmlElement.classList.toggle("dark", prefersDark);
-    } else {
-      htmlElement.classList.toggle("dark", themeValue === "dark");
-    }
-  };
-
-  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    applyTheme(newTheme);
-    onMessage({ type: "success", text: "Theme updated" });
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -745,7 +759,8 @@ function InterfaceSettings({
     } catch (error) {
       onMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "Failed to save settings",
+        text:
+          error instanceof Error ? error.message : "Failed to save settings",
       });
     } finally {
       setLoading(false);
@@ -754,7 +769,9 @@ function InterfaceSettings({
 
   return (
     <div className="max-w-4xl">
-      <h2 className="text-2xl font-bold text-text-primary mb-6">Interface Settings</h2>
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Interface Settings
+      </h2>
 
       <div className="space-y-6">
         {/* Theme Switcher */}
@@ -767,39 +784,7 @@ function InterfaceSettings({
             Choose your preferred color scheme
           </p>
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => handleThemeChange("light")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                theme === "light"
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border-strong text-text-secondary hover:border-primary/50"
-              }`}
-            >
-              <FontAwesomeIcon icon={faSun} className="size-4" />
-              Light
-            </button>
-            <button
-              onClick={() => handleThemeChange("dark")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                theme === "dark"
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border-strong text-text-secondary hover:border-primary/50"
-              }`}
-            >
-              <FontAwesomeIcon icon={faMoon} className="size-4" />
-              Dark
-            </button>
-            <button
-              onClick={() => handleThemeChange("system")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                theme === "system"
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border-strong text-text-secondary hover:border-primary/50"
-              }`}
-            >
-              <FontAwesomeIcon icon={faCog} className="size-4" />
-              System
-            </button>
+            <ThemeSelector />
           </div>
         </div>
 
@@ -848,7 +833,7 @@ function InterfaceSettings({
       <button
         onClick={handleSave}
         disabled={loading}
-        className="mt-6 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+        className="mt-6 px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
       >
         {loading ? "Saving..." : "Save Settings"}
       </button>
@@ -862,26 +847,31 @@ function SessionsSettings({
 }: {
   onMessage: (msg: { type: "success" | "error"; text: string }) => void;
 }) {
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<
+    {
+      id: string;
+      deviceName: string;
+      ipAddress: string;
+      lastActivity: string;
+    }[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSessions();
-  }, []);
-
-  const fetchSessions = async () => {
-    try {
-      const res = await fetch("/api/user/sessions");
-      if (res.ok) {
-        const data = await res.json();
-        setSessions(data.sessions || []);
+    (async () => {
+      try {
+        const res = await fetch("/api/user/sessions");
+        if (res.ok) {
+          const data = await res.json();
+          setSessions(data.sessions || []);
+        }
+      } catch {
+        // fetch failed
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch sessions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+  }, []);
 
   const handleLogoutSession = async (sessionId: string) => {
     try {
@@ -895,17 +885,33 @@ function SessionsSettings({
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
         onMessage({ type: "success", text: "Session logged out" });
       }
-    } catch (error) {
+    } catch {
       onMessage({ type: "error", text: "Failed to logout session" });
     }
   };
 
   return (
     <div className="max-w-2xl">
-      <h2 className="text-2xl font-bold text-text-primary mb-6">Active Sessions</h2>
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Active Sessions
+      </h2>
 
       {loading ? (
-        <p className="text-text-secondary">Loading sessions...</p>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="p-6 rounded-lg border border-border-strong bg-bg-card"
+            >
+              <div className="flex items-center justify-between">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-1/3" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : sessions.length === 0 ? (
         <p className="text-text-secondary">No active sessions found</p>
       ) : (
@@ -923,12 +929,13 @@ function SessionsSettings({
                   IP: {session.ipAddress}
                 </p>
                 <p className="text-xs text-text-secondary mt-1">
-                  Last activity: {new Date(session.lastActivity).toLocaleString()}
+                  Last activity:{" "}
+                  {new Date(session.lastActivity).toLocaleString()}
                 </p>
               </div>
               <button
                 onClick={() => handleLogoutSession(session.id)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+                className="px-4 py-2 bg-danger hover:bg-danger/90 text-text-inverse rounded-lg transition-colors text-sm"
               >
                 Logout
               </button>
@@ -977,7 +984,8 @@ function DangerZoneSettings({
     } catch (error) {
       onMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "Failed to delete account",
+        text:
+          error instanceof Error ? error.message : "Failed to delete account",
       });
     } finally {
       setLoading(false);
@@ -986,18 +994,19 @@ function DangerZoneSettings({
 
   return (
     <div className="max-w-2xl">
-      <h2 className="text-2xl font-bold text-red-600 mb-6">Danger Zone</h2>
+      <h2 className="text-2xl font-bold text-danger mb-6">Danger Zone</h2>
 
-      <div className="p-6 rounded-lg border-2 border-red-600 bg-red-50">
-        <h3 className="text-lg font-semibold text-red-600 mb-2">
+      <div className="p-6 rounded-lg border-2 border-danger bg-danger-muted/50">
+        <h3 className="text-lg font-semibold text-danger mb-2">
           Delete Account
         </h3>
-        <p className="text-sm text-red-600 mb-4">
-          Once you delete your account, there is no going back. Please be certain.
+        <p className="text-sm text-danger mb-4">
+          Once you delete your account, there is no going back. Please be
+          certain.
         </p>
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          className="px-6 py-2 bg-danger hover:bg-danger/90 text-text-inverse rounded-lg transition-colors"
         >
           Delete My Account
         </button>
@@ -1010,14 +1019,15 @@ function DangerZoneSettings({
               Confirm Account Deletion
             </h3>
             <p className="text-text-secondary mb-4">
-              This action cannot be undone. All your data will be permanently deleted.
+              This action cannot be undone. All your data will be permanently
+              deleted.
             </p>
             <input
               type="password"
               placeholder="Enter your password to confirm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-card text-text-primary focus:outline-none focus:ring-2 focus:ring-red-600 mb-4"
+              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-card text-text-primary focus:outline-none focus:ring-2 focus:ring-danger mb-4"
             />
             <div className="flex gap-4">
               <button
@@ -1025,20 +1035,144 @@ function DangerZoneSettings({
                   setShowDeleteModal(false);
                   setPassword("");
                 }}
-                className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-black rounded-lg transition-colors"
+                className="flex-1 px-4 py-2 bg-text-muted hover:bg-text-tertiary text-text-primary rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-danger hover:bg-danger/90 text-text-inverse rounded-lg transition-colors disabled:opacity-50"
               >
                 {loading ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function UstadhSettings({
+  onMessage,
+}: {
+  onMessage: (msg: { type: "success" | "error"; text: string }) => void;
+}) {
+  const [bio, setBio] = useState("");
+  const [qualifications, setQualifications] = useState("");
+  const [isApproved, setIsApproved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/ustadh/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        setBio(data.bio ?? "");
+        setQualifications(data.qualifications ?? "");
+        setIsApproved(data.isApproved ?? false);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch("/api/ustadh/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bio, qualifications }),
+      });
+      if (res.ok) {
+        onMessage({
+          type: "success",
+          text: "Ustadh profile updated successfully.",
+        });
+      } else {
+        const data = await res.json();
+        onMessage({ type: "error", text: data.error ?? "Failed to update." });
+      }
+    } catch {
+      onMessage({ type: "error", text: "Failed to update settings." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Ustadh Profile
+      </h2>
+
+      <div className="mb-6 p-4 rounded-lg border border-border-strong bg-bg-card">
+        <p className="text-sm text-text-secondary mb-1">Approval Status</p>
+        <span
+          className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${
+            isApproved
+              ? "bg-success-muted text-success"
+              : "bg-warning-muted text-warning"
+          }`}
+        >
+          <span
+            className={`size-2 rounded-full ${isApproved ? "bg-success" : "bg-warning"}`}
+          />
+          {isApproved ? "Approved" : "Pending Review"}
+        </span>
+      </div>
+
+      {!loaded ? (
+        <div className="space-y-5">
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-12 w-full rounded-lg" />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Bio
+            </label>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              maxLength={300}
+              rows={4}
+              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              placeholder="Tell us about yourself..."
+            />
+            <p className="text-xs text-text-muted text-right mt-1">
+              {bio.length}/300
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Qualifications
+            </label>
+            <textarea
+              value={qualifications}
+              onChange={(e) => setQualifications(e.target.value)}
+              maxLength={500}
+              rows={4}
+              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              placeholder="List your qualifications, certifications, etc."
+            />
+            <p className="text-xs text-text-muted text-right mt-1">
+              {qualifications.length}/500
+            </p>
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            <FontAwesomeIcon icon={faSave} className="size-4" />
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
       )}
     </div>
   );

@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, email, bio, phone, country, timezone, quranLevel, image } =
+    const { name, email, bio, phone, country, timezone, quranLevel, image, gender } =
       await req.json();
 
     const user = await prisma.user.findUnique({
@@ -40,6 +40,7 @@ export async function PATCH(req: NextRequest) {
           ...(name && { name }),
           ...(email && { email }),
           ...(image && { image }),
+          ...(gender !== undefined && { gender }),
         },
       }),
       prisma.profile.upsert({
