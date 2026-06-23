@@ -8,7 +8,7 @@ import {
   RoomAudioRenderer,
   VideoTrack,
 } from "@livekit/components-react";
-import "@livekit/components-styles/dist/index.css";
+import "@livekit/components-styles/dist/general/index.css";
 import { Track } from "livekit-client";
 import { useCallback, useState } from "react";
 
