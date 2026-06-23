@@ -148,6 +148,9 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
       >
         <RoomAudioRenderer />
         <FocusedParticipant />
+        <div className="absolute bottom-4 right-4 z-10">
+          <ConnectionBadge />
+        </div>
       </LiveKitRoom>
 
       {!disconnected && (
@@ -198,10 +201,6 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
           >
             <FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} className="size-5 md:size-4" />
           </button>
-
-          <div className="absolute right-4 -top-10">
-            <ConnectionBadge />
-          </div>
         </div>
       )}
 
