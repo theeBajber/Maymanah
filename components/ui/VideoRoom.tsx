@@ -57,7 +57,7 @@ function FocusedParticipant() {
       )}
 
       {localTrack && (
-        <div className="absolute bottom-4 right-4 w-44 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-white/20">
+        <div className="absolute bottom-24 right-4 w-44 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-white/20">
           <VideoTrack trackRef={localTrack} className="w-full h-full object-cover" />
         </div>
       )}
@@ -148,7 +148,7 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
       >
         <RoomAudioRenderer />
         <FocusedParticipant />
-        <div className="absolute bottom-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10">
           <ConnectionBadge />
         </div>
       </LiveKitRoom>
