@@ -5,8 +5,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   LiveKitRoom,
   useTracks,
+  useRemoteParticipants,
   RoomAudioRenderer,
   VideoTrack,
+  useParticipants,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
@@ -14,14 +16,34 @@ import { useCallback, useState, useRef } from "react";
 
 function FocusedParticipant() {
   const cameraTracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare]);
+  const remoteParticipants = useRemoteParticipants();
+  const participants = useParticipants();
 
   const remoteTrack = cameraTracks.find((t) => !t.participant.isLocal);
   const localTrack = cameraTracks.find((t) => t.participant.isLocal);
 
+  const otherParticipant = remoteParticipants.find((p) => !p.isLocal);
+  const hasRemoteVideo = !!remoteTrack;
+  const hasRemote = !!otherParticipant;
+
   return (
     <div className="relative w-full h-full bg-zinc-950 rounded-2xl overflow-hidden">
-      {remoteTrack ? (
+      {hasRemoteVideo ? (
         <VideoTrack trackRef={remoteTrack} className="w-full h-full object-cover" />
+      ) : hasRemote ? (
+        <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+          <div className="text-center">
+            <div className="size-24 rounded-full bg-zinc-700 mx-auto mb-3 flex items-center justify-center">
+              <span className="text-3xl font-bold text-zinc-400">
+                {otherParticipant.name?.charAt(0)?.toUpperCase() || "?"}
+              </span>
+            </div>
+            <p className="text-zinc-300 text-sm font-medium">
+              {otherParticipant.name || "Other participant"}
+            </p>
+            <p className="text-zinc-500 text-xs mt-1">Establishing connection...</p>
+          </div>
+        </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-zinc-900">
           <div className="text-center">
@@ -38,6 +60,10 @@ function FocusedParticipant() {
           <VideoTrack trackRef={localTrack} className="w-full h-full object-cover" />
         </div>
       )}
+
+      <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-sm text-xs text-white/70">
+        {participants.length < 2 ? "1/2 joined" : "2/2 in room"}
+      </div>
     </div>
   );
 }
