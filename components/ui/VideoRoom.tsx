@@ -9,9 +9,10 @@ import {
   RoomAudioRenderer,
   VideoTrack,
   useParticipants,
+  useConnectionState,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
-import { Track } from "livekit-client";
+import { Track, ConnectionState as LKConnectionState } from "livekit-client";
 import { useCallback, useState, useRef } from "react";
 
 function FocusedParticipant() {
@@ -74,6 +75,32 @@ interface VideoRoomProps {
   onLeave: () => void;
 }
 
+const connectionLabels: Record<LKConnectionState, string> = {
+  [LKConnectionState.Connected]: "Connected",
+  [LKConnectionState.Connecting]: "Connecting…",
+  [LKConnectionState.Disconnected]: "Disconnected",
+  [LKConnectionState.Reconnecting]: "Reconnecting…",
+  [LKConnectionState.SignalReconnecting]: "Reconnecting…",
+};
+
+function ConnectionBadge() {
+  const state = useConnectionState();
+  const isBad = state === LKConnectionState.Disconnected || state === LKConnectionState.Reconnecting || state === LKConnectionState.SignalReconnecting;
+  return (
+    <span
+      className={`px-3 py-1 rounded-lg text-xs font-medium ${
+        isBad
+          ? "bg-danger/20 text-danger"
+          : state === LKConnectionState.Connected
+            ? "bg-emerald-500/20 text-emerald-400"
+            : "bg-amber-500/20 text-amber-400"
+      }`}
+    >
+      {connectionLabels[state]}
+    </span>
+  );
+}
+
 export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
@@ -109,7 +136,7 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
 
   return (
     <LiveKitRoom
-      video={camOn}
+      video={camOn ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } : false}
       audio={micOn}
       token={token}
       serverUrl={liveKitUrl}
@@ -122,7 +149,7 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
       <div className="flex-1 relative p-2 md:p-4">
         {disconnected ? (
           <div className="w-full h-full flex items-center justify-center bg-zinc-900 rounded-2xl">
-            <div className="text-center">
+            <div className="text-center max-w-xs">
               <div className="size-16 rounded-full bg-danger/10 mx-auto mb-4 flex items-center justify-center">
                 <span className="text-2xl text-danger">!</span>
               </div>
@@ -130,12 +157,9 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
               <p className="text-zinc-400 text-sm mb-2">
                 {connectionError || "The call was disconnected unexpectedly."}
               </p>
-              <p className="text-zinc-500 text-xs mb-6">
-                Check that your LiveKit credentials in .env.local match the project.
-              </p>
               <button
                 onClick={handleLeave}
-                className="px-6 py-2.5 bg-primary text-white rounded-xl font-medium hover:brightness-110 transition-all"
+                className="w-full py-3 bg-primary text-white rounded-xl font-medium hover:brightness-110 transition-all active:scale-[0.98]"
               >
                 Back to Dashboard
               </button>
@@ -147,50 +171,57 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
       </div>
 
       {!disconnected && (
-        <div className="flex items-center justify-center gap-3 py-4 px-4 bg-zinc-900/80 backdrop-blur-sm">
+        <div
+          className="flex items-center justify-center gap-3 py-3 px-2 bg-zinc-900/90 backdrop-blur-sm border-t border-white/5"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+        >
           <button
             type="button"
             onClick={() => setMicOn((p) => !p)}
-            className={`size-12 rounded-full flex items-center justify-center transition-all ${
+            className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
               micOn
                 ? "bg-zinc-700 hover:bg-zinc-600 text-white"
                 : "bg-danger/20 text-danger"
             }`}
             title={micOn ? "Mute microphone" : "Unmute microphone"}
           >
-            <FontAwesomeIcon icon={micOn ? faMicrophone : faMicrophoneSlash} className="size-4" />
+            <FontAwesomeIcon icon={micOn ? faMicrophone : faMicrophoneSlash} className="size-5 md:size-4" />
           </button>
 
           <button
             type="button"
             onClick={() => setCamOn((p) => !p)}
-            className={`size-12 rounded-full flex items-center justify-center transition-all ${
+            className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
               camOn
                 ? "bg-zinc-700 hover:bg-zinc-600 text-white"
                 : "bg-danger/20 text-danger"
             }`}
             title={camOn ? "Turn off camera" : "Turn on camera"}
           >
-            <FontAwesomeIcon icon={camOn ? faVideo : faVideoSlash} className="size-4" />
+            <FontAwesomeIcon icon={camOn ? faVideo : faVideoSlash} className="size-5 md:size-4" />
           </button>
 
           <button
             type="button"
             onClick={handleLeave}
-            className="size-12 rounded-full bg-danger flex items-center justify-center hover:bg-danger/80 transition-all"
+            className="size-14 md:size-12 rounded-full bg-danger flex items-center justify-center hover:bg-danger/80 transition-all active:scale-90"
             title="Leave session"
           >
-            <FontAwesomeIcon icon={faPhoneSlash} className="size-4 text-white" />
+            <FontAwesomeIcon icon={faPhoneSlash} className="size-5 md:size-4 text-white" />
           </button>
 
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="size-12 rounded-full bg-zinc-700 hover:bg-zinc-600 text-white flex items-center justify-center transition-all"
+            className="size-14 md:size-12 rounded-full bg-zinc-700 hover:bg-zinc-600 text-white flex items-center justify-center transition-all active:scale-90"
             title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
           >
-            <FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} className="size-4" />
+            <FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} className="size-5 md:size-4" />
           </button>
+
+          <div className="absolute right-4 bottom-16 md:bottom-20">
+            <ConnectionBadge />
+          </div>
         </div>
       )}
     </LiveKitRoom>
