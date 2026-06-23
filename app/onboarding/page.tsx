@@ -74,6 +74,7 @@ export default function OnboardingPage() {
   const { data: session, status, update } = useSession();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const isTeacher = session?.user?.role === "TEACHER";
 
@@ -137,6 +138,7 @@ export default function OnboardingPage() {
 
   const handleSubmit = async () => {
     setSaving(true);
+    setError("");
     try {
       const profileRes = await fetch("/api/user/update-profile", {
         method: "PATCH",
@@ -151,7 +153,10 @@ export default function OnboardingPage() {
         }),
       });
 
-      if (!profileRes.ok) throw new Error("Failed to save profile");
+      if (!profileRes.ok) {
+        const body = await profileRes.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to save profile");
+      }
 
       if (isTeacher) {
         const ustadhRes = await fetch("/api/ustadh/settings", {
@@ -173,8 +178,9 @@ export default function OnboardingPage() {
 
       await update();
 
-      router.push("/dashboard");
-    } catch {
+      window.location.href = "/dashboard";
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
       setSaving(false);
     }
   };
@@ -438,6 +444,9 @@ export default function OnboardingPage() {
                 Back
               </button>
 
+              {error && (
+                <p className="text-sm text-danger text-center mb-4">{error}</p>
+              )}
               <div className="flex items-center gap-3">
                 {step < STEPS.length - 1 ? (
                   <>
