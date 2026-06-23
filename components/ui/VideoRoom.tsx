@@ -14,7 +14,7 @@ import {
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Track, ConnectionState as LKConnectionState } from "livekit-client";
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 
 function FocusedParticipant() {
   const cameraTracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare]);
@@ -114,11 +114,20 @@ function CallControlsBar({
   const { localParticipant } = useLocalParticipant();
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
+  const [camError, setCamError] = useState(false);
+  const [micError, setMicError] = useState(false);
+
+  useEffect(() => {
+    if (!localParticipant) return;
+    localParticipant.setCameraEnabled(true).catch(() => setCamError(true));
+    localParticipant.setMicrophoneEnabled(true).catch(() => setMicError(true));
+  }, [localParticipant]);
 
   const toggleCamera = useCallback(() => {
     setCamOn((p) => {
       const next = !p;
-      localParticipant?.setCameraEnabled(next);
+      setCamError(false);
+      localParticipant?.setCameraEnabled(next).catch(() => { setCamError(true); setCamOn((p) => p); });
       return next;
     });
   }, [localParticipant]);
@@ -126,7 +135,8 @@ function CallControlsBar({
   const toggleMic = useCallback(() => {
     setMicOn((p) => {
       const next = !p;
-      localParticipant?.setMicrophoneEnabled(next);
+      setMicError(false);
+      localParticipant?.setMicrophoneEnabled(next).catch(() => { setMicError(true); setMicOn((p) => p); });
       return next;
     });
   }, [localParticipant]);
@@ -140,26 +150,30 @@ function CallControlsBar({
         type="button"
         onClick={toggleMic}
         className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-          micOn
-            ? "bg-zinc-700 hover:bg-zinc-600 text-white"
-            : "bg-danger/20 text-danger"
+          micError
+            ? "bg-amber-500/20 text-amber-400"
+            : micOn
+              ? "bg-zinc-700 hover:bg-zinc-600 text-white"
+              : "bg-danger/20 text-danger"
         }`}
-        title={micOn ? "Mute microphone" : "Unmute microphone"}
+        title={micError ? "Microphone unavailable" : micOn ? "Mute microphone" : "Unmute microphone"}
       >
-        <FontAwesomeIcon icon={micOn ? faMicrophone : faMicrophoneSlash} className="size-5 md:size-4" />
+        <FontAwesomeIcon icon={micError ? faMicrophoneSlash : (micOn ? faMicrophone : faMicrophoneSlash)} className="size-5 md:size-4" />
       </button>
 
       <button
         type="button"
         onClick={toggleCamera}
         className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-          camOn
-            ? "bg-zinc-700 hover:bg-zinc-600 text-white"
-            : "bg-danger/20 text-danger"
+          camError
+            ? "bg-amber-500/20 text-amber-400"
+            : camOn
+              ? "bg-zinc-700 hover:bg-zinc-600 text-white"
+              : "bg-danger/20 text-danger"
         }`}
-        title={camOn ? "Turn off camera" : "Turn on camera"}
+        title={camError ? "Camera unavailable" : camOn ? "Turn off camera" : "Turn on camera"}
       >
-        <FontAwesomeIcon icon={camOn ? faVideo : faVideoSlash} className="size-5 md:size-4" />
+            <FontAwesomeIcon icon={camError ? faVideoSlash : (camOn ? faVideo : faVideoSlash)} className="size-5 md:size-4" />
       </button>
 
       <button
@@ -217,8 +231,8 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
   return (
     <div className="relative w-full h-full bg-black">
       <LiveKitRoom
-        video={true}
-        audio={true}
+        audio={false}
+        video={false}
         token={token}
         serverUrl={liveKitUrl}
         data-lk-theme="default"
