@@ -31,14 +31,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const liveKitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || process.env.LIVEKIT_URL;
+    if (!liveKitUrl || !liveKitUrl.startsWith("wss://")) {
+      return NextResponse.json(
+        { error: "LiveKit WebSocket URL is not configured. Set NEXT_PUBLIC_LIVEKIT_URL or LIVEKIT_URL in .env (e.g. wss://my-project.livekit.cloud)" },
+        { status: 500 },
+      );
+    }
+
     const roomName = `session_${id}`;
     const userName = session.user.name ?? "User";
     const identity = `${userId}_${Date.now()}`;
 
-    const token = generateLiveKitToken({ identity, name: userName, roomName });
-
-    const liveKitUrl =
-      process.env.NEXT_PUBLIC_LIVEKIT_URL ?? "wss://your-livekit-instance.com";
+    const token = await generateLiveKitToken({ identity, name: userName, roomName });
 
     return NextResponse.json({
       token,
@@ -53,7 +58,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       },
     });
   } catch (error) {
-    console.error("Join appointment error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    console.error("Join appointment error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

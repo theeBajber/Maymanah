@@ -135,6 +135,7 @@ export function SideNav() {
   const links = isUstadh
     ? [
         { name: "Dashboard", href: "/dashboard", icon: faHome },
+        { name: "Sessions", href: "/sessions", icon: faVideo },
         { name: "My Students", href: "/students", icon: faUsers },
         { name: "Availability", href: "/availability", icon: faCalendarDays },
         { name: "Settings", href: "/settings", icon: faGear },
@@ -168,7 +169,7 @@ export function SideNav() {
               <span className="flex items-center justify-center size-11 shrink-0">
                 <FontAwesomeIcon icon={link.icon} className="size-5" />
               </span>
-              <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-100">
+              <span className="text-xs tracking-widest font-semibold uppercase opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-100">
                 {link.name}
               </span>
               {isActive && (

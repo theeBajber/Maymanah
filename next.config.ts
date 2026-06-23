@@ -3,12 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   allowedDevOrigins: [
     "https://unpotent-luka-hypotonic.ngrok-free.dev/",
-    "192.168.1.210",
+    "192.168.87.108",
   ],
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "i.pinimg.com" },
-    ],
+    remotePatterns: [{ protocol: "https", hostname: "i.pinimg.com" }],
   },
   async headers() {
     return [
