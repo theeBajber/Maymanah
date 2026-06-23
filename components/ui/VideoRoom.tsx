@@ -120,24 +120,39 @@ function CallControlsBar({
   toggleFullscreen: () => void;
 }) {
   const { localParticipant } = useLocalParticipant();
+  const connState = useConnectionState();
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [camError, setCamError] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!localParticipant) return;
-    localParticipant.setCameraEnabled(true).catch((e: Error) => {
-      const msg = e?.message || "Camera access denied";
-      setCamError(msg);
-      logToServer("error", `Camera failed: ${msg}`);
-    });
-    localParticipant.setMicrophoneEnabled(true).catch((e: Error) => {
-      const msg = e?.message || "Microphone access denied";
-      setMicError(msg);
-      logToServer("error", `Microphone failed: ${msg}`);
-    });
-  }, [localParticipant]);
+    if (!localParticipant || connState !== LKConnectionState.Connected) return;
+    const enableMedia = async () => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        const msg = "Camera/mic not available (insecure context or no permission)";
+        setCamError(msg);
+        setMicError(msg);
+        logToServer("error", msg);
+        return;
+      }
+      try {
+        await localParticipant.setCameraEnabled(true);
+      } catch (e: any) {
+        const msg = e?.message || "Camera access denied";
+        setCamError(msg);
+        logToServer("error", `Camera failed: ${msg}`);
+      }
+      try {
+        await localParticipant.setMicrophoneEnabled(true);
+      } catch (e: any) {
+        const msg = e?.message || "Microphone access denied";
+        setMicError(msg);
+        logToServer("error", `Microphone failed: ${msg}`);
+      }
+    };
+    enableMedia();
+  }, [localParticipant, connState]);
 
   const toggleCamera = useCallback(() => {
     setCamOn((p) => {
