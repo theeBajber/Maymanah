@@ -16,6 +16,8 @@ export async function proxy(req: NextRequest) {
   const isPortal =
     nextUrl.pathname.startsWith("/dashboard") ||
     nextUrl.pathname.startsWith("/students") ||
+    nextUrl.pathname.startsWith("/session") ||
+    nextUrl.pathname.startsWith("/sessions") ||
     nextUrl.pathname.startsWith("/availability");
   const isOnboarding = nextUrl.pathname.startsWith("/onboarding");
   const isAuthPage =
@@ -31,5 +33,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/students/:path*", "/availability/:path*", "/onboarding", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/students/:path*", "/session/:path*", "/sessions/:path*", "/availability/:path*", "/onboarding", "/login", "/register"],
 };

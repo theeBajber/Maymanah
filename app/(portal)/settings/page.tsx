@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { TopNav } from "@/components/ui/PortalNav";
 import { ThemeSelector } from "@/components/ui/theme-selector";
 import { useToast } from "@/components/ui/toast";
 import { Dropdown } from "@/components/ui/Dropdown";
@@ -60,113 +59,104 @@ export default function SettingsPage() {
       : baseTabs;
 
   return (
-    <div className="flex flex-col h-screen w-full items-start pt-16 pb-16 md:pb-0">
-      <TopNav />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - Desktop */}
-        <aside className="hidden md:flex md:w-56 border-r border-border-strong bg-bg-card p-6 flex-col overflow-y-auto">
-          <h2 className="text-lg font-bold text-text-primary mb-6">Settings</h2>
-          <nav className="space-y-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
-                  activeTab === tab.id
-                    ? "bg-primary text-text-inverse"
-                    : "text-text-secondary hover:bg-bg-primary hover:text-text-primary"
-                }`}
-              >
-                <FontAwesomeIcon icon={tab.icon} className="size-4 shrink-0" />
-                <span className="text-sm font-medium">{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-        </aside>
+    <div className="flex h-[calc(100vh-4rem)] w-full">
+      <aside className="hidden md:flex md:w-56 border-r border-border bg-bg-elevated p-5 flex-col shrink-0">
+        <h2 className="text-lg font-bold text-text-primary mb-5">Settings</h2>
+        <nav className="space-y-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left ${
+                activeTab === tab.id
+                  ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
+                  : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+              }`}
+            >
+              <FontAwesomeIcon icon={tab.icon} className="size-4 shrink-0" />
+              <span className="text-sm font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-        {/* Sidebar - Mobile */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 top-16 bg-black/50 md:hidden z-30"
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 top-16 bg-black/30 md:hidden z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`fixed top-16 left-0 bottom-0 w-56 border-r border-border bg-bg-elevated p-5 overflow-y-auto md:hidden transition-transform z-40 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-text-primary">Settings</h2>
+          <button
             onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        <aside
-          className={`fixed top-16 left-0 bottom-0 w-56 border-r border-border-strong bg-bg-card p-6 overflow-y-auto md:hidden transition-transform transform z-40 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-text-primary">Settings</h2>
+            className="text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <FontAwesomeIcon icon={faX} className="size-5" />
+          </button>
+        </div>
+        <nav className="space-y-1">
+          {tabs.map((tab) => (
             <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-text-secondary hover:text-text-primary"
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left ${
+                activeTab === tab.id
+                  ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
+                  : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+              }`}
             >
-              <FontAwesomeIcon icon={faX} className="size-5" />
+              <FontAwesomeIcon icon={tab.icon} className="size-4 shrink-0" />
+              <span className="text-sm font-medium">{tab.label}</span>
             </button>
-          </div>
-          <nav className="space-y-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
-                  activeTab === tab.id
-                    ? "bg-primary text-text-inverse"
-                    : "text-text-secondary hover:bg-bg-primary hover:text-text-primary"
-                }`}
-              >
-                <FontAwesomeIcon icon={tab.icon} className="size-4 shrink-0" />
-                <span className="text-sm font-medium">{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-        </aside>
+          ))}
+        </nav>
+      </aside>
 
-        {/* Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Mobile Header Bar */}
-          <div className="md:hidden border-b border-border-strong bg-bg-primary p-4 flex items-center justify-between">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="text-text-secondary hover:text-text-primary transition-colors"
-              aria-label="Toggle menu"
-            >
-              <FontAwesomeIcon icon={faBars} className="size-5" />
-            </button>
-            <h2 className="text-lg font-bold text-text-primary">
-              {tabs.find((t) => t.id === activeTab)?.label}
-            </h2>
-            <div className="w-5" /> {/* Spacer for alignment */}
-          </div>
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="md:hidden border-b border-border bg-bg-primary/80 backdrop-blur-md p-4 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-text-secondary hover:text-text-primary transition-colors"
+            aria-label="Toggle menu"
+          >
+            <FontAwesomeIcon icon={faBars} className="size-5" />
+          </button>
+          <h2 className="text-lg font-bold text-text-primary">
+            {tabs.find((t) => t.id === activeTab)?.label}
+          </h2>
+          <div className="w-5" />
+        </div>
 
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-8">
-            {/* Tab content */}
-            {activeTab === "profile" && <ProfileSettings />}
-            {activeTab === "security" && <SecuritySettings />}
-            {activeTab === "notifications" && <NotificationsSettings />}
-            {activeTab === "interface" && <InterfaceSettings />}
-            {activeTab === "sessions" && <SessionsSettings />}
-            {activeTab === "danger" && <DangerZoneSettings />}
-            {activeTab === "ustadh" && <UstadhSettings />}
-          </div>
-        </main>
-      </div>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+          {activeTab === "profile" && <ProfileSettings />}
+          {activeTab === "security" && <SecuritySettings />}
+          {activeTab === "notifications" && <NotificationsSettings />}
+          {activeTab === "interface" && <InterfaceSettings />}
+          {activeTab === "sessions" && <SessionsSettings />}
+          {activeTab === "danger" && <DangerZoneSettings />}
+          {activeTab === "ustadh" && <UstadhSettings />}
+        </div>
+      </main>
     </div>
   );
 }
 
-// Profile Settings Component
 function ProfileSettings() {
   const { data: session, update } = useSession();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: session?.user?.name || "",
     email: session?.user?.email || "",
+    gender: (session?.user?.gender as string) || "",
     bio: "",
     phone: "",
     country: "",
@@ -250,7 +240,7 @@ function ProfileSettings() {
       }
 
       toast({ title: "Profile updated successfully", variant: "success" });
-      await update({ name: formData.name, image: formData.portrait });
+      await update({ name: formData.name, image: formData.portrait, gender: formData.gender || undefined });
       setLoading(false);
       setShowAvatarPicker(false);
     } catch (error) {
@@ -269,7 +259,6 @@ function ProfileSettings() {
         Profile Settings
       </h2>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Profile Picture Selector */}
         <div className="flex items-center gap-6">
           <div className="relative">
             <Image
@@ -277,12 +266,12 @@ function ProfileSettings() {
               height={80}
               src={formData.portrait}
               alt="Profile"
-              className="size-20 rounded-full object-cover border-2 border-border-strong"
+              className="size-20 rounded-full object-cover ring-2 ring-border"
             />
             <button
               type="button"
               onClick={() => setShowAvatarPicker((p) => !p)}
-              className="absolute -bottom-1 -right-1 bg-primary text-text-inverse rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors text-xs"
+              className="absolute -bottom-1 -right-1 bg-primary text-text-inverse rounded-full p-1.5 hover:brightness-110 transition-all text-xs shadow-sm"
               title="Change avatar"
             >
               <FontAwesomeIcon icon={faPen} className="size-3" />
@@ -298,12 +287,11 @@ function ProfileSettings() {
           </div>
         </div>
 
-        {/* Avatar Picker Popover */}
         {showAvatarPicker && (
           <div className="relative">
             <div
               ref={avatarPickerRef}
-              className="absolute z-10 mt-2 bg-bg-card border border-border-strong rounded-xl p-4 shadow-xl"
+              className="absolute z-10 mt-2 bg-bg-elevated border border-border rounded-2xl p-4 shadow-lg"
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium text-text-primary">Choose Avatar</span>
@@ -324,10 +312,10 @@ function ProfileSettings() {
                       handlePortraitSelect(portrait);
                       setShowAvatarPicker(false);
                     }}
-                    className={`relative size-14 rounded-full overflow-hidden border-2 transition-all hover:scale-110 ${
+                    className={`relative size-14 rounded-full overflow-hidden ring-2 transition-all hover:scale-110 ${
                       formData.portrait === portrait
-                        ? "border-primary scale-110 ring-2 ring-primary/20"
-                        : "border-border-strong hover:border-primary/50"
+                        ? "ring-primary scale-110"
+                        : "ring-border hover:ring-primary/50"
                     }`}
                   >
                     <Image
@@ -343,9 +331,31 @@ function ProfileSettings() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-1.5">
+            Gender
+          </label>
+          <div className="flex gap-3">
+            {(["male", "female"] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, gender: g }))}
+                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  formData.gender === g
+                    ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
+                    : "border border-border text-text-secondary hover:border-primary"
+                }`}
+              >
+                {g === "male" ? "Male" : "Female"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
               Name
             </label>
             <input
@@ -353,11 +363,11 @@ function ProfileSettings() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
               Email (Cannot be changed)
             </label>
             <input
@@ -365,13 +375,13 @@ function ProfileSettings() {
               name="email"
               value={formData.email}
               disabled
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-card text-text-secondary cursor-not-allowed opacity-60 focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-hover text-text-secondary cursor-not-allowed opacity-60 focus:outline-none"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-2">
+          <label className="block text-sm font-medium text-text-secondary mb-1.5">
             Bio
           </label>
           <textarea
@@ -379,13 +389,13 @@ function ProfileSettings() {
             value={formData.bio}
             onChange={handleChange}
             rows={4}
-            className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
               Phone
             </label>
             <input
@@ -393,11 +403,11 @@ function ProfileSettings() {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
               Country
             </label>
             <input
@@ -405,12 +415,12 @@ function ProfileSettings() {
               name="country"
               value={formData.country}
               onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <Dropdown
               label="Timezone"
@@ -443,7 +453,7 @@ function ProfileSettings() {
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
         >
           <FontAwesomeIcon icon={faSave} className="size-4" />
           {loading ? "Saving..." : "Save Changes"}
@@ -453,7 +463,6 @@ function ProfileSettings() {
   );
 }
 
-// Security Settings Component
 function SecuritySettings() {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -507,14 +516,13 @@ function SecuritySettings() {
           Security Settings
         </h2>
 
-        {/* Change Password */}
-        <div className="mb-8 p-6 rounded-lg border border-border-strong bg-bg-card">
+        <div className="mb-6 p-6 rounded-2xl border border-border bg-bg-elevated">
           <h3 className="text-lg font-semibold text-text-primary mb-4">
             Change Password
           </h3>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-1.5">
                 Current Password
               </label>
               <input
@@ -522,12 +530,12 @@ function SecuritySettings() {
                 name="currentPassword"
                 value={formData.currentPassword}
                 onChange={handleChange}
-                className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">
                   New Password
                 </label>
                 <input
@@ -535,11 +543,11 @@ function SecuritySettings() {
                   name="newPassword"
                   value={formData.newPassword}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">
                   Confirm Password
                 </label>
                 <input
@@ -547,43 +555,42 @@ function SecuritySettings() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                 />
               </div>
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
             >
               {loading ? "Updating..." : "Update Password"}
             </button>
           </form>
         </div>
 
-        {/* 2FA */}
-        <div className="p-6 rounded-lg border border-border-strong bg-bg-card">
+        <div className="p-6 rounded-2xl border border-border bg-bg-elevated">
           <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <FontAwesomeIcon icon={faShieldAlt} className="size-5" />
+            <FontAwesomeIcon icon={faShieldAlt} className="size-5 text-primary" />
             Two-Factor Authentication
           </h3>
           <p className="text-sm text-text-secondary mb-4">
             Add an extra layer of security to your account.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <span className="text-text-primary">2FA Status:</span>
+            <span className="text-text-primary text-sm">2FA Status:</span>
             <div className="flex items-center gap-4">
               <span
-                className={`text-sm ${twoFAEnabled ? "text-success" : "text-danger"}`}
+                className={`text-sm font-medium ${twoFAEnabled ? "text-success" : "text-text-muted"}`}
               >
                 {twoFAEnabled ? "Enabled" : "Disabled"}
               </span>
               <button
                 onClick={() => setTwoFAEnabled(!twoFAEnabled)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   twoFAEnabled
-                    ? "bg-danger hover:bg-danger/90 text-text-inverse"
-                    : "bg-primary hover:bg-primary/90 text-text-inverse"
+                    ? "bg-danger/10 text-danger hover:bg-danger/20"
+                    : "bg-primary text-text-inverse hover:brightness-110"
                 }`}
               >
                 {twoFAEnabled ? "Disable" : "Enable"}
@@ -596,7 +603,6 @@ function SecuritySettings() {
   );
 }
 
-// Notifications Settings Component
 function NotificationsSettings() {
   const { toast } = useToast();
   const [preferences, setPreferences] = useState({
@@ -666,23 +672,22 @@ function NotificationsSettings() {
         Notification Settings
       </h2>
 
-      <div className="space-y-6">
-        {/* Email Notifications */}
-        <div className="p-6 rounded-lg border border-border-strong bg-bg-card">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-text-primary">
+      <div className="space-y-4">
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-text-primary">
               Email Notifications
             </h3>
             <button
               onClick={() => handleToggle("emailNotifications")}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
                 preferences.emailNotifications ? "bg-primary" : "bg-text-muted"
               }`}
             >
               <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
                   preferences.emailNotifications
-                    ? "translate-x-7"
+                    ? "translate-x-6"
                     : "translate-x-1"
                 }`}
               />
@@ -693,35 +698,34 @@ function NotificationsSettings() {
           </p>
         </div>
 
-        {/* Study Reminders */}
-        <div className="p-6 rounded-lg border border-border-strong bg-bg-card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-text-primary">
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-text-primary">
               Daily Study Reminders
             </h3>
             <button
               onClick={() => handleToggle("studyReminders")}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
                 preferences.studyReminders ? "bg-primary" : "bg-text-muted"
               }`}
             >
               <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                  preferences.studyReminders ? "translate-x-7" : "translate-x-1"
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  preferences.studyReminders ? "translate-x-6" : "translate-x-1"
                 }`}
               />
             </button>
           </div>
           {preferences.studyReminders && (
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-1.5">
                 Reminder Time
               </label>
               <input
                 type="time"
                 value={preferences.reminderTime}
                 onChange={handleTimeChange}
-                className="px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
               />
             </div>
           )}
@@ -731,7 +735,7 @@ function NotificationsSettings() {
       <button
         onClick={handleSave}
         disabled={loading}
-        className="mt-6 px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+        className="mt-5 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
       >
         {loading ? "Saving..." : "Save Preferences"}
       </button>
@@ -739,7 +743,6 @@ function NotificationsSettings() {
   );
 }
 
-// Interface Settings Component
 function InterfaceSettings() {
   const { toast } = useToast();
   const [preferences, setPreferences] = useState({
@@ -794,10 +797,9 @@ function InterfaceSettings() {
       </h2>
 
       <div className="space-y-6">
-        {/* Theme Switcher */}
-        <div className="p-6 rounded-lg border border-border-strong bg-bg-card">
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated">
           <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <FontAwesomeIcon icon={faPalette} className="size-5" />
+            <FontAwesomeIcon icon={faPalette} className="size-5 text-primary" />
             Theme
           </h3>
           <p className="text-sm text-text-secondary mb-4">
@@ -808,7 +810,6 @@ function InterfaceSettings() {
           </div>
         </div>
 
-        {/* Language */}
         <div>
           <Dropdown
             label="Language"
@@ -826,7 +827,6 @@ function InterfaceSettings() {
           </p>
         </div>
 
-        {/* Quran Font */}
         <div>
           <Dropdown
             label="Quran Font"
@@ -847,7 +847,7 @@ function InterfaceSettings() {
       <button
         onClick={handleSave}
         disabled={loading}
-        className="mt-6 px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+        className="mt-6 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
       >
         {loading ? "Saving..." : "Save Settings"}
       </button>
@@ -855,7 +855,6 @@ function InterfaceSettings() {
   );
 }
 
-// Sessions Settings Component
 function SessionsSettings() {
   const { toast } = useToast();
   const [sessions, setSessions] = useState<
@@ -908,12 +907,9 @@ function SessionsSettings() {
       </h2>
 
       {loading ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="p-6 rounded-lg border border-border-strong bg-bg-card"
-            >
+            <div key={i} className="p-5 rounded-2xl border border-border bg-bg-elevated">
               <div className="flex items-center justify-between">
                 <div className="space-y-2 flex-1">
                   <Skeleton className="h-5 w-1/3" />
@@ -924,29 +920,26 @@ function SessionsSettings() {
           ))}
         </div>
       ) : sessions.length === 0 ? (
-        <p className="text-text-secondary">No active sessions found</p>
+        <p className="text-sm text-text-secondary">No active sessions found</p>
       ) : (
-        <div className="space-y-4">
-          {sessions.map((session) => (
+        <div className="space-y-3">
+          {sessions.map((s) => (
             <div
-              key={session.id}
-              className="p-6 rounded-lg border border-border-strong bg-bg-card flex items-center justify-between"
+              key={s.id}
+              className="p-5 rounded-2xl border border-border bg-bg-elevated flex items-center justify-between"
             >
               <div>
                 <h3 className="font-semibold text-text-primary">
-                  {session.deviceName}
+                  {s.deviceName}
                 </h3>
-                <p className="text-sm text-text-secondary">
-                  IP: {session.ipAddress}
-                </p>
-                <p className="text-xs text-text-secondary mt-1">
-                  Last activity:{" "}
-                  {new Date(session.lastActivity).toLocaleString()}
+                <p className="text-sm text-text-secondary">IP: {s.ipAddress}</p>
+                <p className="text-xs text-text-muted mt-1">
+                  Last activity: {new Date(s.lastActivity).toLocaleString()}
                 </p>
               </div>
               <button
-                onClick={() => handleLogoutSession(session.id)}
-                className="px-4 py-2 bg-danger hover:bg-danger/90 text-text-inverse rounded-lg transition-colors text-sm"
+                onClick={() => handleLogoutSession(s.id)}
+                className="px-4 py-2 bg-danger/10 text-danger rounded-xl text-sm font-medium hover:bg-danger/20 transition-colors"
               >
                 Logout
               </button>
@@ -958,7 +951,6 @@ function SessionsSettings() {
   );
 }
 
-// Danger Zone Component
 function DangerZoneSettings() {
   const { toast } = useToast();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1002,53 +994,51 @@ function DangerZoneSettings() {
     <div className="max-w-2xl">
       <h2 className="text-2xl font-bold text-danger mb-6">Danger Zone</h2>
 
-      <div className="p-6 rounded-lg border-2 border-danger bg-danger-muted/50">
+      <div className="p-6 rounded-2xl border-2 border-danger/30 bg-danger/5">
         <h3 className="text-lg font-semibold text-danger mb-2">
           Delete Account
         </h3>
-        <p className="text-sm text-danger mb-4">
-          Once you delete your account, there is no going back. Please be
-          certain.
+        <p className="text-sm text-danger/80 mb-4">
+          Once you delete your account, there is no going back. Please be certain.
         </p>
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="px-6 py-2 bg-danger hover:bg-danger/90 text-text-inverse rounded-lg transition-colors"
+          className="px-6 py-2.5 bg-danger text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-danger/20"
         >
           Delete My Account
         </button>
       </div>
 
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-bg-primary rounded-lg p-8 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-elevated rounded-2xl p-8 max-w-md w-full shadow-xl border border-border">
             <h3 className="text-xl font-bold text-text-primary mb-4">
               Confirm Account Deletion
             </h3>
-            <p className="text-text-secondary mb-4">
-              This action cannot be undone. All your data will be permanently
-              deleted.
+            <p className="text-sm text-text-secondary mb-4">
+              This action cannot be undone. All your data will be permanently deleted.
             </p>
             <input
               type="password"
               placeholder="Enter your password to confirm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-card text-text-primary focus:outline-none focus:ring-2 focus:ring-danger mb-4"
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-danger/30 focus:border-danger transition-all mb-4"
             />
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowDeleteModal(false);
                   setPassword("");
                 }}
-                className="flex-1 px-4 py-2 bg-text-muted hover:bg-text-tertiary text-text-primary rounded-lg transition-colors"
+                className="flex-1 px-4 py-2.5 bg-bg-hover text-text-primary rounded-xl font-medium hover:bg-bg-hover/80 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-danger hover:bg-danger/90 text-text-inverse rounded-lg transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-danger text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-danger/20"
               >
                 {loading ? "Deleting..." : "Delete"}
               </button>
@@ -1060,10 +1050,33 @@ function DangerZoneSettings() {
   );
 }
 
+function ToggleSwitch({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ${
+        value ? "bg-primary" : "bg-border"
+      }`}
+      role="switch"
+      aria-checked={value}
+    >
+      <span
+        className={`pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+          value ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
+}
+
 function UstadhSettings() {
   const { toast } = useToast();
   const [bio, setBio] = useState("");
   const [qualifications, setQualifications] = useState("");
+  const [ijazah, setIjazah] = useState("");
+  const [qiraah, setQiraah] = useState("");
+  const [availableForTeaching, setAvailableForTeaching] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -1074,6 +1087,9 @@ function UstadhSettings() {
       .then((data) => {
         setBio(data.bio ?? "");
         setQualifications(data.qualifications ?? "");
+        setIjazah(data.ijazah ?? "");
+        setQiraah(data.qiraah ?? "");
+        setAvailableForTeaching(data.availableForTeaching ?? false);
         setIsApproved(data.isApproved ?? false);
         setLoaded(true);
       })
@@ -1087,7 +1103,7 @@ function UstadhSettings() {
       const res = await fetch("/api/ustadh/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bio, qualifications }),
+        body: JSON.stringify({ bio, qualifications, ijazah, qiraah, availableForTeaching }),
       });
       if (res.ok) {
         toast({ title: "Ustadh profile updated successfully.", variant: "success" });
@@ -1108,27 +1124,26 @@ function UstadhSettings() {
         Ustadh Profile
       </h2>
 
-      <div className="mb-6 p-4 rounded-lg border border-border-strong bg-bg-card">
+      <div className="mb-6 p-4 rounded-2xl border border-border bg-bg-elevated">
         <p className="text-sm text-text-secondary mb-1">Approval Status</p>
         <span
           className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${
             isApproved
-              ? "bg-success-muted text-success"
-              : "bg-warning-muted text-warning"
+              ? "bg-success/10 text-success"
+              : "bg-warning/10 text-warning"
           }`}
         >
-          <span
-            className={`size-2 rounded-full ${isApproved ? "bg-success" : "bg-warning"}`}
-          />
+          <span className={`size-2 rounded-full ${isApproved ? "bg-success" : "bg-warning"}`} />
           {isApproved ? "Approved" : "Pending Review"}
         </span>
       </div>
 
       {!loaded ? (
         <div className="space-y-5">
-          <Skeleton className="h-24 w-full rounded-lg" />
-          <Skeleton className="h-24 w-full rounded-lg" />
-          <Skeleton className="h-12 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -1139,14 +1154,12 @@ function UstadhSettings() {
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              maxLength={300}
-              rows={4}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              maxLength={500}
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
               placeholder="Tell us about yourself..."
             />
-            <p className="text-xs text-text-muted text-right mt-1">
-              {bio.length}/300
-            </p>
+            <p className="text-xs text-text-muted text-right mt-1">{bio.length}/500</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1.5">
@@ -1155,19 +1168,50 @@ function UstadhSettings() {
             <textarea
               value={qualifications}
               onChange={(e) => setQualifications(e.target.value)}
-              maxLength={500}
-              rows={4}
-              className="w-full px-4 py-2 rounded-lg border border-border-strong bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder="List your qualifications, certifications, etc."
+              maxLength={1000}
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
+              placeholder="List your degrees, certifications, and teaching credentials."
             />
-            <p className="text-xs text-text-muted text-right mt-1">
-              {qualifications.length}/500
-            </p>
+            <p className="text-xs text-text-muted text-right mt-1">{qualifications.length}/1000</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Ijazah
+            </label>
+            <textarea
+              value={ijazah}
+              onChange={(e) => setIjazah(e.target.value)}
+              maxLength={1000}
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
+              placeholder="Provide details of your Ijazah — who issued it, what it covers..."
+            />
+            <p className="text-xs text-text-muted text-right mt-1">{ijazah.length}/1000</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Qiraah Specialization
+            </label>
+            <input
+              type="text"
+              value={qiraah}
+              onChange={(e) => setQiraah(e.target.value)}
+              placeholder="e.g. Hafs, Warsh, Qalun, etc."
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            />
+          </div>
+          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-bg-elevated">
+            <div>
+              <p className="font-semibold text-sm text-text-primary">Available for Teaching</p>
+              <p className="text-xs text-text-muted mt-0.5">Toggle on to accept new mentorship requests</p>
+            </div>
+            <ToggleSwitch value={availableForTeaching} onChange={setAvailableForTeaching} />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-primary text-text-inverse rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
           >
             <FontAwesomeIcon icon={faSave} className="size-4" />
             {loading ? "Saving..." : "Save Changes"}

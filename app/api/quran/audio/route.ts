@@ -20,12 +20,15 @@ export async function GET(req: NextRequest) {
     }
 
     const audioBuffer = await response.arrayBuffer();
+    const origin = req.headers.get('origin') || '';
+    const allowedOrigins = ['https://maymanah.com', 'http://localhost:3000'];
+    const corsOrigin = allowedOrigins.includes(origin) ? origin : '';
 
     return new NextResponse(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
         'Cache-Control': 'public, max-age=86400',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin || 'null',
       },
     });
   } catch {

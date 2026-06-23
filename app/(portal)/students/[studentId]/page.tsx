@@ -1,7 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { TopNav } from "@/components/ui/PortalNav";
 import { amiri } from "@/components/ui/fonts";
 import { StudentNotesClient } from "./StudentNotesClient";
 
@@ -94,9 +93,7 @@ export default async function StudentDetail({ params }: PageContext) {
   }));
 
   return (
-    <div className="flex flex-col max-w-4xl w-full h-full pt-16 mx-auto">
-      <TopNav />
-      <div className="flex-1 p-6 space-y-8 overflow-auto">
+    <div className="p-6 space-y-8 max-w-4xl mx-auto">
         <section className="bg-bg-card rounded-xl p-6 border border-border">
           <h1 className={`text-3xl text-primary ${amiri.className}`}>
             {student.name?.split(" ")[0] ?? "Student"}
@@ -136,7 +133,6 @@ export default async function StudentDetail({ params }: PageContext) {
           }))}
           completedSessions={sessions}
         />
-      </div>
     </div>
   );
 }

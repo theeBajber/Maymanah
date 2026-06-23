@@ -1,6 +1,11 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const deleteSessionSchema = z.object({
+  sessionId: z.string().min(1, "Session ID is required"),
+});
 
 export async function GET() {
   try {
@@ -30,7 +35,7 @@ export async function GET() {
     console.error("Get sessions error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -42,14 +47,17 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { sessionId } = await req.json();
+    const body = await req.json();
+    const parsed = deleteSessionSchema.safeParse(body);
 
-    if (!sessionId) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Session ID is required" },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 },
       );
     }
+
+    const { sessionId } = parsed.data;
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -59,7 +67,6 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Verify the session belongs to this user
     const loginSession = await prisma.loginSession.findFirst({
       where: {
         id: sessionId,
@@ -70,7 +77,7 @@ export async function DELETE(req: NextRequest) {
     if (!loginSession) {
       return NextResponse.json(
         { error: "Session not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -81,10 +88,13 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ message: "Session logged out successfully" });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues }, { status: 400 });
+    }
     console.error("Logout session error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

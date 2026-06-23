@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
+import { logAuditEvent } from "@/lib/audit";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   pages: {
     signIn: "/login",
     error: "/login",
@@ -26,14 +27,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email: credentials.email as string },
         });
 
-        if (!user || !user.password) return null;
+        if (!user || !user.password) {
+          await logAuditEvent({
+            action: "LOGIN_FAILED",
+            email: credentials.email as string,
+          });
+          return null;
+        }
 
         const isValid = await bcrypt.compare(
           credentials.password as string,
           user.password,
         );
 
-        if (!isValid) return null;
+        if (!isValid) {
+          await logAuditEvent({
+            action: "LOGIN_FAILED",
+            email: credentials.email as string,
+          });
+          return null;
+        }
+
+        await logAuditEvent({
+          action: "LOGIN_SUCCESS",
+          userId: user.id,
+          email: user.email,
+        });
 
         return {
           id: user.id,
@@ -56,6 +75,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (trigger === "update" && updateData) {
         if (updateData.name) token.name = updateData.name;
         if (updateData.image) token.picture = updateData.image;
+        if (updateData.gender) token.gender = updateData.gender;
       }
       return token;
     },

@@ -36,9 +36,18 @@ export default function EnrollButton({
   return (
     <button
       onClick={handleClick}
-      className="rounded-lg py-2 px-6 bg-primary text-text-inverse font-semibold hover:bg-primary-dark transition-colors"
+      className="inline-flex items-center gap-2 rounded-xl py-2.5 px-6 bg-primary text-text-inverse font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-primary/20"
     >
-      {isEnrolled ? "Continue Learning" : "Enroll Now"}
+      {isEnrolled ? (
+        <>Continue Learning</>
+      ) : (
+        <>
+          Enroll Now
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </>
+      )}
     </button>
   );
 }

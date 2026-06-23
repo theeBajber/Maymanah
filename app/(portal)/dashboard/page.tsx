@@ -1,8 +1,7 @@
 import { CourseCard, LeaderBoardCard } from "@/components/ui/cards";
 import { amiri, inter } from "@/components/ui/fonts";
-import { TopNav } from "@/components/ui/PortalNav";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { DashboardAchievement, getDashboardData } from "@/lib/dashboard";
 import type { Session } from "next-auth";
 import {
@@ -18,6 +17,9 @@ import {
   faUserGroup,
   faCheckCircle,
   faCalendarDay,
+  faClipboardCheck,
+  faAward,
+  faGraduationCap,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
@@ -57,33 +59,38 @@ function getAchievementPresentation(kind: DashboardAchievement["kind"]) {
     case "streak":
       return {
         icon: faFireAlt,
-        className: "bg-secondary text-text-inverse border-secondary",
+        className: "bg-secondary/10 text-secondary border-secondary/20",
       };
     case "assessment":
       return {
         icon: faMedal,
-        className: "bg-bg-primary text-tertiary border-bg-primary",
+        className: "bg-primary/10 text-primary border-primary/20",
       };
     case "bookmark":
       return {
         icon: faBookOpen,
-        className: "bg-primary-subtle text-primary border-primary-subtle",
+        className: "bg-primary/10 text-primary border-primary/20",
       };
     case "session":
       return {
         icon: faCheckSquare,
-        className: "bg-secondary text-text-inverse border-secondary",
+        className: "bg-secondary/10 text-secondary border-secondary/20",
       };
     case "course":
     default:
       return {
         icon: faSun,
-        className: "bg-primary text-text-inverse border-primary",
+        className: "bg-primary/10 text-primary border-primary/20",
       };
   }
 }
 
-export default async function Dash() {
+export default async function Dash(props: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  const tab = searchParams?.tab ?? "overview";
+
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
 
@@ -95,7 +102,7 @@ export default async function Dash() {
   if (!dashboardData) redirect("/login");
 
   const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
-  const todayIdx = new Date().getDay(); // 0=Sun → shift to Mon=0
+  const todayIdx = new Date().getDay();
   const monBasedIdx = todayIdx === 0 ? 6 : todayIdx - 1;
   const userName = dashboardData.user.name?.split(" ")[0] ?? "Student";
   const enrollments = dashboardData.activeEnrollments;
@@ -105,85 +112,124 @@ export default async function Dash() {
     ? `Continue ${nextCourse.title}: ${nextCourse.progress}% complete.`
     : "No active courses yet. Start learning today.";
 
+  let analyticsData: {
+    submissions: Awaited<ReturnType<typeof getStudentSubmissions>>;
+    completedLessons: Awaited<ReturnType<typeof getCompletedLessons>>;
+    enrollments: Awaited<ReturnType<typeof getActiveEnrollments>>;
+  } | null = null;
+
+  if (tab === "analytics") {
+    const [submissions, completedLessons, enrollments] = await Promise.all([
+      getStudentSubmissions(session.user.id),
+      getCompletedLessons(session.user.id),
+      getActiveEnrollments(session.user.id),
+    ]);
+    analyticsData = { submissions, completedLessons, enrollments };
+  }
+
   return (
-    <div className="flex flex-col max-w-7xl w-full h-full pt-16">
-      <TopNav />
-      <div className="flex-1 p-6 flex flex-col gap-6">
-        <section className="w-full bg-bg-card rounded-xl p-8 flex items-center gap-4 justify-between *:h-full">
-          <div className="flex flex-col max-w-2xl gap-2 p-2">
-            <h1 className={`text-primary ${inter.className} text-3xl`}>
-              Hey, {userName}
-            </h1>
-            <p className="text-text-secondary">{heroCopy}</p>
-            <div className="flex items-center gap-4 my-4">
-              <Link
-                href={resumeHref}
-                className="rounded-xl py-1.5 px-4 flex items-center gap-2 bg-primary text-text-inverse"
-              >
-                <FontAwesomeIcon icon={faPlay} className="text-xs" />
-                {nextCourse ? "Resume Learning" : "Browse Courses"}
-              </Link>
-              <Link
-                href="/courses"
-                className="rounded-xl border border-primary py-1.5 px-4"
-              >
-                View Study Plan
-              </Link>
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-elevated to-bg-secondary border border-border p-6 md:p-8 flex items-center gap-6 justify-between">
+        <div className="flex flex-col max-w-2xl gap-2">
+          <h1 className={`text-text-primary text-3xl md:text-4xl font-bold tracking-tight`}>
+            Hey, {userName}
+          </h1>
+          <p className="text-text-secondary text-sm md:text-base">{heroCopy}</p>
+          <div className="flex items-center gap-3 mt-3">
+            <Link
+              href={resumeHref}
+              className="inline-flex items-center gap-2 rounded-xl py-2 px-5 bg-primary text-text-inverse font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-primary/20"
+            >
+              <FontAwesomeIcon icon={faPlay} className="text-xs" />
+              {nextCourse ? "Resume Learning" : "Browse Courses"}
+            </Link>
+            <Link
+              href="/courses"
+              className="inline-flex items-center gap-2 rounded-xl py-2 px-5 border border-border text-text-secondary font-medium text-sm hover:bg-bg-hover hover:text-text-primary transition-all"
+            >
+              View Study Plan
+            </Link>
+          </div>
+        </div>
+        <div className="hidden md:flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-bg-elevated border border-border">
+          <div className="relative size-24">
+            <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                className="stroke-bg-hover"
+                strokeWidth="2.5"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                className="stroke-primary"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={`${dashboardData.weeklyProgress}, ${100 - dashboardData.weeklyProgress}`}
+                pathLength="100"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-2xl font-bold text-text-primary">
+                {dashboardData.weeklyProgress}%
+              </span>
             </div>
           </div>
-          <div className="h-full flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-primary-subtle">
-            <div className="relative size-24">
-              <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="16"
-                  fill="none"
-                  className="stroke-bg-primary"
-                  strokeWidth="2.5"
-                />
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="16"
-                  fill="none"
-                  className="stroke-primary"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeDasharray={`${dashboardData.weeklyProgress}, ${100 - dashboardData.weeklyProgress}`}
-                  pathLength="100"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center z-5">
-                <span className="text-2xl font-bold text-text-primary">
-                  {dashboardData.weeklyProgress}%
-                </span>
-              </div>
-            </div>
-            <div className="text-text-primary/70 text-xs tracking-widest">
-              WEEKLY PROGRESS
-            </div>
+          <div className="text-text-muted text-[10px] font-semibold tracking-[0.15em] uppercase">
+            Weekly Progress
           </div>
-        </section>
-        <section className="w-full flex gap-6 h-162">
-          <div className="w-full flex flex-col py-4">
-            <div className="flex w-full justify-between items-center">
-              <div className=" flex flex-col">
-                <h2 className="text-2xl">Active Courses</h2>
-                <p className="text-sm text-text-secondary">
-                  Pick up where you left off
-                </p>
+        </div>
+      </section>
+
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-bg-elevated border border-border w-fit">
+        <Link
+          href="/dashboard"
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            tab === "overview"
+              ? "bg-primary text-text-inverse shadow-sm"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          Overview
+        </Link>
+        <Link
+          href="/dashboard?tab=analytics"
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            tab === "analytics"
+              ? "bg-primary text-text-inverse shadow-sm"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          Analytics
+        </Link>
+      </div>
+
+      {tab === "analytics" && analyticsData ? (
+        <AnalyticsContent data={analyticsData} />
+      ) : (
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-text-primary">Active Courses</h2>
+                <p className="text-sm text-text-secondary">Pick up where you left off</p>
               </div>
               <Link
                 href="/courses"
-                className="text-primary hover:text-primary-dark transition-colors flex gap-2 items-center"
+                className="text-sm font-medium text-primary hover:text-primary-light transition-colors flex items-center gap-1.5"
               >
-                View All <FontAwesomeIcon icon={faArrowRight} />
+                View All <FontAwesomeIcon icon={faArrowRight} className="size-3" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-4 py-4">
-              {enrollments.length > 0 ? (
-                enrollments.map((course) => (
+
+            {enrollments.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {enrollments.map((course) => (
                   <CourseCard
                     key={course.id}
                     image={course.image}
@@ -192,62 +238,70 @@ export default async function Dash() {
                     lessons={course.lessons}
                     href={`/courses/${course.slug}`}
                   />
-                ))
-              ) : (
-                <div className="col-span-2 h-64 rounded-xl flex flex-col gap-2 p-6 bg-bg-card items-center justify-center text-text-secondary">
-                  <FontAwesomeIcon
-                    icon={faBookOpen}
-                    className="text-3xl mb-2"
-                  />
-                  <p>
-                    No active courses yet. Browse our catalog to get started.
-                  </p>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border bg-bg-elevated/50 p-10 text-center">
+                <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                  <FontAwesomeIcon icon={faBookOpen} className="text-primary text-lg" />
                 </div>
-              )}
-              <div className="bg-bg-card col-span-2 h-64 rounded-xl flex flex-col gap-2 p-6">
-                <h4 className="uppercase text-text-secondary mb-2 tracking-wider">
-                  Leaderboard
-                </h4>
-                <div className="flex flex-col gap-2">
-                  {dashboardData.leaderboard.length > 0 ? (
-                    dashboardData.leaderboard.map((user, idx) => (
-                      <LeaderBoardCard
-                        key={user.id}
-                        currentUser={user.id === dashboardData.user.id}
-                        rank={idx + 1}
-                        name={user.name}
-                        xp={user.xp}
-                        image={user.image}
-                      />
-                    ))
-                  ) : (
-                    <p className="text-text-secondary text-sm">
-                      No leaderboard data yet.
-                    </p>
-                  )}
-                </div>
+                <p className="text-text-secondary text-sm">
+                  No active courses yet. Browse our catalog to get started.
+                </p>
+                <Link
+                  href="/courses"
+                  className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-primary hover:underline"
+                >
+                  Browse courses <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                </Link>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
+                Leaderboard
+              </h4>
+              <div className="space-y-1">
+                {dashboardData.leaderboard.length > 0 ? (
+                  dashboardData.leaderboard.map((user, idx) => (
+                    <LeaderBoardCard
+                      key={user.id}
+                      currentUser={user.id === dashboardData.user.id}
+                      rank={idx + 1}
+                      name={user.name}
+                      xp={user.xp}
+                      image={user.image}
+                    />
+                  ))
+                ) : (
+                  <p className="text-sm text-text-secondary">No leaderboard data yet.</p>
+                )}
               </div>
             </div>
           </div>
-          <div className="md:w-lg md:h-full overflow-x-hidden overflow-y-scroll flex flex-col gap-4">
-            <div className="bg-bg-card border-border border h-40 rounded-xl shadow-sm flex flex-col p-6 relative">
-              <h4 className="uppercase tracking-wider text-sm text-text-secondary">
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
                 Learning Streak
               </h4>
-              <div className="text-xl font-bold mb-2">
-                {dashboardData.streak} Day Streak{" "}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-2xl font-bold text-text-primary">
+                  {dashboardData.streak}
+                </span>
+                <span className="text-sm text-text-secondary">day streak</span>
                 <FontAwesomeIcon
                   icon={faFireAlt}
                   className={
                     dashboardData.streak >= 7
-                      ? "text-orange-500 animate-bounce duration-700"
+                      ? "text-orange-500"
                       : dashboardData.streak > 0
-                        ? "text-primary animate-pulse duration-700"
+                        ? "text-primary"
                         : "text-text-muted"
                   }
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {weekDays.map((day, idx) => {
                   const isStreakDay = idx < dashboardData.streak;
                   const isFuture = idx > monBasedIdx;
@@ -255,14 +309,14 @@ export default async function Dash() {
                   return (
                     <div
                       key={`${day}-${idx}`}
-                      className={`rounded-full flex items-center justify-center size-8 uppercase font-bold text-sm transition-colors ${
+                      className={`rounded-full flex items-center justify-center size-8 uppercase font-bold text-xs transition-colors ${
                         isToday
-                          ? "bg-success text-text-inverse ring-2 ring-success ring-offset-2 ring-offset-bg-card"
+                          ? "bg-primary text-text-inverse ring-2 ring-primary/30"
                           : isFuture
                             ? "bg-bg-hover text-text-muted"
                             : isStreakDay
-                              ? "bg-primary text-text-inverse"
-                              : "bg-primary-subtle text-text-primary/80"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-bg-hover text-text-muted/50"
                       }`}
                     >
                       {day}
@@ -270,30 +324,24 @@ export default async function Dash() {
                   );
                 })}
               </div>
-              <FontAwesomeIcon
-                icon={faFireAlt}
-                className="absolute -right-2 bottom-0 text-5xl opacity-10"
-              />
             </div>
+
             {dashboardData.upcomingAppointment ? (
-              <div className="bg-bg-card w-full h-120 rounded-xl p-6 border border-border shadow-xl shadow-primary/5 overflow-hidden">
-                <h3 className="text-sm text-text-secondary uppercase mb-4">
+              <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
                   Upcoming Session
                 </h3>
-                <div className="flex items-start gap-4 mb-6">
+                <div className="flex items-start gap-3 mb-4">
                   {dashboardData.upcomingAppointment.teacherImage ? (
                     <Image
-                      alt={
-                        dashboardData.upcomingAppointment.teacherName ??
-                        "Teacher"
-                      }
-                      className="w-14 h-14 rounded-full object-cover border-2 border-primary"
+                      alt={dashboardData.upcomingAppointment.teacherName ?? "Teacher"}
+                      className="size-12 rounded-full object-cover ring-2 ring-primary/30"
                       src={dashboardData.upcomingAppointment.teacherImage}
                       width={56}
                       height={56}
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-primary-subtle border-2 border-primary flex items-center justify-center text-primary font-bold">
+                    <div className="size-12 rounded-full bg-primary/10 ring-2 ring-primary/30 flex items-center justify-center text-primary font-bold text-sm">
                       {(
                         dashboardData.upcomingAppointment.teacherName ??
                         "Teacher"
@@ -304,19 +352,15 @@ export default async function Dash() {
                         .slice(0, 2)}
                     </div>
                   )}
-                  <div>
-                    <h4 className="font-bold">
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-sm text-text-primary">
                       {dashboardData.upcomingAppointment.title}
                     </h4>
-                    <p className="text-sm text-text-secondary">
-                      {dashboardData.upcomingAppointment.teacherName ??
-                        "Teacher"}
+                    <p className="text-xs text-text-secondary">
+                      {dashboardData.upcomingAppointment.teacherName ?? "Teacher"}
                     </p>
-                    <div className="flex items-center gap-2 text-primary font-semibold mt-1">
-                      <FontAwesomeIcon
-                        icon={faAlarmClock}
-                        className="text-sm"
-                      />
+                    <div className="flex items-center gap-1.5 text-primary text-xs font-medium mt-1">
+                      <FontAwesomeIcon icon={faAlarmClock} className="size-3" />
                       <span>
                         {getAppointmentTimeLabel(
                           dashboardData.upcomingAppointment.startTime,
@@ -325,31 +369,24 @@ export default async function Dash() {
                     </div>
                   </div>
                 </div>
-                {dashboardData.upcomingAppointment.meetingUrl ? (
-                  <a
-                    href={dashboardData.upcomingAppointment.meetingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-block text-center bg-primary text-text-inverse py-4 rounded-2xl font-bold hover:shadow-lg transition-all active:scale-[0.98]"
-                  >
-                    Join Session
-                  </a>
-                ) : (
-                  <div className="w-full text-center bg-primary-subtle text-text-secondary py-4 rounded-2xl font-bold">
-                    Meeting link pending
-                  </div>
-                )}
+                <a
+                  href={`/session/${dashboardData.upcomingAppointment.id}`}
+                  className="block w-full text-center bg-primary text-text-inverse py-3 rounded-xl font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-primary/20"
+                >
+                  Join Session
+                </a>
               </div>
             ) : (
-              <div className="bg-bg-card w-full h-120 rounded-xl p-6 border border-border shadow-xl shadow-primary/5 overflow-hidden">
-                <h3 className="text-sm text-text-secondary uppercase mb-4">
+              <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
                   Upcoming Session
                 </h3>
-                <p className="text-text-secondary">No upcoming sessions.</p>
+                <p className="text-sm text-text-secondary">No upcoming sessions.</p>
               </div>
             )}
-            <div className="bg-bg-card rounded-xl border border-border p-6 shadow-sm">
-              <h3 className="text-sm text-text-secondary uppercase mb-4">
+
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
                 Recent Achievements
               </h3>
               {dashboardData.achievements.length > 0 ? (
@@ -361,14 +398,14 @@ export default async function Dash() {
                     return (
                       <div
                         key={achievement.id}
-                        className="flex flex-col items-center text-center gap-1 group"
+                        className="flex flex-col items-center text-center gap-1.5 group"
                       >
                         <div
-                          className={`w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-inner transition-transform group-hover:scale-110 ${presentation.className}`}
+                          className={`size-12 rounded-full flex items-center justify-center border-2 transition-transform group-hover:scale-110 ${presentation.className}`}
                         >
-                          <FontAwesomeIcon icon={presentation.icon} />
+                          <FontAwesomeIcon icon={presentation.icon} className="size-4" />
                         </div>
-                        <p className="text-[10px] font-bold leading-tight">
+                        <p className="text-[11px] font-semibold text-text-primary leading-tight">
                           {achievement.title}
                         </p>
                       </div>
@@ -381,38 +418,206 @@ export default async function Dash() {
                 </p>
               )}
             </div>
-            <div className="rounded-xl w-full bg-bg-card shadow-sm border border-border flex flex-col gap-2 p-6">
-              <h3 className="text-sm text-text-secondary uppercase mb-4">
+
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5 space-y-2">
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
                 Quick Resources
               </h3>
               <Link
                 href="/revision"
-                className="rounded-lg bg-primary-subtle w-full px-4 py-1.5 flex gap-4 items-center"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-bg-hover hover:bg-primary/5 hover:text-primary transition-colors text-sm text-text-secondary"
               >
-                <FontAwesomeIcon icon={faMusic} />
+                <FontAwesomeIcon icon={faMusic} className="size-4 text-primary/60" />
                 <div className="flex flex-col">
-                  Revision
-                  <p className="text-text-secondary text-xs">
-                    Review your memorization plan
-                  </p>
+                  <span className="font-medium text-text-primary">Revision</span>
+                  <span className="text-xs text-text-muted">Review your memorization plan</span>
                 </div>
               </Link>
               <Link
                 href="/mushaf"
-                className="rounded-lg bg-primary-subtle w-full px-4 py-1.5 flex gap-4 items-center"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-bg-hover hover:bg-primary/5 hover:text-primary transition-colors text-sm text-text-secondary"
               >
-                <FontAwesomeIcon icon={faBookOpen} />
+                <FontAwesomeIcon icon={faBookOpen} className="size-4 text-primary/60" />
                 <div className="flex flex-col">
-                  Mushaf
-                  <p className="text-text-secondary text-xs">
-                    Read from the holy Quran
-                  </p>
+                  <span className="font-medium text-text-primary">Mushaf</span>
+                  <span className="text-xs text-text-muted">Read from the holy Quran</span>
                 </div>
               </Link>
             </div>
           </div>
         </section>
+      )}
+    </div>
+  );
+}
+
+async function getStudentSubmissions(studentId: string) {
+  return safeQuery(() =>
+    prisma.submission.findMany({
+      where: { studentId, status: "GRADED" },
+      include: {
+        exam: {
+          select: { title: true, totalMarks: true, passMark: true, courseId: true },
+        },
+      },
+      orderBy: { submittedAt: "desc" },
+    }),
+  );
+}
+
+async function getCompletedLessons(studentId: string) {
+  return safeQuery(() =>
+    prisma.lessonProgress.findMany({
+      where: { studentId, completed: true },
+      include: {
+        lesson: {
+          select: { title: true, courseId: true, course: { select: { title: true, slug: true } } },
+        },
+      },
+      orderBy: { completedAt: "desc" },
+    }),
+  );
+}
+
+async function getActiveEnrollments(studentId: string) {
+  return safeQuery(() =>
+    prisma.enrollment.findMany({
+      where: { userId: studentId, status: "ACTIVE" },
+      include: { course: { select: { title: true, slug: true } } },
+    }),
+  );
+}
+
+function AnalyticsContent({
+  data,
+}: {
+  data: {
+    submissions: Awaited<ReturnType<typeof getStudentSubmissions>>;
+    completedLessons: Awaited<ReturnType<typeof getCompletedLessons>>;
+    enrollments: Awaited<ReturnType<typeof getActiveEnrollments>>;
+  };
+}) {
+  const { submissions, completedLessons, enrollments } = data;
+
+  const avgScore = submissions.length > 0
+    ? submissions.reduce((sum, s) => sum + (s.totalScore ?? 0) / s.exam.totalMarks * 100, 0) / submissions.length
+    : 0;
+  const passCount = submissions.filter((s) => s.exam.totalMarks > 0 && ((s.totalScore ?? 0) / s.exam.totalMarks) * 100 >= 50).length;
+
+  const courseModules: Record<string, { title: string; slug: string; done: number }> = {};
+  for (const lp of completedLessons) {
+    const cId = lp.lesson.courseId;
+    if (!courseModules[cId]) {
+      courseModules[cId] = { title: lp.lesson.course.title, slug: lp.lesson.course.slug, done: 0 };
+    }
+    courseModules[cId].done++;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={faClipboardCheck} className="text-primary size-4" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{submissions.length}</p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">Quizzes Taken</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-success/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={faAward} className="text-success size-4" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{avgScore.toFixed(0)}%</p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">Avg Score</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={faBookOpen} className="text-primary size-4" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{completedLessons.length}</p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">Modules Done</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-info/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={faGraduationCap} className="text-info size-4" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{passCount}/{submissions.length}</p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">Passed</p>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <h2 className="font-bold text-text-primary mb-4">Quiz Results</h2>
+          {submissions.length === 0 ? (
+            <p className="text-sm text-text-secondary">No quizzes taken yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {submissions.slice(0, 5).map((s) => {
+                const pct = s.exam.totalMarks > 0 ? ((s.totalScore ?? 0) / s.exam.totalMarks) * 100 : 0;
+                const passed = pct >= 50;
+                return (
+                  <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-bg-hover">
+                    <p className="text-sm font-medium text-text-primary">{s.exam.title}</p>
+                    <div className="text-right">
+                      <p className={`font-bold text-sm ${passed ? "text-success" : "text-danger"}`}>{s.totalScore}/{s.exam.totalMarks}</p>
+                      <p className={`text-[11px] ${passed ? "text-success" : "text-danger"}`}>{pct.toFixed(0)}%</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <h2 className="font-bold text-text-primary mb-4">Modules Completed</h2>
+          {Object.keys(courseModules).length === 0 ? (
+            <p className="text-sm text-text-secondary">No modules completed yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {Object.entries(courseModules).map(([cId, data]) => (
+                <Link key={cId} href={`/courses/${data.slug}`} className="flex items-center justify-between p-3 rounded-xl bg-bg-hover hover:bg-primary/5 transition-colors">
+                  <div>
+                    <p className="font-medium text-sm text-text-primary">{data.title}</p>
+                    <p className="text-xs text-text-secondary">{data.done} modules completed</p>
+                  </div>
+                  <FontAwesomeIcon icon={faArrowRight} className="size-3 text-text-muted" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {enrollments.length > 0 && (
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <h2 className="font-bold text-text-primary mb-4">Active Courses</h2>
+          <div className="flex flex-wrap gap-2">
+            {enrollments.map((e) => (
+              <Link key={e.courseId} href={`/courses/${e.course.slug}`} className="px-4 py-2 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-colors text-sm font-medium">
+                {e.course.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -521,199 +726,187 @@ async function UstadhDashboard({ session }: { session: Session }) {
   }
 
   return (
-    <div className="flex flex-col max-w-6xl w-full h-full pt-16 mx-auto">
-      <TopNav />
-      <div className="flex-1 p-6 space-y-8 overflow-auto">
-        <section>
-          <h1 className={`text-3xl text-primary ${amiri.className}`}>
-            Hello, {title} {firstName}
-          </h1>
-          <p className="text-text-secondary mt-1">
-            Here&apos;s your overview for today.
-          </p>
-        </section>
+    <div className="p-6 space-y-8 max-w-6xl mx-auto">
+      <section>
+        <h1 className={`text-3xl font-bold text-text-primary tracking-tight`}>
+          Hello, {title} {firstName}
+        </h1>
+        <p className="text-sm text-text-secondary mt-1">
+          Here&apos;s your overview for today.
+        </p>
+      </section>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-bg-card rounded-xl p-5 border border-border">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-primary-muted flex items-center justify-center">
-                <FontAwesomeIcon icon={faUserGroup} className="text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{activeMatches.length}</p>
-                <p className="text-xs text-text-secondary uppercase tracking-wider">
-                  Active Students
-                </p>
-              </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={faUserGroup} className="text-primary size-4" />
             </div>
-          </div>
-          <div className="bg-bg-card rounded-xl p-5 border border-border">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-success-muted flex items-center justify-center">
-                <FontAwesomeIcon
-                  icon={faCheckCircle}
-                  className="text-success"
-                />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{completedThisMonth}</p>
-                <p className="text-xs text-text-secondary uppercase tracking-wider">
-                  Sessions This Month
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-bg-card rounded-xl p-5 border border-border">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-info-muted flex items-center justify-center">
-                <FontAwesomeIcon icon={faCalendarDay} className="text-info" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{todaySessions.length}</p>
-                <p className="text-xs text-text-secondary uppercase tracking-wider">
-                  Today&apos;s Sessions
-                </p>
-              </div>
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{activeMatches.length}</p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+                Active Students
+              </p>
             </div>
           </div>
         </div>
-
-        <section>
-          <h2 className="text-xl font-semibold mb-4">Today&apos;s Sessions</h2>
-          {todaySessions.length === 0 ? (
-            <p className="text-text-secondary">
-              No sessions scheduled for today.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {todaySessions.map((s) => (
-                <div
-                  key={s.id}
-                  className="bg-bg-card rounded-xl p-4 border border-border flex items-center justify-between"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {s.mentorship.student.name?.split(" ")[0] ?? "Student"}
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                      {formatTime(s.startTime)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                        s.status === "SCHEDULED"
-                          ? "bg-info-muted text-info"
-                          : s.status === "ONGOING"
-                            ? "bg-warning-muted text-warning"
-                            : s.status === "COMPLETED"
-                              ? "bg-success-muted text-success"
-                              : "bg-danger-muted text-danger"
-                      }`}
-                    >
-                      {s.status}
-                    </span>
-                    {s.status === "SCHEDULED" && (
-                      <>
-                        {canJoin(s.startTime, now.getTime()) && (
-                          <Link
-                            href={`/session/${s.id}`}
-                            className="text-sm bg-secondary text-text-inverse px-3 py-1.5 rounded-lg hover:bg-secondary-dark transition-colors"
-                          >
-                            Join
-                          </Link>
-                        )}
-                        {canCancel(s.startTime, now.getTime()) && (
-                          <button className="text-sm border border-danger text-danger px-3 py-1.5 rounded-lg hover:bg-danger-muted transition-colors">
-                            Cancel
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-success/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={faCheckCircle} className="text-success size-4" />
             </div>
-          )}
-        </section>
-
-        <section>
-          <h2 className="text-xl font-semibold mb-4">
-            This Week&apos;s Sessions
-          </h2>
-          {weekSessions.length === 0 ? (
-            <p className="text-text-secondary">No sessions this week.</p>
-          ) : (
-            <div className="grid grid-cols-7 gap-2">
-              {Array.from({ length: 7 }, (_, i) => (
-                <div
-                  key={i}
-                  className="bg-bg-card rounded-xl border border-border p-3"
-                >
-                  <p className="text-xs font-semibold text-text-secondary uppercase mb-2">
-                    {getDayName(i)}
-                  </p>
-                  <div className="space-y-1.5">
-                    {(weekGrouped[i] ?? []).map((s) => (
-                      <div
-                        key={s.id}
-                        className="text-xs bg-primary-muted rounded px-2 py-1"
-                      >
-                        <p className="font-medium">
-                          {s.mentorship.student.name?.split(" ")[0] ?? "S"}
-                        </p>
-                        <p className="text-text-muted">
-                          {formatTime(s.startTime)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{completedThisMonth}</p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+                Sessions This Month
+              </p>
             </div>
-          )}
-        </section>
-
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">My Students</h2>
-            <Link
-              href="/students"
-              className="text-sm text-primary hover:text-primary-dark flex items-center gap-1"
-            >
-              View All{" "}
-              <FontAwesomeIcon icon={faArrowRight} className="size-3" />
-            </Link>
           </div>
-          {activeMatches.length === 0 ? (
-            <p className="text-text-secondary">No active students assigned.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeMatches.map((m) => {
-                const progress = m.student.quranProgress?.[0];
-                return (
-                  <Link
-                    key={m.student.id}
-                    href={`/students/${m.student.id}`}
-                    className="bg-bg-card rounded-xl p-4 border border-border hover:border-primary hover:shadow-sm transition-all"
-                  >
-                    <p className="font-medium">
-                      {m.student.name?.split(" ")[0] ?? "Student"}
-                    </p>
-                    <div className="mt-2 text-sm text-text-secondary space-y-1">
-                      <p>
-                        Current: Surah {progress?.lastSurah ?? "?"}:
-                        {progress?.lastVerse ?? "?"}
-                      </p>
-                      <p>Open notes: {m.student.studentNotes.length}</p>
-                    </div>
-                  </Link>
-                );
-              })}
+        </div>
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-info/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={faCalendarDay} className="text-info size-4" />
             </div>
-          )}
-        </section>
+            <div>
+              <p className="text-2xl font-bold text-text-primary">{todaySessions.length}</p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+                Today&apos;s Sessions
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <section>
+        <h2 className="text-lg font-bold text-text-primary mb-4">Today&apos;s Sessions</h2>
+        {todaySessions.length === 0 ? (
+          <p className="text-sm text-text-secondary">No sessions scheduled for today.</p>
+        ) : (
+          <div className="space-y-2">
+            {todaySessions.map((s) => (
+              <div
+                key={s.id}
+                className="rounded-xl border border-border bg-bg-elevated p-4 flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-medium text-text-primary">
+                    {s.mentorship.student.name?.split(" ")[0] ?? "Student"}
+                  </p>
+                  <p className="text-sm text-text-secondary">{formatTime(s.startTime)}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                      s.status === "SCHEDULED"
+                        ? "bg-info/10 text-info"
+                        : s.status === "ONGOING"
+                          ? "bg-warning/10 text-warning"
+                          : s.status === "COMPLETED"
+                            ? "bg-success/10 text-success"
+                            : "bg-danger/10 text-danger"
+                    }`}
+                  >
+                    {s.status}
+                  </span>
+                  {s.status === "SCHEDULED" && (
+                    <>
+                      {canJoin(s.startTime, now.getTime()) && (
+                        <Link
+                          href={`/session/${s.id}`}
+                          className="text-sm font-medium bg-secondary text-text-inverse px-3 py-1.5 rounded-lg hover:brightness-110 transition-all"
+                        >
+                          Join
+                        </Link>
+                      )}
+                      {canCancel(s.startTime, now.getTime()) && (
+                        <button className="text-sm border border-danger/30 text-danger px-3 py-1.5 rounded-lg hover:bg-danger/5 transition-colors">
+                          Cancel
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-lg font-bold text-text-primary mb-4">
+          This Week&apos;s Sessions
+        </h2>
+        {weekSessions.length === 0 ? (
+          <p className="text-sm text-text-secondary">No sessions this week.</p>
+        ) : (
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 7 }, (_, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-bg-elevated p-3"
+              >
+                <p className="text-[11px] font-semibold text-text-muted uppercase mb-2">
+                  {getDayName(i)}
+                </p>
+                <div className="space-y-1.5">
+                  {(weekGrouped[i] ?? []).map((s) => (
+                    <div
+                      key={s.id}
+                      className="text-xs bg-primary/5 rounded-lg px-2.5 py-1.5"
+                    >
+                      <p className="font-medium text-text-primary">
+                        {s.mentorship.student.name?.split(" ")[0] ?? "S"}
+                      </p>
+                      <p className="text-text-muted">{formatTime(s.startTime)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-text-primary">My Students</h2>
+          <Link
+            href="/students"
+            className="text-sm font-medium text-primary hover:text-primary-light flex items-center gap-1"
+          >
+            View All{" "}
+            <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+          </Link>
+        </div>
+        {activeMatches.length === 0 ? (
+          <p className="text-sm text-text-secondary">No active students assigned.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeMatches.map((m) => {
+              const progress = m.student.quranProgress?.[0];
+              return (
+                <Link
+                  key={m.student.id}
+                  href={`/students/${m.student.id}`}
+                  className="rounded-2xl border border-border bg-bg-elevated p-5 hover:border-primary/30 hover:shadow-sm transition-all"
+                >
+                  <p className="font-semibold text-text-primary">
+                    {m.student.name?.split(" ")[0] ?? "Student"}
+                  </p>
+                  <div className="mt-2 text-sm text-text-secondary space-y-1">
+                    <p>
+                      Current: Surah {progress?.lastSurah ?? "?"}:
+                      {progress?.lastVerse ?? "?"}
+                    </p>
+                    <p>Open notes: {m.student.studentNotes.length}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

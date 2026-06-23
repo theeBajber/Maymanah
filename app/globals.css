@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
     --bg-primary: #fdfcf8;
@@ -121,6 +122,126 @@
 }
 
 /* .dark block moved below so it overrides the media query when present */
+.editor-wrapper {
+    --tw-prose-body: var(--text-primary);
+    --tw-prose-headings: var(--text-primary);
+    --tw-prose-links: var(--primary-dark);
+    --tw-prose-bold: var(--text-primary);
+    --tw-prose-counters: var(--primary-dark);
+    --tw-prose-bullets: var(--primary-dark);
+    --tw-prose-hr: var(--border);
+    --tw-prose-quotes: var(--text-primary);
+    --tw-prose-quote-borders: var(--primary-dark);
+    --tw-prose-captions: var(--text-tertiary);
+    --tw-prose-code: var(--primary-dark);
+    --tw-prose-pre-code: var(--text-secondary);
+    --tw-prose-pre-bg: var(--bg-hover);
+    --tw-prose-th-borders: var(--border-strong);
+    --tw-prose-td-borders: var(--border);
+}
+
+.lesson-content {
+    --tw-prose-body: var(--text-primary);
+    --tw-prose-headings: var(--text-primary);
+    --tw-prose-links: var(--primary-dark);
+    --tw-prose-bold: var(--text-primary);
+    --tw-prose-counters: var(--primary-dark);
+    --tw-prose-bullets: var(--primary-dark);
+    --tw-prose-hr: var(--border);
+    --tw-prose-quotes: var(--text-primary);
+    --tw-prose-quote-borders: var(--primary-dark);
+    --tw-prose-captions: var(--text-tertiary);
+    --tw-prose-code: var(--primary-dark);
+    --tw-prose-pre-code: var(--text-secondary);
+    --tw-prose-pre-bg: var(--bg-hover);
+    --tw-prose-th-borders: var(--border-strong);
+    --tw-prose-td-borders: var(--border);
+}
+.lesson-content h2 {
+    position: relative;
+    padding-top: 1.5rem;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+}
+.lesson-content h2::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3rem;
+    height: 2px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+.lesson-content p:first-of-type {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.lesson-content img {
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    margin: 2rem 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.lesson-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+}
+.lesson-content th {
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-align: left;
+}
+.lesson-content td {
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    .lesson-content {
+        --tw-prose-links: var(--primary);
+        --tw-prose-counters: var(--primary);
+        --tw-prose-bullets: var(--primary);
+        --tw-prose-quote-borders: var(--primary);
+        --tw-prose-code: var(--primary);
+    }
+}
+
+.dark .lesson-content {
+    --tw-prose-links: var(--primary);
+    --tw-prose-counters: var(--primary);
+    --tw-prose-bullets: var(--primary);
+    --tw-prose-quote-borders: var(--primary);
+    --tw-prose-code: var(--primary);
+}
+
+@media (prefers-color-scheme: dark) {
+    .editor-wrapper {
+        --tw-prose-links: var(--primary);
+        --tw-prose-counters: var(--primary);
+        --tw-prose-bullets: var(--primary);
+        --tw-prose-quote-borders: var(--primary);
+        --tw-prose-code: var(--primary);
+    }
+}
+
+.dark .editor-wrapper {
+    --tw-prose-links: var(--primary);
+    --tw-prose-counters: var(--primary);
+    --tw-prose-bullets: var(--primary);
+    --tw-prose-quote-borders: var(--primary);
+    --tw-prose-code: var(--primary);
+}
+
 .dark {
     --bg-primary: #0d1517;
     --bg-secondary: #111e21;

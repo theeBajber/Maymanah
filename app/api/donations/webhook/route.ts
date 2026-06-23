@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { z } from "zod";
 
 let stripe: Stripe | null = null;
 function getStripe() {
@@ -11,20 +12,33 @@ function getStripe() {
   return stripe;
 }
 
-async function handleMpesaCallback(body: string) {
-  const data = JSON.parse(body) as {
-    Body?: {
-      stkCallback?: {
-        CheckoutRequestID?: string;
-        ResultCode?: number;
-      };
-    };
-  };
+const mpesaCallbackSchema = z.object({
+  Body: z
+    .object({
+      stkCallback: z
+        .object({
+          CheckoutRequestID: z.string(),
+          ResultCode: z.number(),
+          ResultDesc: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
 
-  const callback = data.Body?.stkCallback;
-  if (!callback?.CheckoutRequestID) {
+async function handleMpesaCallback(body: string) {
+  let data: unknown;
+  try {
+    data = JSON.parse(body);
+  } catch {
     return null;
   }
+
+  const parsed = mpesaCallbackSchema.safeParse(data);
+  if (!parsed.success) return null;
+
+  const callback = parsed.data.Body?.stkCallback;
+  if (!callback?.CheckoutRequestID) return null;
 
   const reference = callback.CheckoutRequestID;
   const resultCode = callback.ResultCode;
@@ -70,7 +84,10 @@ async function handleStripeWebhook(body: string, signature: string) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid signature";
     console.error("Stripe Webhook Signature Error:", message);
-    return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Webhook Error: ${message}` },
+      { status: 400 },
+    );
   }
 
   if (event.type === "checkout.session.completed") {

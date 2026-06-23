@@ -1,6 +1,19 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const updateProfileSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  email: z.email().optional(),
+  bio: z.string().max(500).optional(),
+  phone: z.string().max(20).optional(),
+  country: z.string().max(100).optional(),
+  timezone: z.string().max(50).optional(),
+  quranLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+  image: z.string().url().or(z.literal("")).optional(),
+  gender: z.string().max(10).optional(),
+});
 
 export async function GET() {
   try {
@@ -11,7 +24,7 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true, name: true, email: true, image: true, profile: true },
+      select: { id: true, name: true, email: true, image: true, gender: true, profile: true },
     });
 
     if (!user) {
@@ -22,6 +35,7 @@ export async function GET() {
       name: user.name,
       email: user.email,
       image: user.image,
+      gender: user.gender ?? "",
       bio: user.profile?.bio ?? "",
       phone: user.profile?.phone ?? "",
       country: user.profile?.country ?? "",
@@ -41,8 +55,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, email, bio, phone, country, timezone, quranLevel, image, gender } =
-      await req.json();
+    const body = await req.json();
+    const parsed = updateProfileSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const { name, email, bio, phone, country, timezone, quranLevel, image, gender } = parsed.data;
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -52,7 +75,6 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if new email already exists
     if (email && email !== user.email) {
       const existingUser = await prisma.user.findUnique({
         where: { email },
@@ -60,7 +82,7 @@ export async function PATCH(req: NextRequest) {
       if (existingUser) {
         return NextResponse.json(
           { error: "Email already in use" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -71,7 +93,7 @@ export async function PATCH(req: NextRequest) {
         data: {
           ...(name && { name }),
           ...(email && { email }),
-          ...(image && { image }),
+          ...(image !== undefined && { image }),
           ...(gender !== undefined && { gender }),
         },
       }),
@@ -96,14 +118,14 @@ export async function PATCH(req: NextRequest) {
     ]);
 
     return NextResponse.json({
-      user: updatedUser,
+      user: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email },
       profile: updatedProfile,
     });
   } catch (error) {
     console.error("Update profile error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

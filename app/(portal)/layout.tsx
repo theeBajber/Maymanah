@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { SideNav } from "@/components/ui/PortalNav";
+import { SideNav, TopNav } from "@/components/ui/PortalNav";
 
 export const metadata: Metadata = {
   title: "Maymanah - Portal",
@@ -30,6 +30,10 @@ export default async function PortalLayout({
 
   if (!hasProfile) {
     redirect("/onboarding");
+  }
+
+  if (session.user.role === "ADMIN" || session.user.role === "SUPERADMIN") {
+    redirect("/admin");
   }
 
   if (session.user.role === "TEACHER") {
@@ -60,9 +64,12 @@ export default async function PortalLayout({
   }
 
   return (
-    <div className="md:pl-16 pb-16 md:pb-0 flex flex-col items-center h-full">
+    <div className="min-h-screen bg-bg-primary">
+      <TopNav />
       <SideNav />
-      {children}
+      <main className="md:pl-16 pt-16">
+        {children}
+      </main>
     </div>
   );
 }

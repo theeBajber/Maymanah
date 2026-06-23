@@ -1,117 +1,191 @@
+import { auth } from "@/lib/auth";
 import { CourseCard } from "@/components/ui/cards";
-import { TopNav } from "@/components/ui/PortalNav";
-import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import { amiri } from "@/components/ui/fonts";
+import {
+  faBookOpen,
+  faGraduationCap,
+  faBookQuran,
+  faHistory,
+  faScaleBalanced,
+  faLanguage,
+  faClock,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import Link from "next/link";
 import { getCoursesData } from "@/lib/courses";
 import { redirect } from "next/navigation";
+import { CourseCategory } from "@prisma/client";
+
+const categoryMeta: Record<
+  CourseCategory,
+  { icon: typeof faBookOpen; label: string; className: string }
+> = {
+  Quran: {
+    icon: faBookQuran,
+    label: "Quran",
+    className: "bg-primary/10 text-primary border-primary/20",
+  },
+  Fiqh: {
+    icon: faScaleBalanced,
+    label: "Fiqh",
+    className: "bg-secondary/10 text-secondary border-secondary/20",
+  },
+  History: {
+    icon: faHistory,
+    label: "History",
+    className: "bg-warning/10 text-warning border-warning/20",
+  },
+  Arabic: {
+    icon: faLanguage,
+    label: "Arabic",
+    className: "bg-info/10 text-info border-info/20",
+  },
+  Aqeedah: {
+    icon: faGraduationCap,
+    label: "Aqeedah",
+    className: "bg-success/10 text-success border-success/20",
+  },
+};
 
 export default async function Courses() {
+  const session = await auth();
+  if (session?.user?.role === "TEACHER") redirect("/dashboard");
+
   const data = await getCoursesData();
-
-  if (!data) {
-    redirect("/login");
-  }
-
+  if (!data) redirect("/login");
   const { enrolledCourses, availableCourses } = data;
+  const completedCount = enrolledCourses.filter((c) => (c.progress ?? 0) >= 100).length;
 
   return (
-    <div className="flex flex-col h-full pt-16">
-      <TopNav />
-      <main className="h-full w-full p-6 flex-col flex">
-        <section className="mb-8">
-          <h1 className={`text-3xl font-bold text-primary mb-2`}>
-            My Courses
-          </h1>
-          <p className="text-text-secondary">
-            Continue your learning journey
+    <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      <section className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-text-primary tracking-tight">My Courses</h1>
+          <p className="text-sm text-text-secondary mt-1">
+            {enrolledCourses.length > 0
+              ? `${enrolledCourses.length} course${enrolledCourses.length > 1 ? "s" : ""} in progress`
+              : "Continue your learning journey"}
           </p>
-        </section>
-
-        {enrolledCourses.length > 0 ? (
-          <section className="mb-12 pl-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-2xl font-bold">Currently Enrolled</h2>
-                <p className="text-sm text-text-secondary">
-                  Pick up where you left off
-                </p>
-              </div>
+        </div>
+        {enrolledCourses.length > 0 && (
+          <div className="hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-bg-elevated border border-border">
+            <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={faGraduationCap} className="text-primary size-4" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {enrolledCourses.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  image={course.image ?? undefined}
-                  title={course.title}
-                  progress={course.progress ?? undefined}
-                  lessons={course.lessons}
-                  href={`/courses/${course.slug}`}
-                />
-              ))}
-            </div>
-          </section>
-        ) : (
-          <section className="mb-12 pl-8">
-            <div className="flex flex-col items-center justify-center h-64 rounded-xl bg-bg-card p-6 text-center">
-              <FontAwesomeIcon icon={faBookOpen} className="text-4xl text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No enrolled courses yet</h3>
-              <p className="text-text-secondary mb-4">
-                Browse available courses below to start learning
-              </p>
-            </div>
-          </section>
-        )}
-
-        <section className="pl-8">
-          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-2xl font-bold">Available Courses</h2>
-              <p className="text-sm text-text-secondary">
-                Courses you can enroll in
-              </p>
+              <p className="text-xl font-bold text-text-primary leading-none">{completedCount}</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-[0.08em] font-semibold">Completed</p>
             </div>
           </div>
-          {availableCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {availableCourses.map((course) => (
+        )}
+      </section>
+
+      {enrolledCourses.length > 0 && (
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-lg font-bold text-text-primary">Currently Enrolled</h2>
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {enrolledCourses.map((course) => (
+              <CourseCard
+                key={course.id}
+                image={course.image ?? undefined}
+                title={course.title}
+                progress={course.progress ?? undefined}
+                lessons={course.lessons}
+                href={`/courses/${course.slug}`}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {enrolledCourses.length === 0 && (
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-lg font-bold text-text-primary">Currently Enrolled</h2>
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+          <div className="rounded-2xl border border-dashed border-border/60 bg-bg-elevated/50 p-12 text-center">
+            <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <FontAwesomeIcon icon={faBookOpen} className="text-primary text-xl" />
+            </div>
+            <h3 className="font-semibold text-text-primary text-lg mb-1">No enrolled courses yet</h3>
+            <p className="text-sm text-text-secondary mb-0 max-w-sm mx-auto">
+              Browse available courses below to find the perfect subject and start your learning journey
+            </p>
+          </div>
+        </section>
+      )}
+
+      <section>
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-lg font-bold text-text-primary">Available Courses</h2>
+          <div className="h-px flex-1 bg-border/60" />
+        </div>
+        {availableCourses.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {availableCourses.map((course) => {
+              const catMeta = categoryMeta[course.category as CourseCategory];
+              return (
                 <Link
                   key={course.id}
                   href={`/courses/${course.slug}`}
-                  className="h-72 rounded-xl overflow-hidden w-full bg-bg-card border border-border shadow-sm hover:shadow-md transition-all group flex flex-col justify-between"
+                  className="group relative flex flex-col rounded-2xl overflow-hidden bg-bg-elevated border border-border shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300"
                 >
-                  <div className="w-full h-40 relative overflow-hidden">
+                  <div className="relative h-40 overflow-hidden">
                     <Image
                       src={course.image || "/calligraphy.png"}
                       alt={course.title}
                       fill
-                      className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-bg-card"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-bg-elevated via-bg-elevated/10 to-transparent" />
+                    {catMeta && (
+                      <div className="absolute top-3 left-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold backdrop-blur-sm ${catMeta.className}`}
+                        >
+                          <FontAwesomeIcon icon={catMeta.icon} className="size-3" />
+                          {catMeta.label}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-8 flex flex-col gap-2">
-                    <h4 className="mb-2 font-bold text-xl">{course.title}</h4>
-                    <div className="flex w-full items-center justify-between text-sm text-text-secondary">
-                      <span>{course.lessons} Lessons</span>
-                      <span className="px-2 py-1 bg-primary-subtle rounded text-xs">
-                        {course.category}
-                      </span>
+                  <div className="p-5 flex flex-col gap-3">
+                    <div className="w-8 h-0.5 rounded-full bg-primary/40" />
+                    <h4 className={`${amiri.className} text-lg font-bold text-text-primary leading-snug line-clamp-1`}>
+                      {course.title}
+                    </h4>
+                    <div className="flex items-center text-xs text-text-secondary">
+                      <FontAwesomeIcon icon={faClock} className="size-3 text-primary/60 mr-2" />
+                      <span className="font-medium">{course.lessons} lessons</span>
                     </div>
-                    <span className="mt-2 inline-block rounded-lg py-2 px-4 bg-primary text-text-inverse font-semibold hover:bg-primary-dark transition-colors text-center">
+                    <span className="inline-flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 bg-primary text-text-inverse font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-primary/20 mt-1">
                       Enroll Now
+                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      </svg>
                     </span>
                   </div>
                 </Link>
-              ))}
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border/60 bg-bg-elevated/50 p-12 text-center">
+            <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <FontAwesomeIcon icon={faGraduationCap} className="text-primary text-xl" />
             </div>
-          ) : (
-            <div className="h-64 rounded-xl flex items-center justify-center bg-bg-card">
-              <p className="text-text-secondary">All courses have been enrolled</p>
-            </div>
-          )}
-        </section>
-      </main>
+            <h3 className="font-semibold text-text-primary text-lg mb-1">All enrolled</h3>
+            <p className="text-sm text-text-secondary">
+              You have enrolled in all available courses. Check back for new offerings.
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

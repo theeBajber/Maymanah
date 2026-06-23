@@ -1,8 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { TopNav } from "@/components/ui/PortalNav";
-import { amiri } from "@/components/ui/fonts";
 import { AvailabilityGrid } from "./AvailabilityGrid";
 
 export const dynamic = "force-dynamic";
@@ -25,17 +23,14 @@ export default async function AvailabilityPage() {
   }));
 
   return (
-    <div className="flex flex-col max-w-6xl w-full h-full pt-16 mx-auto">
-      <TopNav />
-      <div className="flex-1 p-6 space-y-6 overflow-auto">
-        <section>
-          <h1 className={`text-3xl text-primary ${amiri.className}`}>Weekly Availability</h1>
-          <p className="text-text-secondary mt-1">
-            Set your available teaching slots. All times are shown in your local timezone.
-          </p>
-        </section>
-        <AvailabilityGrid initialSlots={initialSlots} />
-      </div>
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      <section>
+        <h1 className="text-3xl font-bold text-text-primary tracking-tight">Weekly Availability</h1>
+        <p className="text-sm text-text-secondary mt-1">
+          Set your available teaching slots. All times are shown in your local timezone.
+        </p>
+      </section>
+      <AvailabilityGrid initialSlots={initialSlots} />
     </div>
   );
 }

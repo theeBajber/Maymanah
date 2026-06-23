@@ -454,7 +454,7 @@ function DonatePageContent() {
                 type="button"
                 disabled={loading !== null}
                 onClick={handlePayPalDonate}
-                className="flex-1 flex items-center justify-center h-12 rounded-lg bg-[#3b7bbf] text-white hover:bg-[#2d629a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center h-12 rounded-lg bg-[#3b7bbf] text-text-inverse hover:bg-[#2d629a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="font-black italic">PayPal</span>
               </button>
