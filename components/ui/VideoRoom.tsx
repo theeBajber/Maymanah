@@ -28,9 +28,9 @@ function FocusedParticipant() {
   const hasRemote = !!otherParticipant;
 
   return (
-    <div className="relative w-full h-full bg-zinc-950 rounded-2xl overflow-hidden">
+    <div className="relative w-full h-full bg-zinc-950">
       {hasRemoteVideo ? (
-        <VideoTrack trackRef={remoteTrack} className="w-full h-full object-cover" />
+        <VideoTrack trackRef={remoteTrack} className="w-full h-full object-contain bg-zinc-950" />
       ) : hasRemote ? (
         <div className="w-full h-full flex items-center justify-center bg-zinc-900">
           <div className="text-center">
@@ -135,44 +135,24 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
   }, []);
 
   return (
-    <LiveKitRoom
-      video={camOn ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } : false}
-      audio={micOn}
-      token={token}
-      serverUrl={liveKitUrl}
-      data-lk-theme="default"
-      className="relative w-full h-full flex flex-col bg-black"
-      onError={handleError}
-      onDisconnected={handleDisconnected}
-    >
-      <RoomAudioRenderer />
-      <div className="flex-1 relative p-2 md:p-4">
-        {disconnected ? (
-          <div className="w-full h-full flex items-center justify-center bg-zinc-900 rounded-2xl">
-            <div className="text-center max-w-xs">
-              <div className="size-16 rounded-full bg-danger/10 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl text-danger">!</span>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-1">Connection Lost</h3>
-              <p className="text-zinc-400 text-sm mb-2">
-                {connectionError || "The call was disconnected unexpectedly."}
-              </p>
-              <button
-                onClick={handleLeave}
-                className="w-full py-3 bg-primary text-white rounded-xl font-medium hover:brightness-110 transition-all active:scale-[0.98]"
-              >
-                Back to Dashboard
-              </button>
-            </div>
-          </div>
-        ) : (
-          <FocusedParticipant />
-        )}
-      </div>
+    <div className="relative w-full h-full bg-black">
+      <LiveKitRoom
+        video={camOn ? { facingMode: "user" } : false}
+        audio={micOn}
+        token={token}
+        serverUrl={liveKitUrl}
+        data-lk-theme="default"
+        className="w-full h-full"
+        onError={handleError}
+        onDisconnected={handleDisconnected}
+      >
+        <RoomAudioRenderer />
+        <FocusedParticipant />
+      </LiveKitRoom>
 
       {!disconnected && (
         <div
-          className="flex items-center justify-center gap-3 py-3 px-2 bg-zinc-900/90 backdrop-blur-sm border-t border-white/5"
+          className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-3 py-3 px-2 bg-zinc-900/90 backdrop-blur-sm border-t border-white/5 z-10"
           style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
         >
           <button
@@ -219,11 +199,31 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
             <FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} className="size-5 md:size-4" />
           </button>
 
-          <div className="absolute right-4 bottom-16 md:bottom-20">
+          <div className="absolute right-4 -top-10">
             <ConnectionBadge />
           </div>
         </div>
       )}
-    </LiveKitRoom>
+
+      {disconnected && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="text-center max-w-xs">
+            <div className="size-16 rounded-full bg-danger/10 mx-auto mb-4 flex items-center justify-center">
+              <span className="text-2xl text-danger">!</span>
+            </div>
+            <h3 className="text-lg font-bold text-white mb-1">Connection Lost</h3>
+            <p className="text-zinc-400 text-sm mb-6">
+              {connectionError || "The call was disconnected unexpectedly."}
+            </p>
+            <button
+              onClick={handleLeave}
+              className="w-full py-3 bg-primary text-white rounded-xl font-medium hover:brightness-110 transition-all active:scale-[0.98]"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
