@@ -1,9 +1,14 @@
-import 'dotenv/config';
-import { PrismaClient, CourseCategory, UserRole, AssessmentType } from '@prisma/client';
-import { neonConfig } from '@neondatabase/serverless';
-import { PrismaNeon } from '@prisma/adapter-neon';
-import ws from 'ws';
-import { hash } from 'bcryptjs';
+import "dotenv/config";
+import {
+  PrismaClient,
+  CourseCategory,
+  UserRole,
+  AssessmentType,
+} from "@prisma/client";
+import { neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import ws from "ws";
+import { hash } from "bcryptjs";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -11,89 +16,95 @@ const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  if (!process.env.SEED_ADMIN_PASSWORD || !process.env.SEED_TEACHER_PASSWORD || !process.env.SEED_STUDENT_PASSWORD) {
-    throw new Error('Missing SEED_*_PASSWORD env vars — check your .env file');
+  if (
+    !process.env.SEED_ADMIN_PASSWORD ||
+    !process.env.SEED_TEACHER_PASSWORD ||
+    !process.env.SEED_STUDENT_PASSWORD
+  ) {
+    throw new Error("Missing SEED_*_PASSWORD env vars — check your .env file");
   }
   // ─── Users ───────────────────────────────────────────────────────────────
-  const adminPassword   = await hash(process.env.SEED_ADMIN_PASSWORD!,   12);
+  const adminPassword = await hash(process.env.SEED_ADMIN_PASSWORD!, 12);
   const teacherPassword = await hash(process.env.SEED_TEACHER_PASSWORD!, 12);
   const studentPassword = await hash(process.env.SEED_STUDENT_PASSWORD!, 12);
 
   await prisma.user.upsert({
-    where:  { email: 'admin@maymanah.com' },
+    where: { email: "admin@maymanah.com" },
     update: {},
     create: {
-      email:         'admin@maymanah.com',
-      name:          'Admin User',
-      password:      adminPassword,
-      role:          UserRole.ADMIN,
+      email: "admin@maymanah.com",
+      name: "Admin User",
+      password: adminPassword,
+      role: UserRole.ADMIN,
       emailVerified: new Date(),
       profile: {
         create: {
-          bio:      'Platform administrator',
-          timezone: 'Africa/Nairobi',
-          country:  'KE',
-          language: 'en',
+          bio: "Platform administrator",
+          timezone: "Africa/Nairobi",
+          country: "KE",
+          language: "en",
         },
       },
     },
   });
 
   const teacher = await prisma.user.upsert({
-    where:  { email: 'ustadh.ibrahim@maymanah.com' },
+    where: { email: "ustadh.ibrahim@maymanah.com" },
     update: {},
     create: {
-      email:         'ustadh.ibrahim@maymanah.com',
-      name:          'Ustadh Ibrahim Al-Farouq',
-      password:      teacherPassword,
-      role:          UserRole.TEACHER,
+      email: "ustadh@maymanah.com",
+      name: "Ibrahim Al-Farouq",
+      password: teacherPassword,
+      role: UserRole.TEACHER,
       emailVerified: new Date(),
       profile: {
         create: {
-          bio:        'Hafiz with ijazah in Hafs an Asim. 10+ years teaching Tajweed and Hifdh.',
-          timezone:   'Africa/Nairobi',
-          country:    'KE',
-          quranLevel: 'advanced',
-          language:   'en',
+          bio: "Hafiz with ijazah in Hafs an Asim. 10+ years teaching Tajweed and Hifdh.",
+          timezone: "Africa/Nairobi",
+          country: "KE",
+          quranLevel: "advanced",
+          language: "en",
         },
       },
     },
   });
 
   const student = await prisma.user.upsert({
-    where:  { email: 'student@maymanah.com' },
+    where: { email: "student@maymanah.com" },
     update: {},
     create: {
-      email:         'student@maymanah.com',
-      name:          'Aisha Mwangi',
-      password:      studentPassword,
-      role:          UserRole.STUDENT,
+      email: "student@maymanah.com",
+      name: "Anwar Faraj",
+      password: studentPassword,
+      role: UserRole.STUDENT,
       emailVerified: new Date(),
       profile: {
         create: {
-          bio:        'Beginner student, working through Tajweed foundations.',
-          timezone:   'Africa/Nairobi',
-          country:    'KE',
-          quranLevel: 'beginner',
-          language:   'en',
+          bio: "Beginner student, working through Tajweed foundations.",
+          timezone: "Africa/Nairobi",
+          country: "KE",
+          quranLevel: "beginner",
+          language: "en",
         },
       },
     },
   });
 
-  console.log('✔ Users seeded');
+  console.log("✔ Users seeded");
 
   // ─── Courses + Lessons ────────────────────────────────────────────────────
   const coursesData = [
     {
-      title:       'Tajweed Foundations',
-      slug:        'tajweed-foundations',
-      description: 'A self-paced introduction to the rules of Tajweed. Covers Makharij, Sifaat, Noon Sakinah, Meem Sakinah, and Madd rules — complete with audio examples and interactive exercises.',
-      category:    CourseCategory.Quran,
+      title: "Tajweed Foundations",
+      slug: "tajweed-foundations",
+      description:
+        "A self-paced introduction to the rules of Tajweed. Covers Makharij, Sifaat, Noon Sakinah, Meem Sakinah, and Madd rules — complete with audio examples and interactive exercises.",
+      category: CourseCategory.Quran,
       lessons: [
         {
-          title: 'Introduction to Tajweed',
-          order: 1, duration: 20,
+          title: "Introduction to Tajweed",
+          order: 1,
+          duration: 20,
           content: `<h2>What is Tajweed?</h2>
 <p><strong>Tajweed</strong> (تجويد) literally means <em>to make better</em> or <em>to improve</em>. In the context of Quranic recitation, it is the set of rules governing the correct pronunciation of the Arabic letters and the proper application of their characteristics.</p>
 <blockquote>Allah commands in the Quran: <strong>"And recite the Quran with measured recitation"</strong> (Surah Al-Muzzammil 73:4). This verse is the primary foundation for the science of Tajweed.</blockquote>
@@ -122,8 +133,9 @@ async function main() {
 <p>Each lesson includes practical examples from the Quran and audio demonstrations.</p>`,
         },
         {
-          title: 'Makharij al-Huruf — Part 1',
-          order: 2, duration: 30,
+          title: "Makharij al-Huruf — Part 1",
+          order: 2,
+          duration: 30,
           content: `<h2>The Articulation Points (Makharij)</h2>
 <p>Every Arabic letter emerges from a specific <strong>point of articulation</strong> (Makhraj, plural: Makharij). Knowing these points is essential for correct recitation — it prevents letters from sounding alike when they should be distinct.</p>
 <blockquote>The Prophet ﷺ said: <strong>"I am the most eloquent among you in Arabic"</strong> (Bukhari). The Sahabah took great care to pronounce every letter from its correct origin.</blockquote>
@@ -152,8 +164,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Makharij al-Huruf — Part 2',
-          order: 3, duration: 30,
+          title: "Makharij al-Huruf — Part 2",
+          order: 3,
+          duration: 30,
           content: `<h2>Tongue Letters (Al-Huruf al-Lisaniyyah)</h2>
 <p>The tongue is the most complex articulation area, with <strong>ten distinct points</strong> producing <strong>eighteen letters</strong>. Mastering these is the key to clear Quranic recitation.</p>
 <blockquote>A common saying among Tajweed teachers: <strong>"Tajweed begins and ends with the tongue."</strong> Most recitation errors originate from incorrect tongue placement.</blockquote>
@@ -181,8 +194,9 @@ async function main() {
 <p>For each letter, say it with <strong>Fathah</strong> (a) while focusing on the articulation point. Repeat 5-10 times before moving to the next letter.</p>`,
         },
         {
-          title: 'Sifaat al-Huruf',
-          order: 4, duration: 25,
+          title: "Sifaat al-Huruf",
+          order: 4,
+          duration: 25,
           content: `<h2>Characteristics of Letters (Sifaat al-Huruf)</h2>
 <p>While <strong>Makharij</strong> tells us <em>where</em> a letter comes from, <strong>Sifaat</strong> tells us <em>how</em> it is pronounced. Each letter has a unique set of characteristics that distinguish it from other letters sharing the same articulation point.</p>
 <blockquote>There are <strong>17 characteristics</strong> (Sifaat) of Arabic letters. Some are <strong>essential</strong> (always present), and some are <strong>occasional</strong> (present in certain conditions).</blockquote>
@@ -207,8 +221,9 @@ async function main() {
 <p>Consider the letter <strong>ض</strong> (Daad). Its unique combination of <strong>Jahr + Shiddah + Isti'laa + Itbaaq</strong> gives it the heavy, thick quality that Arabic is famous for. If any characteristic is missing, the letter sounds incorrect — this is what distinguishes Arabic from other languages.</p>`,
         },
         {
-          title: 'Noon Sakinah & Tanween',
-          order: 5, duration: 35,
+          title: "Noon Sakinah & Tanween",
+          order: 5,
+          duration: 35,
           content: `<h2>The Four Rules of Noon Sakinah & Tanween</h2>
 <p>When a <strong>Noon Sakinah</strong> (ن with Sukoon) or a <strong>Tanween</strong> (double vowel mark) appears, its pronunciation depends on the letter that follows. There are <strong>four rules</strong>:</p>
 <ol>
@@ -237,8 +252,9 @@ async function main() {
 <p>Example: <strong>مِنْ تَحْتِهَا</strong> — the Noon is concealed with a nasal sound before the Ta.</p>`,
         },
         {
-          title: 'Meem Sakinah',
-          order: 6, duration: 25,
+          title: "Meem Sakinah",
+          order: 6,
+          duration: 25,
           content: `<h2>The Three Rules of Meem Sakinah</h2>
 <p>When a <strong>Meem Sakinah</strong> (م with Sukoon) appears at the end of a word or in the middle, its pronunciation depends on the following letter. There are <strong>three rules</strong>:</p>
 <ol>
@@ -258,8 +274,9 @@ async function main() {
 <blockquote><strong>Important distinction:</strong> Ikhfaa ash-Shafawi (before Ba) is a unique sound that takes practice. Beginners often either drop the Ghunnah completely or over-emphasize it. Listen to a qualified reciter to get the balance right.</blockquote>`,
         },
         {
-          title: 'Madd Rules — Introduction',
-          order: 7, duration: 30,
+          title: "Madd Rules — Introduction",
+          order: 7,
+          duration: 30,
           content: `<h2>What is Madd?</h2>
 <p><strong>Madd</strong> (مد) literally means <em>to extend</em> or <em>to lengthen</em>. In Tajweed, it refers to <strong>prolonging the sound</strong> of a vowel letter (Alif, Waw, or Ya) when specific conditions are present.</p>
 <blockquote>Madd is one of the most beautifying aspects of Quranic recitation. A skilled reciter uses Madd to create rhythm, emphasis, and emotional impact in the recitation.</blockquote>
@@ -286,8 +303,9 @@ async function main() {
 <p>In the next lesson, we will cover the <strong>extended Madd</strong> types that go beyond 2 counts.</p>`,
         },
         {
-          title: 'Madd Rules — Far\'i (Extended)',
-          order: 8, duration: 40,
+          title: "Madd Rules — Far'i (Extended)",
+          order: 8,
+          duration: 40,
           content: `<h2>Extended Madd (Madd al-Far'i)</h2>
 <p>When a <strong>Hamzah</strong> or <strong>Sukoon</strong> appears near a Madd letter, the elongation extends beyond the natural 2 counts. There are several types:</p>
 <h2>1. Madd Wajib Muttasil (مد واجب متصل)</h2>
@@ -314,8 +332,9 @@ async function main() {
 <blockquote><strong>Key distinction:</strong> Madd Wajib Muttasil is <strong>always</strong> extended (at least 4 counts), while Madd Jaiz Munfasil can be shortened. This is a common area of error for students — do not shorten the Muttasil!</blockquote>`,
         },
         {
-          title: 'Qalqalah',
-          order: 9, duration: 20,
+          title: "Qalqalah",
+          order: 9,
+          duration: 20,
           content: `<h2>What is Qalqalah?</h2>
 <p><strong>Qalqalah</strong> (قلقلة) literally means <em>echoing</em> or <em>disturbance</em>. In Tajweed, it is the <strong>vibrating/echoing sound</strong> produced when pronouncing certain letters that have Sukoon on them.</p>
 <blockquote>The Qalqalah letters are grouped in the phrase: <strong>قُطْبُ جَدٍ</strong> — the five letters: <strong>ق ط ب ج د</strong></blockquote>
@@ -342,8 +361,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Practical Review & Assessment',
-          order: 10, duration: 45,
+          title: "Practical Review & Assessment",
+          order: 10,
+          duration: 45,
           content: `<h2>Review & Self-Assessment</h2>
 <p>This final module brings together everything you have learned. Work through each section and use the checklist to track your progress.</p>
 <h2>Section 1: Articulation Points Review</h2>
@@ -390,14 +410,16 @@ async function main() {
       ],
     },
     {
-      title:       'Fiqh of Salah',
-      slug:        'fiqh-of-salah',
-      description: 'Master the rulings, conditions, and etiquette of the five daily prayers. Covers purification, prayer times, pillars of Salah, common mistakes, and congregational prayer.',
-      category:    CourseCategory.Fiqh,
+      title: "Fiqh of Salah",
+      slug: "fiqh-of-salah",
+      description:
+        "Master the rulings, conditions, and etiquette of the five daily prayers. Covers purification, prayer times, pillars of Salah, common mistakes, and congregational prayer.",
+      category: CourseCategory.Fiqh,
       lessons: [
         {
-          title: 'Importance & Ruling of Salah',
-          order: 1, duration: 20,
+          title: "Importance & Ruling of Salah",
+          order: 1,
+          duration: 20,
           content: `<h2>The Status of Salah in Islam</h2>
 <p><strong>Salah</strong> (prayer) is the <strong>second pillar of Islam</strong> and the most important act of worship after the declaration of faith (Shahadah). It was ordained directly by Allah to the Prophet ﷺ during the Night Journey (Isra wa Mi'raj) without any intermediary.</p>
 <blockquote>The Prophet ﷺ said: <strong>"The covenant between us and them is prayer; whoever abandons it has committed disbelief."</strong> (Tirmidhi)</blockquote>
@@ -427,8 +449,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Purification — Wudu',
-          order: 2, duration: 35,
+          title: "Purification — Wudu",
+          order: 2,
+          duration: 35,
           content: `<h2>Wudu: The Key to Prayer</h2>
 <p>Allah says: <strong>"O you who believe! When you rise for prayer, wash your faces and your hands to the elbows, and wipe your heads and your feet to the ankles"</strong> (Surah Al-Maidah 5:6). Wudu is both a physical purification and a spiritual preparation for standing before Allah.</p>
 <h2>Obligatory Acts of Wudu (Faraid)</h2>
@@ -468,8 +491,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Purification — Ghusl & Tayammum',
-          order: 3, duration: 30,
+          title: "Purification — Ghusl & Tayammum",
+          order: 3,
+          duration: 30,
           content: `<h2>Ghusl: Full Body Purification</h2>
 <p><strong>Ghusl</strong> is the act of washing the entire body with water to remove a state of major ritual impurity (Janabah). It is required after:</p>
 <ul>
@@ -509,8 +533,9 @@ async function main() {
 <p>Tayammum becomes invalid when water is found or the excuse no longer exists.</p>`,
         },
         {
-          title: 'Prayer Times',
-          order: 4, duration: 25,
+          title: "Prayer Times",
+          order: 4,
+          duration: 25,
           content: `<h2>The Five Prescribed Prayer Times</h2>
 <p>Allah has prescribed specific windows for each of the five daily prayers. Praying within these times is an essential condition for the prayer's validity.</p>
 <blockquote>Allah says: <strong>"Indeed, prayer has been decreed upon the believers at fixed times"</strong> (Surah An-Nisa 4:103). The Angel Jibril (AS) taught the Prophet ﷺ the prayer times by leading him at the beginning and end of each time window.</blockquote>
@@ -551,8 +576,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Conditions & Pillars of Salah',
-          order: 5, duration: 40,
+          title: "Conditions & Pillars of Salah",
+          order: 5,
+          duration: 40,
           content: `<h2>Prerequisites of Prayer</h2>
 <p>Before a Muslim can begin their prayer, <strong>nine conditions</strong> must be fulfilled. These are prerequisites, not part of the prayer itself, but without them the prayer is invalid.</p>
 <h2>The 9 Conditions (Shurut) of Salah</h2>
@@ -588,8 +614,9 @@ async function main() {
 <blockquote><strong>Memorization tip:</strong> Group the pillars into physical actions (standing, bowing, prostrating, sitting) and verbal elements (Takbir, Fatihah, Tashahhud, Salam). This makes them easier to remember and apply in every prayer.</blockquote>`,
         },
         {
-          title: 'Wajibat and Sunnan of Salah',
-          order: 6, duration: 30,
+          title: "Wajibat and Sunnan of Salah",
+          order: 6,
+          duration: 30,
           content: `<h2>Obligatory Acts (Wajibat) of Salah</h2>
 <p><strong>Wajibat</strong> are acts that are required in the prayer but are <strong>not pillars</strong> — if forgotten, they can be compensated for by Sujud al-Sahw (prostration of forgetfulness). Deliberate omission without excuse invalidates the prayer.</p>
 <h2>The 7 Wajibat of Salah</h2>
@@ -627,8 +654,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Invalidators of Salah',
-          order: 7, duration: 25,
+          title: "Invalidators of Salah",
+          order: 7,
+          duration: 25,
           content: `<h2>What Invalidates the Prayer?</h2>
 <p>Certain actions, if done knowingly or forgetfully, <strong>nullify the prayer</strong> and require it to be restarted. If done forgetfully in some cases, Sujud al-Sahw may suffice.</p>
 <blockquote>The Prophet ﷺ said: <strong>"The prayer of a person who does not have tranquility in his bowing and prostration is not sufficient"</strong> — highlighting the importance of performing each action properly.</blockquote>
@@ -656,8 +684,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Congregational Prayer',
-          order: 8, duration: 35,
+          title: "Congregational Prayer",
+          order: 8,
+          duration: 35,
           content: `<h2>The Ruling on Congregational Prayer</h2>
 <p>Prayer in congregation (Salat al-Jama'ah) is highly emphasized in Islam. According to the majority of scholars, it is a <strong>highly recommended Sunnah</strong> for men; the Hanbali school considers it <strong>obligatory</strong> for the five daily prayers for men who are able.</p>
 <blockquote>The Prophet ﷺ said: <strong>"Prayer in congregation is twenty-seven times superior to prayer offered individually"</strong> (Bukhari & Muslim). This immense reward shows the importance Allah places on unity in worship.</blockquote>
@@ -686,8 +715,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Makeup Prayers (Qada)',
-          order: 9, duration: 20,
+          title: "Makeup Prayers (Qada)",
+          order: 9,
+          duration: 20,
           content: `<h2>Making Up Missed Prayers</h2>
 <p>If a Muslim misses a prayer for a valid reason (sleep, forgetfulness, unavoidable circumstances), they must make it up (<strong>Qada</strong>) as soon as they remember or are able. Missing a prayer without excuse is a major sin requiring repentance and makeup according to the majority of scholars.</p>
 <blockquote>The Prophet ﷺ said: <strong>"Whoever forgets a prayer or sleeps through it, its expiation is to pray it when he remembers it"</strong> (Bukhari & Muslim). There is no other expiation except to pray it.</blockquote>
@@ -714,8 +744,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Sujud al-Sahw (Prostration of Forgetfulness)',
-          order: 10, duration: 25,
+          title: "Sujud al-Sahw (Prostration of Forgetfulness)",
+          order: 10,
+          duration: 25,
           content: `<h2>Sujud al-Sahw: Correcting Forgetfulness in Prayer</h2>
 <p>As human beings, we sometimes forget or make mistakes during prayer. Allah, in His mercy, prescribed <strong>Sujud al-Sahw</strong> (prostration of forgetfulness) as a way to rectify these errors.</p>
 <h2>When is Sujud al-Sahw Required?</h2>
@@ -746,14 +777,16 @@ async function main() {
       ],
     },
     {
-      title:       'Quran Hifdh',
-      slug:        'hifdh-ul-quran',
-      description: 'A mentor-led Quran memorization journey covering all 30 Juz. Students are paired with a qualified Hafiz for live sessions, revision plans, and progress tracking.',
-      category:    CourseCategory.Quran,
+      title: "Quran Hifdh",
+      slug: "hifdh-ul-quran",
+      description:
+        "A mentor-led Quran memorization journey covering all 30 Juz. Students are paired with a qualified Hafiz for live sessions, revision plans, and progress tracking.",
+      category: CourseCategory.Quran,
       lessons: [
         {
-          title: 'Program Overview & Goal Setting',
-          order: 1, duration: 30,
+          title: "Program Overview & Goal Setting",
+          order: 1,
+          duration: 30,
           content: `<h2>Welcome to Quran Hifdh</h2>
 <p>This program is designed to help you <strong>memorize the Quran</strong> systematically with the guidance of a qualified teacher. Whether you are starting from scratch or continuing your journey, this structured approach will help you build consistency and achieve your goals.</p>
 <blockquote>The Prophet ﷺ said: <strong>"The best among you are those who learn the Quran and teach it"</strong> (Bukhari). You are now embarking on one of the most rewarding journeys a Muslim can undertake.</blockquote>
@@ -783,8 +816,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Memorization Methodology',
-          order: 2, duration: 25,
+          title: "Memorization Methodology",
+          order: 2,
+          duration: 25,
           content: `<h2>Proven Memorization Techniques</h2>
 <p>Memorizing the Quran is a skill that can be learned and improved with the right techniques. Here are the most effective methods used by Huffaz worldwide.</p>
 <h2>1. The Repetition Cycle</h2>
@@ -820,8 +854,9 @@ async function main() {
 <blockquote>The Prophet ﷺ said: <strong>"The one who is proficient in the Quran will be with the noble, righteous scribes (angels), and the one who recites the Quran and stumbles over it, finding it difficult, will have a double reward"</strong> (Bukhari & Muslim).</blockquote>`,
         },
         {
-          title: 'Juz Amma — Surahs 78–93',
-          order: 3, duration: 60,
+          title: "Juz Amma — Surahs 78–93",
+          order: 3,
+          duration: 60,
           content: `<h2>Juz Amma: Surahs 78–93</h2>
 <p>Juz Amma (the 30th and final Juz of the Quran) contains 37 surahs, mostly short and powerful. We will begin with the first half: Surahs 78 through 93.</p>
 <blockquote><strong>Surah An-Naba (78):</strong> "About what are they asking one another? About the great news..." — This surah focuses on the Day of Resurrection and is one of the most powerful openers of Juz Amma.</blockquote>
@@ -854,8 +889,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Juz Amma — Surahs 94–114',
-          order: 4, duration: 60,
+          title: "Juz Amma — Surahs 94–114",
+          order: 4,
+          duration: 60,
           content: `<h2>Juz Amma: Surahs 94–114</h2>
 <p>Continuing through Juz Amma, these shorter surahs are some of the most frequently recited in daily prayers. Master them well — they will accompany you throughout your life.</p>
 <h2>Memorization Plan</h2>
@@ -886,8 +922,9 @@ async function main() {
 <blockquote><strong>Motivation:</strong> Many of these surahs are recited in every prayer. Imagine the reward — every time you recite them in Salah for the rest of your life, each letter is multiplied 10 times in reward!</blockquote>`,
         },
         {
-          title: 'Revision Strategy',
-          order: 5, duration: 20,
+          title: "Revision Strategy",
+          order: 5,
+          duration: 20,
           content: `<h2>The Key to Retention: Consistent Revision</h2>
 <p>Memorization without revision is like filling a leaky bucket. The most common reason students lose their Hifdh is the <strong>lack of a structured revision system</strong>. This lesson provides a sustainable framework.</p>
 <h2>The 3-Tier Revision System</h2>
@@ -926,8 +963,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Juz 29 — Selected Surahs',
-          order: 6, duration: 90,
+          title: "Juz 29 — Selected Surahs",
+          order: 6,
+          duration: 90,
           content: `<h2>Juz 29: Tabarak</h2>
 <p>Juz 29 (also known as Tabarak, named after its first surah Al-Mulk) contains 11 surahs, many of which are regularly recited in Salah, especially at night (Qiyam) and in Maghrib and Isha prayers.</p>
 <h2>Focus Surahs for This Session</h2>
@@ -947,8 +985,9 @@ async function main() {
 <blockquote><strong>Tip:</strong> Surahs in Juz 29 are longer and more detailed than Juz Amma. Increase your daily time allocation to 45-60 minutes for this Juz.</blockquote>`,
         },
         {
-          title: 'Live Session: Recitation to Teacher',
-          order: 7, duration: 45,
+          title: "Live Session: Recitation to Teacher",
+          order: 7,
+          duration: 45,
           content: `<h2>Preparing for Your Live Session</h2>
 <p>Your weekly one-on-one session with the teacher is the <strong>most important component</strong> of the Hifdh program. This is where mistakes are caught, Tajweed is refined, and your memorization is solidified.</p>
 <h2>Before the Session</h2>
@@ -975,8 +1014,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Common Mistakes in Hifdh',
-          order: 8, duration: 20,
+          title: "Common Mistakes in Hifdh",
+          order: 8,
+          duration: 20,
           content: `<h2>Frequently Confused Ayahs</h2>
 <p>Every student of Hifdh encounters ayat that look or sound similar. The Quran contains many parallel passages, especially in stories that are repeated across different surahs. This lesson covers the most common ones and strategies to distinguish them.</p>
 <h2>Types of Similar Ayahs</h2>
@@ -999,8 +1039,9 @@ async function main() {
 <blockquote><strong>Golden Rule:</strong> When you encounter a familiar-sounding ayah, <strong>pause</strong> and consciously identify which surah you are in. The context is your strongest memory anchor.</blockquote>`,
         },
         {
-          title: 'Dua & Spiritual Preparation',
-          order: 9, duration: 15,
+          title: "Dua & Spiritual Preparation",
+          order: 9,
+          duration: 15,
           content: `<h2>The Spiritual Dimension of Hifdh</h2>
 <p>Memorizing the Quran is not merely an intellectual exercise — it is a <strong>spiritual journey</strong> that requires sincerity, humility, and reliance on Allah. Without the spiritual dimension, the memorization becomes dry and difficult to retain.</p>
 <blockquote>Allah says: <strong>"And We have certainly made the Quran easy to remember, but is there any who will take heed?"</strong> (Surah Al-Qamar 54:17). The key is in <strong>sincerity</strong> and <strong>seeking Allah's help</strong>.</blockquote>
@@ -1026,8 +1067,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Progress Assessment — Juz Amma',
-          order: 10, duration: 60,
+          title: "Progress Assessment — Juz Amma",
+          order: 10,
+          duration: 60,
           content: `<h2>Final Assessment: Juz Amma</h2>
 <p>This session is your <strong>formal assessment</strong> for Juz Amma. You will recite the entire Juz from memory to your teacher for sign-off. This is a significant milestone — celebrate it!</p>
 <h2>Assessment Checklist</h2>
@@ -1052,14 +1094,16 @@ async function main() {
       ],
     },
     {
-      title:       'Seerah — Life of the Prophet ﷺ',
-      slug:        'seerah-life-of-the-prophet',
-      description: 'A chronological journey through the life of Prophet Muhammad ﷺ from birth to the farewell sermon, weaving historical context with lessons for modern life.',
-      category:    CourseCategory.History,
+      title: "Seerah — Life of the Prophet ﷺ",
+      slug: "seerah-life-of-the-prophet",
+      description:
+        "A chronological journey through the life of Prophet Muhammad ﷺ from birth to the farewell sermon, weaving historical context with lessons for modern life.",
+      category: CourseCategory.History,
       lessons: [
         {
-          title: 'Arabia Before Islam',
-          order: 1, duration: 25,
+          title: "Arabia Before Islam",
+          order: 1,
+          duration: 25,
           content: `<h2>The World Before the Revelation</h2>
 <p>To understand the impact of Islam, we must first understand the world into which it was revealed. The Arabian Peninsula before Prophet Muhammad ﷺ was a land of stark contrasts — known for <strong>poetry</strong> and <strong>generosity</strong>, yet plagued by <strong>tribal warfare</strong> and <strong>moral decay</strong>.</p>
 <h2>Political Landscape</h2>
@@ -1087,8 +1131,9 @@ async function main() {
 <blockquote>Allah describes this period: <strong>"And you were on the brink of a pit of fire, and He saved you from it"</strong> (Surah Aal-e-Imran 3:103). The Arabs themselves recognized their degradation and called it the <strong>Jahiliyyah</strong> — the Age of Ignorance.</blockquote>`,
         },
         {
-          title: 'Birth & Early Life',
-          order: 2, duration: 30,
+          title: "Birth & Early Life",
+          order: 2,
+          duration: 30,
           content: `<h2>The Birth of the Prophet ﷺ</h2>
 <p>Prophet Muhammad ﷺ was born in <strong>Makkah</strong> in the <strong>Year of the Elephant</strong> (approximately 570 CE) — the same year Abraha's army attacked the Kaaba with elephants and was destroyed by Allah's command.</p>
 <blockquote>His birth was accompanied by miraculous signs. His mother Aminah reported that she felt no pain during delivery and saw a light emanating from her that illuminated the palaces of Syria.</blockquote>
@@ -1112,8 +1157,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'The First Revelation',
-          order: 3, duration: 30,
+          title: "The First Revelation",
+          order: 3,
+          duration: 30,
           content: `<h2>The Cave of Hira</h2>
 <p>At age 40, the Prophet ﷺ began to retreat to <strong>Cave Hira</strong> on the mountain of Light (Jabal an-Noor) outside Makkah, where he would meditate and contemplate the Creator. It was here that the most significant event in human history unfolded.</p>
 <blockquote><strong>Narrated Aisha (RA):</strong> "The first revelation began with true visions in sleep. The Prophet would not see a vision except it came like the break of dawn. Then he came to love seclusion and would stay in the Cave of Hira for many nights..."</blockquote>
@@ -1130,8 +1176,9 @@ async function main() {
 <p>She took him to her cousin <strong>Waraqah ibn Nawfal</strong>, a Christian scholar who confirmed: <strong>"This is the same angel that Allah sent to Moses. I wish I could be alive when your people drive you out"</strong> — foreseeing the persecution to come.</p>`,
         },
         {
-          title: 'The Makkan Period — Early Dawah',
-          order: 4, duration: 35,
+          title: "The Makkan Period — Early Dawah",
+          order: 4,
+          duration: 35,
           content: `<h2>The Early Call to Islam</h2>
 <p>The Prophet ﷺ began his mission with <strong>secret calls</strong> to those he trusted most. For three years, Islam spread quietly among close friends and family.</p>
 <h2>The First Believers</h2>
@@ -1154,8 +1201,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Persecution & Patience',
-          order: 5, duration: 30,
+          title: "Persecution & Patience",
+          order: 5,
+          duration: 30,
           content: `<h2>The Trials of the Early Muslims</h2>
 <p>As the Quraysh realized that offers and mockery would not stop the Prophet ﷺ, they escalated to <strong>systematic persecution</strong> of the believers — especially the weak and unprotected.</p>
 <h2>Forms of Persecution</h2>
@@ -1177,8 +1225,9 @@ async function main() {
 <blockquote><strong>"I hope that Allah will bring from their descendants people who will worship Allah alone."</strong> — This profound mercy is a lesson for all time.</blockquote>`,
         },
         {
-          title: 'The Night Journey & Ascension (Isra & Mi\'raj)',
-          order: 6, duration: 35,
+          title: "The Night Journey & Ascension (Isra & Mi'raj)",
+          order: 6,
+          duration: 35,
           content: `<h2>The Journey of Journeys</h2>
 <p>In the midst of the grief and hardship, Allah honored the Prophet ﷺ with the greatest miracle — the <strong>Night Journey</strong> (Isra) and <strong>Heavenly Ascension</strong> (Mi'raj). This event is described in the Quran and Hadith in remarkable detail.</p>
 <blockquote>Allah says: <strong>"Exalted is He who took His servant by night from the Sacred Mosque to the Farthest Mosque, whose surroundings We have blessed, to show him of Our signs. Indeed, He is the Hearing, the Seeing."</strong> (Surah Al-Isra 17:1)</blockquote>
@@ -1208,8 +1257,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'The Hijrah to Madinah',
-          order: 7, duration: 40,
+          title: "The Hijrah to Madinah",
+          order: 7,
+          duration: 40,
           content: `<h2>The Migration to Madinah</h2>
 <p>As persecution intensified and the Quraysh plotted to assassinate the Prophet ﷺ, Allah gave permission for the Muslims to <strong>migrate</strong> to the city of <strong>Yathrib</strong> (later renamed Madinah al-Munawwarah). This migration (Hijrah) marks the beginning of the Islamic calendar.</p>
 <h2>The Planning</h2>
@@ -1232,8 +1282,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'Building the Islamic State in Madinah',
-          order: 8, duration: 35,
+          title: "Building the Islamic State in Madinah",
+          order: 8,
+          duration: 35,
           content: `<h2>The Foundations of Islamic Civilization</h2>
 <p>In Madinah, the Prophet ﷺ established the <strong>first Islamic state</strong> — a model of governance, social justice, and community organization that would transform the world.</p>
 <h2>The Constitution of Madinah</h2>
@@ -1264,8 +1315,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'The Major Battles',
-          order: 9, duration: 50,
+          title: "The Major Battles",
+          order: 9,
+          duration: 50,
           content: `<h2>Defending the New State</h2>
 <p>The Quraysh of Makkah could not tolerate the existence of an independent Muslim state in Madinah. They launched several military campaigns to destroy it. The Prophet ﷺ, under divine guidance, responded with strategic defensive battles.</p>
 <h2>Battle of Badr (2 AH / 624 CE)</h2>
@@ -1294,8 +1346,9 @@ async function main() {
 </ul>`,
         },
         {
-          title: 'The Farewell Sermon & Legacy',
-          order: 10, duration: 40,
+          title: "The Farewell Sermon & Legacy",
+          order: 10,
+          duration: 40,
           content: `<h2>The Final Year</h2>
 <p>In the 10th year after Hijrah (632 CE), the Prophet ﷺ performed his <strong>only Hajj</strong> — known as <strong>Hajjat al-Wada</strong> (the Farewell Pilgrimage). During this pilgrimage, he delivered the most comprehensive sermon ever given, addressing the core principles of Islam.</p>
 <h2>The Farewell Sermon (Khutbat al-Wada)</h2>
@@ -1324,30 +1377,38 @@ async function main() {
 
   for (const { lessons, ...courseData } of coursesData) {
     const course = await prisma.course.upsert({
-      where:  { slug: courseData.slug },
+      where: { slug: courseData.slug },
       update: {},
       create: { ...courseData, isActive: true },
     });
 
     for (const lesson of lessons) {
-  const existing = await prisma.lesson.findFirst({
-    where: { courseId: course.id, order: lesson.order },
-  });
-  if (!existing) {
-    await prisma.lesson.create({ data: { ...lesson, courseId: course.id } });
-  }
-}
+      const existing = await prisma.lesson.findFirst({
+        where: { courseId: course.id, order: lesson.order },
+      });
+      if (!existing) {
+        await prisma.lesson.create({
+          data: { ...lesson, courseId: course.id },
+        });
+      }
+    }
   }
 
-  console.log('✔ Courses & lessons seeded');
+  console.log("✔ Courses & lessons seeded");
 
   // ─── Enrollments ──────────────────────────────────────────────────────────
-  const tajweedCourse = await prisma.course.findUnique({ where: { slug: 'tajweed-foundations' } });
-  const hifdhCourse   = await prisma.course.findUnique({ where: { slug: 'hifdh-ul-quran' } });
+  const tajweedCourse = await prisma.course.findUnique({
+    where: { slug: "tajweed-foundations" },
+  });
+  const hifdhCourse = await prisma.course.findUnique({
+    where: { slug: "hifdh-ul-quran" },
+  });
 
   if (tajweedCourse) {
     await prisma.enrollment.upsert({
-      where:  { userId_courseId: { userId: student.id, courseId: tajweedCourse.id } },
+      where: {
+        userId_courseId: { userId: student.id, courseId: tajweedCourse.id },
+      },
       update: {},
       create: { userId: student.id, courseId: tajweedCourse.id, progress: 30 },
     });
@@ -1355,27 +1416,31 @@ async function main() {
 
   if (hifdhCourse) {
     await prisma.enrollment.upsert({
-      where:  { userId_courseId: { userId: student.id, courseId: hifdhCourse.id } },
+      where: {
+        userId_courseId: { userId: student.id, courseId: hifdhCourse.id },
+      },
       update: {},
       create: { userId: student.id, courseId: hifdhCourse.id, progress: 10 },
     });
   }
 
-  console.log('✔ Enrollments seeded');
+  console.log("✔ Enrollments seeded");
   // ─── Mentorship ───────────────────────────────────────────────────────────
   const mentorship = await prisma.mentorship.upsert({
-    where:  { teacherId_studentId: { teacherId: teacher.id, studentId: student.id } },
+    where: {
+      teacherId_studentId: { teacherId: teacher.id, studentId: student.id },
+    },
     update: {},
     create: { teacherId: teacher.id, studentId: student.id },
   });
 
-  console.log('✔ Mentorship seeded');
+  console.log("✔ Mentorship seeded");
 
   // ─── Availability ─────────────────────────────────────────────────────────
   const slots = [
-    { dayOfWeek: 1, startTime: '09:00', endTime: '12:00' }, // Monday
-    { dayOfWeek: 3, startTime: '09:00', endTime: '12:00' }, // Wednesday
-    { dayOfWeek: 6, startTime: '14:00', endTime: '17:00' }, // Saturday
+    { dayOfWeek: 1, startTime: "09:00", endTime: "12:00" }, // Monday
+    { dayOfWeek: 3, startTime: "09:00", endTime: "12:00" }, // Wednesday
+    { dayOfWeek: 6, startTime: "14:00", endTime: "17:00" }, // Saturday
   ];
 
   for (const slot of slots) {
@@ -1384,79 +1449,107 @@ async function main() {
     });
   }
 
-  console.log('✔ Availability seeded');
+  console.log("✔ Availability seeded");
 
   // ─── Appointment ──────────────────────────────────────────────────────────
   await prisma.appointment.create({
     data: {
       mentorshipId: mentorship.id,
-      teacherId:    teacher.id,
-      title:        'Tajweed Review — Noon Sakinah',
-      description:  'Review of Noon Sakinah and Tanween rules with recitation practice.',
-      startTime:    new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-      endTime:      new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
-      meetingUrl:   'https://meet.google.com/placeholder',
+      teacherId: teacher.id,
+      title: "Tajweed Review — Noon Sakinah",
+      description:
+        "Review of Noon Sakinah and Tanween rules with recitation practice.",
+      startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+      endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+      meetingUrl: "https://meet.google.com/placeholder",
     },
   });
 
-  console.log('✔ Appointment seeded');
+  console.log("✔ Appointment seeded");
 
   // ─── Bookmarks ────────────────────────────────────────────────────────────
   const bookmarks = [
-    { surah: 2,  ayah: 255, note: 'Ayat al-Kursi — memorize this' },
-    { surah: 18, ayah: 1,   note: 'Beginning of Surah Al-Kahf' },
-    { surah: 36, ayah: 1,   note: 'Surah Yaseen — Friday recitation' },
+    { surah: 2, ayah: 255, note: "Ayat al-Kursi — memorize this" },
+    { surah: 18, ayah: 1, note: "Beginning of Surah Al-Kahf" },
+    { surah: 36, ayah: 1, note: "Surah Yaseen — Friday recitation" },
   ];
 
   for (const bm of bookmarks) {
     await prisma.bookmark.upsert({
-      where:  { userId_surah_ayah: { userId: student.id, surah: bm.surah, ayah: bm.ayah } },
+      where: {
+        userId_surah_ayah: {
+          userId: student.id,
+          surah: bm.surah,
+          ayah: bm.ayah,
+        },
+      },
       update: {},
-      create: { userId: student.id, surah: bm.surah, ayah: bm.ayah, note: bm.note },
+      create: {
+        userId: student.id,
+        surah: bm.surah,
+        ayah: bm.ayah,
+        note: bm.note,
+      },
     });
   }
 
-  console.log('✔ Bookmarks seeded');
+  console.log("✔ Bookmarks seeded");
 
   // ─── Messages ─────────────────────────────────────────────────────────────
   const messages = [
-    { senderId: teacher.id, receiverId: student.id, content: 'Assalamu Alaykum Aisha, great progress this week! Make sure to review Madd rules before our next session.' },
-    { senderId: student.id, receiverId: teacher.id, content: 'Wa Alaykum Assalam Ustadh, JazakAllah Khayr! I will review them tonight insha\'Allah.' },
-    { senderId: teacher.id, receiverId: student.id, content: 'Also, try to listen to Sheikh Al-Husary\'s recitation of Al-Baqarah for reference.' },
+    {
+      senderId: teacher.id,
+      receiverId: student.id,
+      content:
+        "Assalamu Alaykum Aisha, great progress this week! Make sure to review Madd rules before our next session.",
+    },
+    {
+      senderId: student.id,
+      receiverId: teacher.id,
+      content:
+        "Wa Alaykum Assalam Ustadh, JazakAllah Khayr! I will review them tonight insha'Allah.",
+    },
+    {
+      senderId: teacher.id,
+      receiverId: student.id,
+      content:
+        "Also, try to listen to Sheikh Al-Husary's recitation of Al-Baqarah for reference.",
+    },
   ];
 
   for (const msg of messages) {
     await prisma.message.create({ data: msg });
   }
 
-  console.log('✔ Messages seeded');
+  console.log("✔ Messages seeded");
 
   // ─── UstadhProfile ────────────────────────────────────────────────────────
   await prisma.ustadhProfile.upsert({
-    where:  { userId: teacher.id },
+    where: { userId: teacher.id },
     update: {},
     create: {
-      userId:         teacher.id,
-      isApproved:     true,
-      bio:            'Hafiz with ijazah in Hafs an Asim. 10+ years teaching Tajweed and Hifdh.',
-      qualifications: 'Ijazah in Hafs an Asim from Al-Azhar University\nCertified Quran Teacher (CQT-2018)\nBA in Islamic Studies',
+      userId: teacher.id,
+      isApproved: true,
+      bio: "Hafiz with ijazah in Hafs an Asim. 10+ years teaching Tajweed and Hifdh.",
+      qualifications:
+        "Ijazah in Hafs an Asim from Al-Azhar University\nCertified Quran Teacher (CQT-2018)\nBA in Islamic Studies",
     },
   });
 
-  console.log('✔ UstadhProfile seeded');
+  console.log("✔ UstadhProfile seeded");
 
   // ─── QuranProgress ─────────────────────────────────────────────────────────
   await prisma.quranProgress.upsert({
-    where:  { userId: student.id },
+    where: { userId: student.id },
     update: {},
     create: {
-      userId:    student.id,
+      userId: student.id,
       lastSurah: 2,
       lastVerse: 86,
     },
   });
 
-  console.log('✔ QuranProgress seeded');
+  console.log("✔ QuranProgress seeded");
 
   // ─── Login Session History (for streak) ────────────────────────────────────
   const now = new Date();
@@ -1471,62 +1564,88 @@ async function main() {
 
     await prisma.loginSession.create({
       data: {
-        userId:      student.id,
-        deviceName:  'Chrome on Linux',
-        ipAddress:   '192.168.1.100',
+        userId: student.id,
+        deviceName: "Chrome on Linux",
+        ipAddress: "192.168.1.100",
         lastActivity: morning,
-        isActive:    false,
+        isActive: false,
       },
     });
     await prisma.loginSession.create({
       data: {
-        userId:      teacher.id,
-        deviceName:  'Chrome on Linux',
-        ipAddress:   '192.168.1.101',
+        userId: teacher.id,
+        deviceName: "Chrome on Linux",
+        ipAddress: "192.168.1.101",
         lastActivity: morning,
-        isActive:    false,
+        isActive: false,
       },
     });
 
     if (daysAgo < 3) {
       await prisma.loginSession.create({
         data: {
-          userId:      student.id,
-          deviceName:  'Firefox on Linux',
-          ipAddress:   '192.168.1.100',
+          userId: student.id,
+          deviceName: "Firefox on Linux",
+          ipAddress: "192.168.1.100",
           lastActivity: evening,
-          isActive:    false,
+          isActive: false,
         },
       });
     }
   }
 
-  console.log('✔ LoginSessions seeded (8-day streak)');
+  console.log("✔ LoginSessions seeded (8-day streak)");
 
   // ─── Assessments (for leaderboard + Strong Recitation achievement) ────────
   const assessments = [
-    { type: AssessmentType.HIFDH_LISTENING, score: 85, feedback: 'Good flow, minor pause at verse 255.' },
-    { type: AssessmentType.TAJWEED_EXAM,    score: 92, feedback: 'Excellent Makharij' },
-    { type: AssessmentType.VERBAL_TEST,     score: 78, feedback: 'Needs work on Madd rules' },
-    { type: AssessmentType.HIFDH_LISTENING, score: 88, feedback: 'Steady improvement' },
-    { type: AssessmentType.HIFDH_LISTENING, score: 95, feedback: 'Outstanding recitation' },
+    {
+      type: AssessmentType.HIFDH_LISTENING,
+      score: 85,
+      feedback: "Good flow, minor pause at verse 255.",
+    },
+    {
+      type: AssessmentType.TAJWEED_EXAM,
+      score: 92,
+      feedback: "Excellent Makharij",
+    },
+    {
+      type: AssessmentType.VERBAL_TEST,
+      score: 78,
+      feedback: "Needs work on Madd rules",
+    },
+    {
+      type: AssessmentType.HIFDH_LISTENING,
+      score: 88,
+      feedback: "Steady improvement",
+    },
+    {
+      type: AssessmentType.HIFDH_LISTENING,
+      score: 95,
+      feedback: "Outstanding recitation",
+    },
   ];
 
   for (const a of assessments) {
     await prisma.assessment.create({
-      data: { studentId: student.id, type: a.type, score: a.score, feedback: a.feedback, assessedBy: 'AI' },
+      data: {
+        studentId: student.id,
+        type: a.type,
+        score: a.score,
+        feedback: a.feedback,
+        assessedBy: "AI",
+      },
     });
   }
 
-  console.log('✔ Assessments seeded');
+  console.log("✔ Assessments seeded");
 
   // ─── RecitationJournal (for accuracy trend) ────────────────────────────────
   const journals = [
-    { surahNumber: 1,  fromVerse: 1,  toVerse: 7,   accuracy: 95, duration: 120 },
-    { surahNumber: 2,  fromVerse: 1,  toVerse: 5,   accuracy: 88, duration: 180 },
-    { surahNumber: 2,  fromVerse: 1,  toVerse: 10,  accuracy: 82, duration: 240 },
-    { surahNumber: 2,  fromVerse: 1,  toVerse: 15,  accuracy: 91, duration: 300 },
-    { surahNumber: 78, fromVerse: 1,  toVerse: 10,  accuracy: 96, duration: 150 },
+    { surahNumber: 1, fromVerse: 1, toVerse: 7, accuracy: 95, duration: 120 },
+    { surahNumber: 2, fromVerse: 1, toVerse: 5, accuracy: 88, duration: 180 },
+    { surahNumber: 2, fromVerse: 1, toVerse: 10, accuracy: 82, duration: 240 },
+    { surahNumber: 2, fromVerse: 1, toVerse: 15, accuracy: 91, duration: 300 },
+    { surahNumber: 78, fromVerse: 1, toVerse: 10, accuracy: 96, duration: 150 },
   ];
 
   for (const j of journals) {
@@ -1540,13 +1659,23 @@ async function main() {
     });
   }
 
-  console.log('✔ RecitationJournal seeded');
+  console.log("✔ RecitationJournal seeded");
 
   // ─── Completed Appointments (session history) ──────────────────────────────
   const pastSessions = [
-    { daysAgo: 6, title: 'Tajweed Review — Noon Sakinah', surahNumber: 2, verseNumber: 1 },
-    { daysAgo: 4, title: 'Juz Amma Revision',              surahNumber: 78, verseNumber: 1 },
-    { daysAgo: 2, title: 'Madd Rules Practice',            surahNumber: 2, verseNumber: 10 },
+    {
+      daysAgo: 6,
+      title: "Tajweed Review — Noon Sakinah",
+      surahNumber: 2,
+      verseNumber: 1,
+    },
+    { daysAgo: 4, title: "Juz Amma Revision", surahNumber: 78, verseNumber: 1 },
+    {
+      daysAgo: 2,
+      title: "Madd Rules Practice",
+      surahNumber: 2,
+      verseNumber: 10,
+    },
   ];
 
   for (const s of pastSessions) {
@@ -1559,77 +1688,123 @@ async function main() {
     await prisma.appointment.create({
       data: {
         mentorshipId: mentorship.id,
-        teacherId:    teacher.id,
-        title:        s.title,
-        startTime:    start,
-        endTime:      end,
-        status:       'COMPLETED',
-        startedAt:    start,
-        endedAt:      end,
-        surahNumber:  s.surahNumber,
-        verseNumber:  s.verseNumber,
+        teacherId: teacher.id,
+        title: s.title,
+        startTime: start,
+        endTime: end,
+        status: "COMPLETED",
+        startedAt: start,
+        endedAt: end,
+        surahNumber: s.surahNumber,
+        verseNumber: s.verseNumber,
       },
     });
   }
 
-  console.log('✔ Completed appointments seeded');
+  console.log("✔ Completed appointments seeded");
 
   // ─── StudentNotes (open + resolved) ────────────────────────────────────────
   // Fetch the most recent completed appointment for note linking
   const recentAppt = await prisma.appointment.findFirst({
-    where:  { mentorshipId: mentorship.id, status: 'COMPLETED' },
-    orderBy: { startTime: 'desc' },
+    where: { mentorshipId: mentorship.id, status: "COMPLETED" },
+    orderBy: { startTime: "desc" },
   });
 
   const notesData = [
-    { priority: 'HIGH',   content: 'Strong pronunciation of ض (Daud) — still confusing with ظ (Dha). Needs focused drill.', resolved: false },
-    { priority: 'MEDIUM', content: 'Madd Munfasil timing is inconsistent; sometimes extends 4 counts instead of 2-4.', resolved: false },
-    { priority: 'LOW',    content: 'Remember to review the rules of Ikhfaa before next session.', resolved: false },
-    { priority: 'MEDIUM', content: 'Great improvement on Meem Sakinah rules this week.', resolved: true, resolvedAt: new Date(now.getTime() - 1 * 86400000) },
-    { priority: 'LOW',    content: 'Reviewed Qalqalah — minor echo on ط could be stronger.', resolved: true, resolvedAt: new Date(now.getTime() - 2 * 86400000) },
+    {
+      priority: "HIGH",
+      content:
+        "Strong pronunciation of ض (Daud) — still confusing with ظ (Dha). Needs focused drill.",
+      resolved: false,
+    },
+    {
+      priority: "MEDIUM",
+      content:
+        "Madd Munfasil timing is inconsistent; sometimes extends 4 counts instead of 2-4.",
+      resolved: false,
+    },
+    {
+      priority: "LOW",
+      content: "Remember to review the rules of Ikhfaa before next session.",
+      resolved: false,
+    },
+    {
+      priority: "MEDIUM",
+      content: "Great improvement on Meem Sakinah rules this week.",
+      resolved: true,
+      resolvedAt: new Date(now.getTime() - 1 * 86400000),
+    },
+    {
+      priority: "LOW",
+      content: "Reviewed Qalqalah — minor echo on ط could be stronger.",
+      resolved: true,
+      resolvedAt: new Date(now.getTime() - 2 * 86400000),
+    },
   ];
 
   for (const n of notesData) {
     await prisma.studentNote.create({
       data: {
-        studentId:  student.id,
-        ustadhId:   teacher.id,
-        content:    n.content,
-        priority:   n.priority as 'LOW' | 'MEDIUM' | 'HIGH',
-        resolved:   n.resolved,
+        studentId: student.id,
+        ustadhId: teacher.id,
+        content: n.content,
+        priority: n.priority as "LOW" | "MEDIUM" | "HIGH",
+        resolved: n.resolved,
         resolvedAt: n.resolved ? (n.resolvedAt ?? new Date()) : null,
-        sessionId:  recentAppt?.id ?? null,
+        sessionId: recentAppt?.id ?? null,
       },
     });
   }
 
-  console.log('✔ StudentNotes seeded');
+  console.log("✔ StudentNotes seeded");
 
   // ─── Complete an enrollment for Course Finisher achievement ────────────────
-  const completedCourse = await prisma.course.findUnique({ where: { slug: 'fiqh-of-salah' } });
+  const completedCourse = await prisma.course.findUnique({
+    where: { slug: "fiqh-of-salah" },
+  });
   if (completedCourse) {
     await prisma.enrollment.upsert({
-      where:  { userId_courseId: { userId: student.id, courseId: completedCourse.id } },
-      update: { progress: 100, status: 'COMPLETED', completedAt: new Date(now.getTime() - 3 * 86400000) },
-      create: { userId: student.id, courseId: completedCourse.id, progress: 100, status: 'COMPLETED', completedAt: new Date(now.getTime() - 3 * 86400000) },
+      where: {
+        userId_courseId: { userId: student.id, courseId: completedCourse.id },
+      },
+      update: {
+        progress: 100,
+        status: "COMPLETED",
+        completedAt: new Date(now.getTime() - 3 * 86400000),
+      },
+      create: {
+        userId: student.id,
+        courseId: completedCourse.id,
+        progress: 100,
+        status: "COMPLETED",
+        completedAt: new Date(now.getTime() - 3 * 86400000),
+      },
     });
   }
 
-  console.log('✔ Completed enrollment seeded');
+  console.log("✔ Completed enrollment seeded");
 
-  console.log('\n✅ Database seeded successfully');
+  console.log("\n✅ Database seeded successfully");
 
   // ─── Seed rich content & quizzes ─────────────────────────────────────────
-  const lessonsContent: Record<string, Array<{
-    title: string;
-    content: string;
-    videoUrl?: string;
-    quiz: Array<{ question: string; options: Array<{ text: string; correct: boolean }> }>;
-  }>> = (await import('./seed-content-data.js')).lessonsContent;
+  const lessonsContent: Record<
+    string,
+    Array<{
+      title: string;
+      content: string;
+      videoUrl?: string;
+      quiz: Array<{
+        question: string;
+        options: Array<{ text: string; correct: boolean }>;
+      }>;
+    }>
+  > = (await import("./seed-content-data.js")).lessonsContent;
 
-  console.log('\n📝 Updating lesson content with enriched materials...');
+  console.log("\n📝 Updating lesson content with enriched materials...");
 
-  const contentCourses = await prisma.course.findMany({ include: { lessons: { orderBy: { order: 'asc' } } } });
+  const contentCourses = await prisma.course.findMany({
+    include: { lessons: { orderBy: { order: "asc" } } },
+  });
 
   for (const course of contentCourses) {
     const courseContent = lessonsContent[course.slug];
@@ -1638,7 +1813,7 @@ async function main() {
     console.log(`\n📘 Processing: ${course.title}`);
 
     for (const lessonDef of courseContent) {
-      const lesson = course.lessons.find(l => l.title === lessonDef.title);
+      const lesson = course.lessons.find((l) => l.title === lessonDef.title);
       if (!lesson) {
         console.log(`  ⚠ Lesson not found: "${lessonDef.title}" — skipping`);
         continue;
@@ -1674,7 +1849,7 @@ async function main() {
             durationMinutes: 15,
             isPublished: true,
             shuffleQuestions: true,
-            examType: 'QUIZ',
+            examType: "QUIZ",
           },
         });
 
@@ -1686,18 +1861,26 @@ async function main() {
 
           const questionData = {
             questionText: q.question,
-            questionType: 'MCQ' as const,
-            options: q.options.map(opt => ({ text: opt.text, isCorrect: opt.correct })),
-            correctAnswer: q.options.find(o => o.correct)?.text ?? '',
+            questionType: "MCQ" as const,
+            options: q.options.map((opt) => ({
+              text: opt.text,
+              isCorrect: opt.correct,
+            })),
+            correctAnswer: q.options.find((o) => o.correct)?.text ?? "",
             marks: 1,
-            difficulty: 'UNDERSTAND' as const,
+            difficulty: "UNDERSTAND" as const,
             orderIndex: qi,
           };
 
           if (existingQ) {
-            await prisma.question.update({ where: { id: existingQ.id }, data: questionData });
+            await prisma.question.update({
+              where: { id: existingQ.id },
+              data: questionData,
+            });
           } else {
-            await prisma.question.create({ data: { examId: exam.id, ...questionData } });
+            await prisma.question.create({
+              data: { examId: exam.id, ...questionData },
+            });
           }
         }
         console.log(`  ✓ Quiz created: ${lessonDef.quiz.length} questions`);
@@ -1705,10 +1888,14 @@ async function main() {
     }
   }
 
-  console.log('\n✅ Content seeded successfully');
-
+  console.log("\n✅ Content seeded successfully");
 }
 
 main()
-  .catch((e) => { console.error(e); process.exit(1); })
-  .finally(async () => { await prisma.$disconnect(); });
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
