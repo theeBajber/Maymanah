@@ -154,3 +154,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 Thank you for being part of the Maymanah community. Together, we're making Quranic education accessible to all!
+ 
+ faraj salim ahmed 
