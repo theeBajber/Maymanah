@@ -10,10 +10,11 @@ import {
   VideoTrack,
   useParticipants,
   useConnectionState,
+  useLocalParticipant,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Track, ConnectionState as LKConnectionState } from "livekit-client";
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 
 function FocusedParticipant() {
   const cameraTracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare]);
@@ -101,9 +102,155 @@ function ConnectionBadge() {
   );
 }
 
-export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
-  const [micOn, setMicOn] = useState(true);
+function logToServer(level: string, message: string) {
+  fetch("/api/log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ level, message }),
+  }).catch(() => {});
+}
+
+function CallControlsBar({
+  onLeave,
+  fullscreen,
+  toggleFullscreen,
+}: {
+  onLeave: () => void;
+  fullscreen: boolean;
+  toggleFullscreen: () => void;
+}) {
+  const { localParticipant } = useLocalParticipant();
+  const connState = useConnectionState();
   const [camOn, setCamOn] = useState(true);
+  const [micOn, setMicOn] = useState(true);
+  const [camError, setCamError] = useState<string | null>(null);
+  const [micError, setMicError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!localParticipant || connState !== LKConnectionState.Connected) return;
+    const enableMedia = async () => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        const msg = "Camera/mic not available (insecure context or no permission)";
+        setCamError(msg);
+        setMicError(msg);
+        logToServer("error", msg);
+        return;
+      }
+      try {
+        await localParticipant.setCameraEnabled(true);
+      } catch (e: any) {
+        const msg = e?.message || "Camera access denied";
+        setCamError(msg);
+        logToServer("error", `Camera failed: ${msg}`);
+      }
+      try {
+        await localParticipant.setMicrophoneEnabled(true);
+      } catch (e: any) {
+        const msg = e?.message || "Microphone access denied";
+        setMicError(msg);
+        logToServer("error", `Microphone failed: ${msg}`);
+      }
+    };
+    enableMedia();
+  }, [localParticipant, connState]);
+
+  const toggleCamera = useCallback(() => {
+    setCamOn((p) => {
+      const next = !p;
+      setCamError(null);
+      localParticipant?.setCameraEnabled(next).catch((e: Error) => {
+        const msg = e?.message || "Camera access denied";
+        setCamError(msg);
+        logToServer("error", `Camera toggle failed: ${msg}`);
+      });
+      return next;
+    });
+  }, [localParticipant]);
+
+  const toggleMic = useCallback(() => {
+    setMicOn((p) => {
+      const next = !p;
+      setMicError(null);
+      localParticipant?.setMicrophoneEnabled(next).catch((e: Error) => {
+        const msg = e?.message || "Microphone access denied";
+        setMicError(msg);
+        logToServer("error", `Microphone toggle failed: ${msg}`);
+      });
+      return next;
+    });
+  }, [localParticipant]);
+
+  return (
+    <div
+      className="absolute bottom-0 left-0 right-0 z-10"
+      style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom, 0px))" }}
+    >
+      {(camError || micError) && (
+        <div className="px-3 py-2 bg-amber-500/15 border-b border-amber-500/20 text-center">
+          <p className="text-xs text-amber-300 font-medium">
+            {camError && micError
+              ? `Camera: ${camError}  ·  Mic: ${micError}`
+              : camError
+                ? `Camera: ${camError}`
+                : `Mic: ${micError}`}
+          </p>
+          <p className="text-[10px] text-amber-400/60 mt-0.5">Check browser permissions (lock icon in address bar)</p>
+        </div>
+      )}
+      <div className="flex items-center justify-center gap-3 py-3 px-2 bg-zinc-900/90 backdrop-blur-sm border-t border-white/5">
+        <button
+          type="button"
+          onClick={toggleMic}
+          className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+            micError
+              ? "bg-amber-500/20 text-amber-400"
+              : micOn
+                ? "bg-zinc-700 hover:bg-zinc-600 text-white"
+                : "bg-danger/20 text-danger"
+          }`}
+          title={micError ? "Microphone unavailable" : micOn ? "Mute microphone" : "Unmute microphone"}
+        >
+          <FontAwesomeIcon icon={micError ? faMicrophoneSlash : (micOn ? faMicrophone : faMicrophoneSlash)} className="size-5 md:size-4" />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleCamera}
+          className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+            camError
+              ? "bg-amber-500/20 text-amber-400"
+              : camOn
+                ? "bg-zinc-700 hover:bg-zinc-600 text-white"
+                : "bg-danger/20 text-danger"
+          }`}
+          title={camError ? "Camera unavailable" : camOn ? "Turn off camera" : "Turn on camera"}
+        >
+          <FontAwesomeIcon icon={camError ? faVideoSlash : (camOn ? faVideo : faVideoSlash)} className="size-5 md:size-4" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onLeave}
+          className="size-14 md:size-12 rounded-full bg-danger flex items-center justify-center hover:bg-danger/80 transition-all active:scale-90"
+          title="Leave session"
+        >
+          <FontAwesomeIcon icon={faPhoneSlash} className="size-5 md:size-4 text-white" />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="size-14 md:size-12 rounded-full bg-zinc-700 hover:bg-zinc-600 text-white flex items-center justify-center transition-all active:scale-90"
+          title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+        >
+          <FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} className="size-5 md:size-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
   const [fullscreen, setFullscreen] = useState(false);
   const [disconnected, setDisconnected] = useState(false);
   const [connectionError, setConnectionError] = useState("");
@@ -137,8 +284,8 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
   return (
     <div className="relative w-full h-full bg-black">
       <LiveKitRoom
-        video={camOn ? { facingMode: "user" } : false}
-        audio={micOn}
+        audio={false}
+        video={false}
         token={token}
         serverUrl={liveKitUrl}
         data-lk-theme="default"
@@ -148,61 +295,19 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
       >
         <RoomAudioRenderer />
         <FocusedParticipant />
+
         <div className="absolute top-4 right-4 z-10">
           <ConnectionBadge />
         </div>
+
+        {!disconnected && (
+          <CallControlsBar
+            onLeave={handleLeave}
+            fullscreen={fullscreen}
+            toggleFullscreen={toggleFullscreen}
+          />
+        )}
       </LiveKitRoom>
-
-      {!disconnected && (
-        <div
-          className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-3 py-3 px-2 bg-zinc-900/90 backdrop-blur-sm border-t border-white/5 z-10"
-          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
-        >
-          <button
-            type="button"
-            onClick={() => setMicOn((p) => !p)}
-            className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-              micOn
-                ? "bg-zinc-700 hover:bg-zinc-600 text-white"
-                : "bg-danger/20 text-danger"
-            }`}
-            title={micOn ? "Mute microphone" : "Unmute microphone"}
-          >
-            <FontAwesomeIcon icon={micOn ? faMicrophone : faMicrophoneSlash} className="size-5 md:size-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCamOn((p) => !p)}
-            className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-              camOn
-                ? "bg-zinc-700 hover:bg-zinc-600 text-white"
-                : "bg-danger/20 text-danger"
-            }`}
-            title={camOn ? "Turn off camera" : "Turn on camera"}
-          >
-            <FontAwesomeIcon icon={camOn ? faVideo : faVideoSlash} className="size-5 md:size-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleLeave}
-            className="size-14 md:size-12 rounded-full bg-danger flex items-center justify-center hover:bg-danger/80 transition-all active:scale-90"
-            title="Leave session"
-          >
-            <FontAwesomeIcon icon={faPhoneSlash} className="size-5 md:size-4 text-white" />
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="size-14 md:size-12 rounded-full bg-zinc-700 hover:bg-zinc-600 text-white flex items-center justify-center transition-all active:scale-90"
-            title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-          >
-            <FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} className="size-5 md:size-4" />
-          </button>
-        </div>
-      )}
 
       {disconnected && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 backdrop-blur-sm">
