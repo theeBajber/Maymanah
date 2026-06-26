@@ -13,11 +13,12 @@ import {
   faSpinner,
   faVideo,
   faVolumeHigh,
+  faExclamationTriangle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { VideoRoom } from "@/components/ui/VideoRoom";
 
 type ReviewItem = {
@@ -56,6 +57,7 @@ export default function SessionPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [inCall, setInCall] = useState(false);
+  const [permError, setPermError] = useState("");
 
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([
     { id: 1, passage: "An-Naba 1-5", note: "Hold ghunnah evenly in verses 1 and 2.", status: "review" },
@@ -89,6 +91,8 @@ export default function SessionPage() {
       });
   }, [authStatus, appointmentId, router]);
 
+  const isTeacher = joinData?.appointment.isTeacher ?? false;
+
   const activeItems = useMemo(
     () => reviewItems.filter((item) => item.status !== "done").length,
     [reviewItems],
@@ -116,6 +120,27 @@ export default function SessionPage() {
       }),
     );
   }
+
+  const handleJoinCall = useCallback(async () => {
+    setPermError("");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setPermError("Camera/mic not available (insecure context or no permission)");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+      setInCall(true);
+    } catch (e: any) {
+      if (e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError") {
+        setPermError("Camera and microphone access was denied. Please allow permissions in your browser settings.");
+      } else if (e?.name === "NotFoundError") {
+        setPermError("No camera or microphone found on this device.");
+      } else {
+        setPermError(e?.message || "Could not access camera/microphone.");
+      }
+    }
+  }, []);
 
   if (loading || authStatus === "loading") {
     return (
@@ -162,14 +187,14 @@ export default function SessionPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
             <span className="rounded-full bg-success/10 px-3 py-1 text-success font-medium">
-              {joinData.appointment.isTeacher ? "Teaching" : "Student"}
+              {isTeacher ? "Teaching" : "Student"}
             </span>
             <span className="rounded-full bg-bg-card border border-border px-3 py-1">{activeItems} follow-ups</span>
           </div>
         </div>
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-          <div className="min-h-[640px] rounded-lg border border-border bg-bg-card overflow-hidden flex flex-col">
+          <div className="h-[calc(100vh-16rem)] min-h-[360px] rounded-lg border border-border bg-bg-card overflow-hidden flex flex-col">
             {!inCall ? (
               <div className="flex flex-col items-center justify-center flex-1 bg-bg-secondary p-8 text-center">
                 <div className="size-20 rounded-full bg-primary/10 mx-auto mb-5 flex items-center justify-center">
@@ -181,8 +206,14 @@ export default function SessionPage() {
                   {joinData.appointment.title || "Live Session"}
                 </h3>
                 <p className="text-sm text-text-secondary mb-6">
-                  {joinData.appointment.isTeacher ? "You are the teacher" : "You are joining as a student"}
+                  {isTeacher ? "You are the teacher" : "You are joining as a student"}
                 </p>
+                {permError && (
+                  <div className="mb-4 w-full max-w-sm rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-center">
+                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-400 mr-2" />
+                    <span className="text-sm text-amber-300">{permError}</span>
+                  </div>
+                )}
                 <div className="space-y-2 mb-6 w-full max-w-sm text-left">
                   <div className="flex items-center justify-between p-3 rounded-xl bg-bg-hover">
                     <span className="text-sm text-text-secondary">Room</span>
@@ -196,7 +227,7 @@ export default function SessionPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setInCall(true)}
+                  onClick={handleJoinCall}
                   className="px-8 py-3 bg-primary text-text-inverse rounded-xl font-bold hover:brightness-110 transition-all active:scale-[0.98] shadow-sm shadow-primary/20"
                 >
                   Join Call
@@ -216,51 +247,53 @@ export default function SessionPage() {
           </div>
 
           <aside className="grid gap-5 lg:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-lg border border-border bg-bg-card p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm uppercase tracking-wider text-text-secondary">Teacher Mushaf</p>
-                  <h3 className="font-bold text-text-primary">Follow recitation</h3>
+            {isTeacher && (
+              <div className="rounded-lg border border-border bg-bg-card p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm uppercase tracking-wider text-text-secondary">Teacher Mushaf</p>
+                    <h3 className="font-bold text-text-primary">Follow recitation</h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
+                      <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
+                    </button>
+                    <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
+                      <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
-                    <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
-                  </button>
-                  <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
-                    <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-                  </button>
+                <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
+                  <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
+                    <option>Surah An-Naba</option>
+                    <option>Surah Al-Mulk</option>
+                    <option>Surah Al-Qalam</option>
+                  </select>
+                  <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
+                    <option>Ayat 1-10</option>
+                    <option>Ayat 11-20</option>
+                    <option>Ayat 21-30</option>
+                  </select>
+                </div>
+                <div className="rounded-lg border border-border bg-bg-primary p-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm text-text-secondary">
+                    <FontAwesomeIcon icon={faBookOpen} />
+                    Hafs tracking view
+                  </div>
+                  <div className="space-y-4 text-right font-serif text-2xl leading-loose" dir="rtl">
+                    {ayahLines.map((ayah, index) => (
+                      <p
+                        key={ayah.ref}
+                        className={`rounded px-3 py-1 ${index === 1 ? "bg-primary/10 text-primary" : "text-text-primary"}`}
+                      >
+                        {ayah.text}
+                        <span className="mr-3 align-middle text-xs text-text-secondary">{ayah.ref}</span>
+                      </p>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-                <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
-                  <option>Surah An-Naba</option>
-                  <option>Surah Al-Mulk</option>
-                  <option>Surah Al-Qalam</option>
-                </select>
-                <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
-                  <option>Ayat 1-10</option>
-                  <option>Ayat 11-20</option>
-                  <option>Ayat 21-30</option>
-                </select>
-              </div>
-              <div className="rounded-lg border border-border bg-bg-primary p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm text-text-secondary">
-                  <FontAwesomeIcon icon={faBookOpen} />
-                  Hafs tracking view
-                </div>
-                <div className="space-y-4 text-right font-serif text-2xl leading-loose" dir="rtl">
-                  {ayahLines.map((ayah, index) => (
-                    <p
-                      key={ayah.ref}
-                      className={`rounded px-3 py-1 ${index === 1 ? "bg-primary/10 text-primary" : "text-text-primary"}`}
-                    >
-                      {ayah.text}
-                      <span className="mr-3 align-middle text-xs text-text-secondary">{ayah.ref}</span>
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </div>
+            )}
 
             <div className="rounded-lg border border-border bg-bg-card p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
@@ -271,35 +304,37 @@ export default function SessionPage() {
                 <span className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">Next session</span>
               </div>
 
-              <div className="mb-4 grid gap-2">
-                <input
-                  value={passage}
-                  onChange={(event) => setPassage(event.target.value)}
-                  placeholder="Passage"
-                  className="rounded border border-border bg-bg-primary px-3 py-2 outline-none focus:border-primary text-text-primary"
-                />
-                <textarea
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  placeholder="Area to review"
-                  className="min-h-20 rounded border border-border bg-bg-primary px-3 py-2 outline-none focus:border-primary text-text-primary"
-                />
-                <button
-                  onClick={addReviewItem}
-                  disabled={!passage.trim() || !note.trim()}
-                  className="flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-text-inverse disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <FontAwesomeIcon icon={faPlus} />
-                  Add follow-up
-                </button>
-              </div>
+              {isTeacher && (
+                <div className="mb-4 grid gap-2">
+                  <input
+                    value={passage}
+                    onChange={(event) => setPassage(event.target.value)}
+                    placeholder="Passage"
+                    className="rounded border border-border bg-bg-primary px-3 py-2 outline-none focus:border-primary text-text-primary"
+                  />
+                  <textarea
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder="Area to review"
+                    className="min-h-20 rounded border border-border bg-bg-primary px-3 py-2 outline-none focus:border-primary text-text-primary"
+                  />
+                  <button
+                    onClick={addReviewItem}
+                    disabled={!passage.trim() || !note.trim()}
+                    className="flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-text-inverse disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    Add follow-up
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-3">
                 {reviewItems.map((item) => (
-                  <button
+                  <div
                     key={item.id}
-                    onClick={() => cycleStatus(item.id)}
-                    className="w-full rounded-lg border border-border bg-bg-primary p-3 text-left transition hover:border-primary/50"
+                    onClick={() => isTeacher && cycleStatus(item.id)}
+                    className={`rounded-lg border border-border bg-bg-primary p-3 text-left ${isTeacher ? "cursor-pointer transition hover:border-primary/50" : ""}`}
                   >
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div>
@@ -321,7 +356,7 @@ export default function SessionPage() {
                     <p className="text-xs uppercase tracking-wider text-text-secondary">
                       {item.status === "done" ? "Completed" : item.status === "review" ? "Review again" : "New"}
                     </p>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
