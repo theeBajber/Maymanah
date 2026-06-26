@@ -25,6 +25,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { UpcomingAppointmentCard } from "@/components/ui/AppointmentControls";
 
 export const dynamic = "force-dynamic";
 
@@ -326,62 +327,52 @@ export default async function Dash(props: {
               </div>
             </div>
 
-            {dashboardData.upcomingAppointment ? (
+            {dashboardData.weeklySchedule.length > 0 ? (
               <div className="rounded-2xl border border-border bg-bg-elevated p-5">
                 <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
-                  Upcoming Session
+                  Weekly Schedule
                 </h3>
-                <div className="flex items-start gap-3 mb-4">
-                  {dashboardData.upcomingAppointment.teacherImage ? (
-                    <Image
-                      alt={dashboardData.upcomingAppointment.teacherName ?? "Teacher"}
-                      className="size-12 rounded-full object-cover ring-2 ring-primary/30"
-                      src={dashboardData.upcomingAppointment.teacherImage}
-                      width={56}
-                      height={56}
-                    />
-                  ) : (
-                    <div className="size-12 rounded-full bg-primary/10 ring-2 ring-primary/30 flex items-center justify-center text-primary font-bold text-sm">
-                      {(
-                        dashboardData.upcomingAppointment.teacherName ??
-                        "Teacher"
-                      )
-                        .split(" ")
-                        .map((name) => name[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <h4 className="font-semibold text-sm text-text-primary">
-                      {dashboardData.upcomingAppointment.title}
-                    </h4>
-                    <p className="text-xs text-text-secondary">
-                      {dashboardData.upcomingAppointment.teacherName ?? "Teacher"}
-                    </p>
-                    <div className="flex items-center gap-1.5 text-primary text-xs font-medium mt-1">
-                      <FontAwesomeIcon icon={faAlarmClock} className="size-3" />
-                      <span>
-                        {getAppointmentTimeLabel(
-                          dashboardData.upcomingAppointment.startTime,
-                        )}
-                      </span>
-                    </div>
-                  </div>
+                <div className="space-y-2">
+                  {dashboardData.weeklySchedule.map((slot) => {
+                    const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][slot.dayOfWeek];
+                    const isToday = slot.dayOfWeek === new Date().getDay();
+                    return (
+                      <div
+                        key={`${slot.dayOfWeek}-${slot.type}`}
+                        className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm ${
+                          isToday ? "bg-primary/10 ring-1 ring-primary/30" : "bg-bg-hover"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`font-bold w-8 ${isToday ? "text-primary" : "text-text-primary"}`}>
+                            {dayName}
+                          </span>
+                          <span className="text-text-secondary text-xs uppercase tracking-wider font-medium">
+                            {slot.type === "DAILY_HIFDH" ? "Hifdh" : "Muraja'ah"}
+                          </span>
+                        </div>
+                        <span className="text-text-primary font-medium">
+                          {new Date("2000-01-01T" + slot.startTime).toLocaleTimeString("en-US", {
+                            hour: "numeric", minute: "2-digit", hour12: true,
+                          })}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <a
-                  href={`/session/${dashboardData.upcomingAppointment.id}`}
-                  className="block w-full text-center bg-primary text-text-inverse py-3 rounded-xl font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-primary/20"
+                <Link
+                  href="/courses/hifdh-ul-quran"
+                  className="mt-4 block w-full text-center bg-primary text-text-inverse py-3 rounded-xl font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-primary/20"
                 >
-                  Join Session
-                </a>
+                  Go to Course
+                </Link>
               </div>
             ) : (
               <div className="rounded-2xl border border-border bg-bg-elevated p-5">
                 <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
-                  Upcoming Session
+                  Weekly Schedule
                 </h3>
-                <p className="text-sm text-text-secondary">No upcoming sessions.</p>
+                <p className="text-sm text-text-secondary">No sessions scheduled yet.</p>
               </div>
             )}
 
@@ -641,7 +632,7 @@ async function UstadhDashboard({ session }: { session: Session }) {
     59,
   );
 
-  const [todaySessions, weekSessions, activeMatches, completedThisMonth] =
+  const [todaySessions, weekSessions, activeMatches, completedThisMonth, weeklySlots] =
     await Promise.all([
       prisma.appointment.findMany({
         where: {
@@ -690,10 +681,22 @@ async function UstadhDashboard({ session }: { session: Session }) {
           startTime: { gte: startOfMonth, lt: endOfMonth },
         },
       }),
+      prisma.recurringSlot.findMany({
+        where: {
+          mentorship: { teacherId: ustadhId, status: "ACTIVE" },
+        },
+        include: {
+          mentorship: {
+            select: { student: { select: { id: true, name: true } } },
+          },
+        },
+        orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+      }),
     ]);
 
   const title = session.user.gender === "female" ? "Ustadha" : "Ustadh";
   const firstName = session.user.name?.split(" ")[0] ?? "";
+  const todayRecurringCount = weeklySlots.filter((s) => s.dayOfWeek === now.getDay()).length;
 
   const weekGrouped: Record<number, typeof weekSessions> = {};
   for (const s of weekSessions) {
@@ -769,7 +772,7 @@ async function UstadhDashboard({ session }: { session: Session }) {
               <FontAwesomeIcon icon={faCalendarDay} className="text-info size-4" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{todaySessions.length}</p>
+              <p className="text-2xl font-bold text-text-primary">{todaySessions.length || todayRecurringCount}</p>
               <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
                 Today&apos;s Sessions
               </p>
@@ -780,54 +783,44 @@ async function UstadhDashboard({ session }: { session: Session }) {
 
       <section>
         <h2 className="text-lg font-bold text-text-primary mb-4">Today&apos;s Sessions</h2>
-        {todaySessions.length === 0 ? (
+        {todaySessions.length === 0 && todayRecurringCount === 0 ? (
           <p className="text-sm text-text-secondary">No sessions scheduled for today.</p>
-        ) : (
+        ) : todaySessions.length === 0 ? (
           <div className="space-y-2">
-            {todaySessions.map((s) => (
+            {weeklySlots.filter((s) => s.dayOfWeek === now.getDay()).map((s) => (
               <div
                 key={s.id}
-                className="rounded-xl border border-border bg-bg-elevated p-4 flex items-center justify-between"
+                className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 flex items-center justify-between"
               >
                 <div>
                   <p className="font-medium text-text-primary">
                     {s.mentorship.student.name?.split(" ")[0] ?? "Student"}
                   </p>
-                  <p className="text-sm text-text-secondary">{formatTime(s.startTime)}</p>
+                  <p className="text-sm text-text-secondary">
+                    {s.type === "DAILY_HIFDH" ? "Hifdh" : "Muraja'ah"} ·{" "}
+                    {new Date(`2000-01-01T${s.startTime}`).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                      s.status === "SCHEDULED"
-                        ? "bg-info/10 text-info"
-                        : s.status === "ONGOING"
-                          ? "bg-warning/10 text-warning"
-                          : s.status === "COMPLETED"
-                            ? "bg-success/10 text-success"
-                            : "bg-danger/10 text-danger"
-                    }`}
-                  >
-                    {s.status}
-                  </span>
-                  {s.status === "SCHEDULED" && (
-                    <>
-                      {canJoin(s.startTime, now.getTime()) && (
-                        <Link
-                          href={`/session/${s.id}`}
-                          className="text-sm font-medium bg-secondary text-text-inverse px-3 py-1.5 rounded-lg hover:brightness-110 transition-all"
-                        >
-                          Join
-                        </Link>
-                      )}
-                      {canCancel(s.startTime, now.getTime()) && (
-                        <button className="text-sm border border-danger/30 text-danger px-3 py-1.5 rounded-lg hover:bg-danger/5 transition-colors">
-                          Cancel
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
+                <span className="text-[11px] text-text-muted">Waiting for student to start</span>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {todaySessions.map((s) => (
+              <UpcomingAppointmentCard
+                key={s.id}
+                id={s.id}
+                studentName={s.mentorship.student.name?.split(" ")[0] ?? "Student"}
+                startTime={s.startTime}
+                status={s.status}
+                canJoin={canJoin(s.startTime, now.getTime())}
+                canCancel={canCancel(s.startTime, now.getTime())}
+              />
             ))}
           </div>
         )}
@@ -837,33 +830,48 @@ async function UstadhDashboard({ session }: { session: Session }) {
         <h2 className="text-lg font-bold text-text-primary mb-4">
           This Week&apos;s Sessions
         </h2>
-        {weekSessions.length === 0 ? (
+        {weekSessions.length === 0 && weeklySlots.length === 0 ? (
           <p className="text-sm text-text-secondary">No sessions this week.</p>
         ) : (
           <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 7 }, (_, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-border bg-bg-elevated p-3"
-              >
-                <p className="text-[11px] font-semibold text-text-muted uppercase mb-2">
-                  {getDayName(i)}
-                </p>
-                <div className="space-y-1.5">
-                  {(weekGrouped[i] ?? []).map((s) => (
-                    <div
-                      key={s.id}
-                      className="text-xs bg-primary/5 rounded-lg px-2.5 py-1.5"
-                    >
-                      <p className="font-medium text-text-primary">
-                        {s.mentorship.student.name?.split(" ")[0] ?? "S"}
-                      </p>
-                      <p className="text-text-muted">{formatTime(s.startTime)}</p>
-                    </div>
-                  ))}
+            {Array.from({ length: 7 }, (_, i) => {
+              const daySlots = weeklySlots.filter((s) => s.dayOfWeek === i);
+              const dayAppointments = weekGrouped[i] ?? [];
+              return (
+                <div
+                  key={i}
+                  className="rounded-xl border border-border bg-bg-elevated p-3"
+                >
+                  <p className="text-[11px] font-semibold text-text-muted uppercase mb-2">
+                    {getDayName(i)}
+                  </p>
+                  <div className="space-y-1.5">
+                    {dayAppointments.map((s) => (
+                      <div
+                        key={s.id}
+                        className="text-xs bg-primary/5 rounded-lg px-2.5 py-1.5"
+                      >
+                        <p className="font-medium text-text-primary">
+                          {s.mentorship.student.name?.split(" ")[0] ?? "S"}
+                        </p>
+                        <p className="text-text-muted">{formatTime(s.startTime)}</p>
+                      </div>
+                    ))}
+                    {dayAppointments.length === 0 && daySlots.map((s) => (
+                      <div
+                        key={s.id}
+                        className="text-xs bg-bg-hover rounded-lg px-2.5 py-1.5 border border-dashed border-border"
+                      >
+                        <p className="font-medium text-text-primary">
+                          {s.mentorship.student.name?.split(" ")[0] ?? "S"}
+                        </p>
+                        <p className="text-text-muted">{s.startTime}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

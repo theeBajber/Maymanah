@@ -222,7 +222,8 @@ model Mentorship {
   startedAt DateTime          @default(now())
   endedAt   DateTime?
 
-  appointments Appointment[]
+  appointments   Appointment[]
+  recurringSlots RecurringSlot[]
 
   @@unique([teacherId, studentId])
   @@index([teacherId])
@@ -231,27 +232,42 @@ model Mentorship {
 
 // ─── Calendar / Appointments ───
 model Appointment {
-  id           String             @id @default(cuid())
+  id           String                 @id @default(cuid())
   mentorshipId String
-  mentorship   Mentorship         @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+  mentorship   Mentorship             @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
   teacherId    String
-  teacher      User               @relation("TeacherAppointments", fields: [teacherId], references: [id])
+  teacher      User                   @relation("TeacherAppointments", fields: [teacherId], references: [id])
   title        String?
   description  String?
   startTime    DateTime
   endTime      DateTime?
-  meetingUrl   String?            // Jitsi / Daily room link
-  status       AppointmentStatus  @default(SCHEDULED)
+  meetingUrl   String?                // Jitsi / Daily room link
+  status       AppointmentStatus      @default(SCHEDULED)
+  sessionType  AppointmentSessionType @default(DAILY_HIFDH)
   startedAt    DateTime?
   endedAt      DateTime?
   surahNumber  Int?
   verseNumber  Int?
   notes        StudentNote[]
-  createdAt    DateTime           @default(now())
+  createdAt    DateTime               @default(now())
 
   @@index([mentorshipId])
   @@index([teacherId])
   @@index([startTime])
+}
+
+model RecurringSlot {
+  id           String             @id @default(cuid())
+  mentorshipId String
+  mentorship   Mentorship         @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+  type         AppointmentSessionType
+  dayOfWeek    Int                // 0 = Sunday, 6 = Saturday
+  startTime    String             // "09:00"
+  duration     Int                // minutes (15 for DAILY_HIFDH, 60 for MURAJA)
+  createdAt    DateTime           @default(now())
+
+  @@unique([mentorshipId, type, dayOfWeek])
+  @@index([mentorshipId])
 }
 
 model Availability {
@@ -534,6 +550,12 @@ enum AppointmentStatus {
   CANCELLED
 }
 
+enum AppointmentSessionType {
+  DAILY_HIFDH
+  MURAJA
+  EXTRA
+}
+
 enum AssessmentType {
   HIFDH_LISTENING
   TAJWEED_EXAM
@@ -547,6 +569,7 @@ model QuranProgress {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   lastSurah     Int      @default(1)
   lastVerse     Int      @default(1)
+  completedJuz  Int      @default(0) // number of juz fully completed
   lastRecitation DateTime @default(now()) @updatedAt
 
   @@unique([userId])

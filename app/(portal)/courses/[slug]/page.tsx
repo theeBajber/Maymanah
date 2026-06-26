@@ -14,9 +14,15 @@ import {
   faClock,
   faGraduationCap,
   faArrowRight,
+  faVideo,
+  faCalendar,
+  faBolt,
+  faStar,
+  faSun,
 } from "@fortawesome/free-solid-svg-icons";
 import EnrollButton from "./EnrollButton";
-import HifdhLiveRoom from "./HifdhLiveRoom";
+import { DailySessionButton } from "./DailySessionButton";
+import { SetAvailabilityForPairing } from "./SetAvailabilityForPairing";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +81,84 @@ export default async function CourseDetailPage({
 
   const completedCount = Object.values(lessonProgress).filter((p) => p.completed).length;
 
+  let dailySlot: { startTime: Date; endTime: Date; duration: number } | null = null;
+  let allAppointments: {
+    id: string;
+    title: string | null;
+    startTime: Date;
+    endTime: Date | null;
+    status: string;
+    sessionType: string;
+    teacher: { id: string; name: string | null; image: string | null } | null;
+  }[] = [];
+  let upcomingMuraja: typeof allAppointments = [];
+  let pastSessions: typeof allAppointments = [];
+
+  let recurringSlots: { type: string; dayOfWeek: number; startTime: string; duration: number }[] = [];
+  let teacherName: string | null = null;
+
+  if (course.slug === "hifdh-ul-quran" && userId) {
+    const mentorship = await safeQuery(() =>
+      prisma.mentorship.findFirst({
+        where: { studentId: userId, status: "ACTIVE" },
+        include: {
+          teacher: { select: { name: true } },
+          recurringSlots: {
+            select: { type: true, dayOfWeek: true, startTime: true, duration: true },
+          },
+        },
+      }),
+    );
+
+    if (mentorship) {
+      teacherName = mentorship.teacher.name;
+      recurringSlots = mentorship.recurringSlots;
+
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const daily = recurringSlots.find((s) => s.type === "DAILY_HIFDH" && s.dayOfWeek === dayOfWeek);
+
+      if (daily) {
+        const [h, m] = daily.startTime.split(":").map(Number);
+        const start = new Date(today);
+        start.setHours(h, m, 0, 0);
+        const end = new Date(start.getTime() + daily.duration * 60000);
+        dailySlot = { startTime: start, endTime: end, duration: daily.duration };
+      }
+
+      allAppointments = (await safeQuery(() =>
+        prisma.appointment.findMany({
+          where: { mentorshipId: mentorship.id },
+          include: { teacher: { select: { id: true, name: true, image: true } } },
+          orderBy: { startTime: "desc" },
+        }),
+      ).catch(() => [])) ?? [];
+
+      upcomingMuraja = allAppointments.filter(
+        (a) =>
+          a.sessionType !== "DAILY_HIFDH" &&
+          a.status === "SCHEDULED" &&
+          new Date(a.startTime) > new Date(),
+      );
+      pastSessions = allAppointments.filter(
+        (a) => a.status === "COMPLETED" || new Date(a.startTime) <= new Date(),
+      );
+    }
+  }
+
+  function formatSessionDate(startTime: Date) {
+    const date = new Date(startTime);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isToday = date.toDateString() === today.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+    const time = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    if (isToday) return `Today at ${time}`;
+    if (isTomorrow) return `Tomorrow at ${time}`;
+    return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${time}`;
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-elevated to-bg-secondary border border-border">
@@ -93,11 +177,20 @@ export default async function CourseDetailPage({
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
                 {course.category}
               </span>
-              {course.lessons.length > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
-                  <FontAwesomeIcon icon={faClock} className="size-3" />
-                  {course.lessons.length} modules
-                </span>
+              {course.slug === "hifdh-ul-quran" ? (
+                allAppointments.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
+                    <FontAwesomeIcon icon={faVideo} className="size-3" />
+                    {allAppointments.length} sessions
+                  </span>
+                )
+              ) : (
+                course.lessons.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
+                    <FontAwesomeIcon icon={faClock} className="size-3" />
+                    {course.lessons.length} modules
+                  </span>
+                )
               )}
             </div>
             <h1 className={`${amiri.className} text-3xl md:text-4xl font-bold text-text-primary tracking-tight leading-snug`}>
@@ -125,7 +218,11 @@ export default async function CourseDetailPage({
                     </span>
                   </div>
                   <div className="text-xs">
-                    <p className="font-semibold text-text-primary">{completedCount}/{course.lessons.length} modules</p>
+                    {course.slug === "hifdh-ul-quran" ? (
+                      <p className="font-semibold text-text-primary">{allAppointments.length} sessions</p>
+                    ) : (
+                      <p className="font-semibold text-text-primary">{completedCount}/{course.lessons.length} modules</p>
+                    )}
                     <p className="text-text-muted">completed</p>
                   </div>
                 </div>
@@ -136,7 +233,163 @@ export default async function CourseDetailPage({
       </section>
 
       {course.slug === "hifdh-ul-quran" ? (
-        <HifdhLiveRoom isEnrolled={isEnrolled} progress={course.progress} />
+        <section className="space-y-6">
+          {isEnrolled && recurringSlots.length === 0 && (
+            <SetAvailabilityForPairing />
+          )}
+          {dailySlot && (
+            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-bg-elevated p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-sm text-primary font-semibold mb-1">
+                    <FontAwesomeIcon icon={faSun} className="size-4" />
+                    Today&apos;s Daily Session
+                  </div>
+                  <p className="text-2xl font-bold text-text-primary">
+                    {dailySlot.startTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                  <p className="text-sm text-text-secondary mt-1">
+                    {dailySlot.duration} min session
+                  </p>
+                </div>
+                <DailySessionButton
+                  startTime={dailySlot.startTime.toISOString()}
+                  endTime={dailySlot.endTime.toISOString()}
+                />
+              </div>
+            </div>
+          )}
+
+          {recurringSlots.length > 0 && (
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">
+                Your Schedule
+              </h3>
+              <div className="space-y-3">
+                {recurringSlots.map((s) => {
+                  const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][s.dayOfWeek];
+                  const time = new Date(`2000-01-01T${s.startTime}`).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+                  return (
+                    <div key={s.type}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FontAwesomeIcon
+                              icon={s.type === "DAILY_HIFDH" ? faSun : faBolt}
+                              className="text-primary size-4"
+                            />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-text-primary">
+                              {s.type === "DAILY_HIFDH" ? "Daily Hifdh" : "Muraja'ah"}
+                            </p>
+                            <p className="text-xs text-text-secondary">
+                              {dayName}s at {time} &middot; {s.duration} min
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {teacherName && (
+                <p className="text-xs text-text-muted mt-3 border-t border-border pt-3">
+                  Teacher: {teacherName}
+                </p>
+              )}
+            </div>
+          )}
+
+          {upcomingMuraja.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
+                <FontAwesomeIcon icon={faStar} className="size-3.5 text-primary" />
+                Upcoming Sessions
+              </h3>
+              <div className="space-y-2.5">
+                {upcomingMuraja.map((a) => (
+                  <Link
+                    key={a.id}
+                    href={isEnrolled ? `/session/${a.id}` : "#enroll"}
+                    className="group flex items-center gap-4 p-4 rounded-xl border border-border bg-bg-elevated hover:border-primary/30 hover:shadow-sm hover:bg-bg-hover transition-all"
+                  >
+                    <div className="relative shrink-0 size-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                      <FontAwesomeIcon icon={a.sessionType === "MURAJA" ? faBolt : faVideo} className="text-primary size-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate text-text-primary">
+                        {a.title || (a.sessionType === "MURAJA" ? "Muraja'ah Session" : "Extra Session")}
+                      </h3>
+                      <div className="flex items-center gap-3 text-xs text-text-secondary mt-1">
+                        <span className="flex items-center gap-1">
+                          <FontAwesomeIcon icon={faCalendar} className="size-3" />
+                          {formatSessionDate(a.startTime)}
+                        </span>
+                        {a.teacher && (
+                          <span>with {a.teacher.name || "Teacher"}</span>
+                        )}
+                        <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">
+                          {a.sessionType === "MURAJA" ? "Muraja'ah" : "Extra"}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-text-inverse font-semibold text-sm hover:brightness-110 transition-all shrink-0 active:scale-[0.97] shadow-sm shadow-primary/20">
+                      Join
+                      <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {pastSessions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="size-2 rounded-full bg-text-muted" />
+                Past Sessions
+              </h3>
+              <div className="space-y-2">
+                {pastSessions.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-4 p-4 rounded-xl border border-border bg-bg-elevated/50 opacity-70"
+                  >
+                    <div className="relative shrink-0 size-11 rounded-xl bg-bg-hover flex items-center justify-center">
+                      <FontAwesomeIcon icon={faVideo} className="text-text-muted size-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate text-text-primary text-sm">
+                        {a.title || "Session"}
+                      </h3>
+                      <p className="text-xs text-text-muted mt-1">
+                        {formatSessionDate(a.startTime)}
+                        {a.teacher && ` — with ${a.teacher.name || "Teacher"}`}
+                      </p>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted shrink-0">
+                      {a.status === "COMPLETED" ? "Completed" : "Missed"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!dailySlot && upcomingMuraja.length === 0 && pastSessions.length === 0 && !(isEnrolled && recurringSlots.length === 0) && (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-bg-elevated/50 p-12 text-center">
+              <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <FontAwesomeIcon icon={faVideo} className="text-primary text-xl" />
+              </div>
+              <h3 className="font-semibold text-text-primary text-lg mb-1">No sessions yet</h3>
+              <p className="text-sm text-text-secondary">Sessions will appear here once your teacher schedules them.</p>
+            </div>
+          )}
+        </section>
       ) : (
         <section>
           <div className="flex items-center gap-3 mb-5">

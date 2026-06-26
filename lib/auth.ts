@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 import { logAuditEvent } from "@/lib/audit";
+import { headers } from "next/headers";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -52,6 +53,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           action: "LOGIN_SUCCESS",
           userId: user.id,
           email: user.email,
+        });
+
+        const headerStore = await headers();
+        const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim()
+          ?? headerStore.get("x-real-ip")
+          ?? "unknown";
+        const userAgent = headerStore.get("user-agent") ?? "unknown";
+
+        await prisma.loginSession.create({
+          data: {
+            userId: user.id,
+            deviceName: userAgent,
+            ipAddress: ip,
+          },
         });
 
         return {

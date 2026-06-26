@@ -27,7 +27,7 @@ export default async function AvailabilityPage() {
       <section>
         <h1 className="text-3xl font-bold text-text-primary tracking-tight">Weekly Availability</h1>
         <p className="text-sm text-text-secondary mt-1">
-          Set your available teaching slots. All times are shown in your local timezone.
+          Select <strong>all</strong> times you&apos;re available to teach. The more you add, the better the system can match students to your schedule.
         </p>
       </section>
       <AvailabilityGrid initialSlots={initialSlots} />
