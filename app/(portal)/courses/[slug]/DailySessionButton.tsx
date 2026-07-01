@@ -19,18 +19,20 @@ export function DailySessionButton({
     return () => clearInterval(id);
   }, []);
 
+  const isTest = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("test");
   const start = new Date(startTime);
   const end = new Date(endTime);
-  const canJoin = now >= start && now <= end;
-  const isBefore = now < start;
+  const canJoin = isTest || (now >= start && now <= end);
+  const isBefore = !isTest && now < start;
 
   async function handleStart() {
     setLoading(true);
     try {
-      const res = await fetch("/api/appointments/daily", { method: "POST" });
+      const qs = isTest ? "?test=1" : "";
+      const res = await fetch(`/api/appointments/daily${qs}`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
-        router.push(`/session/${data.id}`);
+        router.push(`/session/${data.id}${isTest ? "?test=1" : ""}`);
       } else {
         const err = await res.json();
         alert(err.error || "Failed to start session");

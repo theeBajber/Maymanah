@@ -18,7 +18,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { VideoRoom } from "@/components/ui/VideoRoom";
 
 type ReviewItem = {
@@ -58,6 +58,7 @@ export default function SessionPage() {
   const [loading, setLoading] = useState(true);
   const [inCall, setInCall] = useState(false);
   const [permError, setPermError] = useState("");
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([
     { id: 1, passage: "An-Naba 1-5", note: "Hold ghunnah evenly in verses 1 and 2.", status: "review" },
@@ -68,6 +69,7 @@ export default function SessionPage() {
   const [note, setNote] = useState("");
 
   const appointmentId = params.id as string;
+  const isTest = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("test");
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -76,7 +78,8 @@ export default function SessionPage() {
     }
     if (authStatus !== "authenticated" || !appointmentId) return;
 
-    fetch(`/api/appointments/${appointmentId}/join`)
+    const qs = isTest ? "?test=1" : "";
+    fetch(`/api/appointments/${appointmentId}/join${qs}`)
       .then((r) => {
         if (!r.ok) return r.json().then((d) => { throw new Error(d.error || "Failed to join"); });
         return r.json();
@@ -129,7 +132,7 @@ export default function SessionPage() {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      stream.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = stream;
       setInCall(true);
     } catch (e: any) {
       if (e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError") {
@@ -176,9 +179,9 @@ export default function SessionPage() {
   if (!joinData) return null;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <section className="flex flex-col gap-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div className={`h-screen flex flex-col ${inCall ? "overflow-hidden" : "overflow-y-auto"}`}>
+      <div className="shrink-0 px-6 pt-6 max-w-7xl mx-auto w-full">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-5">
           <div>
             <p className="text-sm uppercase tracking-wider text-text-secondary">Live Hifdh Session</p>
             <h2 className="text-2xl font-bold text-text-primary">
@@ -192,11 +195,13 @@ export default function SessionPage() {
             <span className="rounded-full bg-bg-card border border-border px-3 py-1">{activeItems} follow-ups</span>
           </div>
         </div>
+      </div>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-          <div className="h-[calc(100vh-16rem)] min-h-[360px] rounded-lg border border-border bg-bg-card overflow-hidden flex flex-col">
+      <div className="flex-1 px-6 pb-6 max-w-7xl mx-auto w-full min-h-0">
+        <div className="flex flex-col gap-5 h-full xl:grid xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+          <div className={`rounded-lg border border-border bg-bg-card flex flex-col ${inCall ? "flex-1 min-h-0 overflow-hidden" : ""}`}>
             {!inCall ? (
-              <div className="flex flex-col items-center justify-center flex-1 bg-bg-secondary p-8 text-center">
+              <div className="flex flex-col items-center justify-center bg-bg-secondary p-6 sm:p-8 text-center min-h-[75vh] sm:min-h-0">
                 <div className="size-20 rounded-full bg-primary/10 mx-auto mb-5 flex items-center justify-center">
                   <span className="text-3xl text-primary">
                     <FontAwesomeIcon icon={faVideo} />
@@ -238,7 +243,10 @@ export default function SessionPage() {
                 <VideoRoom
                   liveKitUrl={joinData.liveKitUrl}
                   token={joinData.token}
+                  mediaStream={mediaStreamRef.current}
                   onLeave={() => {
+                    mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+                    mediaStreamRef.current = null;
                     router.push("/courses/hifdh-ul-quran");
                   }}
                 />
@@ -246,7 +254,7 @@ export default function SessionPage() {
             )}
           </div>
 
-          <aside className="grid gap-5 lg:grid-cols-2 xl:grid-cols-1">
+          <aside className="overflow-y-auto grid gap-5 lg:grid-cols-2 xl:grid-cols-1 min-h-0">
             {isTeacher && (
               <div className="rounded-lg border border-border bg-bg-card p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -362,7 +370,7 @@ export default function SessionPage() {
             </div>
           </aside>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

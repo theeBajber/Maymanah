@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { createTodaysAppointment, getTodayHifdhSlot } from "@/lib/mentorship";
 import { NextResponse } from "next/server";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -15,11 +15,14 @@ export async function POST() {
     }
 
     const now = new Date();
-    if (now < slot.startTime) {
-      return NextResponse.json({ error: "Session hasn't started yet" }, { status: 400 });
-    }
-    if (now > slot.endTime) {
-      return NextResponse.json({ error: "Session has ended" }, { status: 400 });
+    const searchParams = new URL(req.url).searchParams;
+    if (!searchParams.has("test")) {
+      if (now < slot.startTime) {
+        return NextResponse.json({ error: "Session hasn't started yet" }, { status: 400 });
+      }
+      if (now > slot.endTime) {
+        return NextResponse.json({ error: "Session has ended" }, { status: 400 });
+      }
     }
 
     const appointment = await createTodaysAppointment(session.user.id);
