@@ -56,6 +56,7 @@ async function main() {
       name: "Ibrahim Al-Farouq",
       password: teacherPassword,
       role: UserRole.TEACHER,
+      gender: "male",
       emailVerified: new Date(),
       profile: {
         create: {
@@ -64,6 +65,12 @@ async function main() {
           country: "KE",
           quranLevel: "advanced",
           language: "en",
+        },
+      },
+      ustadhProfile: {
+        create: {
+          isApproved: true,
+          availableForTeaching: true,
         },
       },
     },
@@ -77,6 +84,7 @@ async function main() {
       name: "Anwar Faraj",
       password: studentPassword,
       role: UserRole.STUDENT,
+      gender: "male",
       emailVerified: new Date(),
       profile: {
         create: {

@@ -79,13 +79,6 @@ export function TopNav() {
               alt="Profile"
               className="size-8 rounded-full ring-2 ring-border"
             />
-            <span className="hidden sm:inline text-sm font-medium text-text-primary max-w-24 truncate">
-              {session?.user?.name}
-            </span>
-            <FontAwesomeIcon
-              icon={faChevronDown}
-              className={`size-3 text-text-muted transition-transform ${popUp ? "rotate-180" : ""}`}
-            />
           </button>
         </div>
 
@@ -142,7 +135,6 @@ export function SideNav() {
       ]
     : [
         { name: "Dashboard", href: "/dashboard", icon: faHome },
-        { name: "Sessions", href: "/sessions", icon: faVideo },
         { name: "Courses", href: "/courses", icon: faChalkboardUser },
         { name: "Mushaf", href: "/mushaf", icon: faBookOpen },
         { name: "AI Revision", href: "/revision", icon: faArrowsToDot },

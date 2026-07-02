@@ -302,32 +302,6 @@ export default function Mushaf({
     [onSessionEnd, stopRecording],
   );
 
-  const mockAiFeedback = useCallback(() => {
-    const mock = [
-      { position: 0, status: "correct" as const },
-      { position: 1, status: "correct" as const },
-      {
-        position: 2,
-        status: "error" as const,
-        description: "Pronunciation unclear",
-      },
-      { position: 3, status: "correct" as const },
-    ];
-    let delay = 0;
-    mock.forEach((fb) => {
-      setTimeout(
-        () => handleAiFeedback({ type: "word_result", data: fb }),
-        delay,
-      );
-      delay += 500;
-    });
-    setTimeout(
-      () =>
-        handleAiFeedback({ type: "verse_complete", data: { accuracy: 85 } }),
-      delay,
-    );
-  }, [handleAiFeedback]);
-
   useEffect(() => {
     if (mode !== "revision" || !isMicActive) return;
 
@@ -340,34 +314,41 @@ export default function Mushaf({
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
 
-        const wsUrl = process.env.NEXT_PUBLIC_RECITATION_WS_URL;
-        if (wsUrl) {
-          const ws = new WebSocket(wsUrl);
-          websocketRef.current = ws;
-          ws.onopen = () => {
-            ws.send(
-              JSON.stringify({
-                type: "init",
-                surah: selectedSurah,
-                verse: selectedVerse,
-                focusAreas: studentNotes,
-              }),
-            );
-            mediaRecorder.ondataavailable = (event) => {
-              if (event.data.size > 0) ws.send(event.data);
-            };
-            mediaRecorder.start(100);
-          };
-          ws.onmessage = (event) => {
-            try {
-              handleAiFeedback(JSON.parse(event.data));
-            } catch {}
-          };
-          ws.onerror = () => mockAiFeedback();
-        } else {
-          mediaRecorder.start(100);
-          mockAiFeedback();
+        let wsUrl = process.env.NEXT_PUBLIC_RECITATION_WS_URL;
+        if (!wsUrl) {
+          console.error("Recitation engine unavailable: NEXT_PUBLIC_RECITATION_WS_URL not set");
+          setIsMicActive(false);
+          return;
         }
+        if (!wsUrl.endsWith("/ws/recitation")) {
+          wsUrl = wsUrl.replace(/\/+$/, "") + "/ws/recitation";
+        }
+
+        const ws = new WebSocket(wsUrl);
+        websocketRef.current = ws;
+        ws.onopen = () => {
+          ws.send(
+            JSON.stringify({
+              type: "init",
+              surah: selectedSurah,
+              verse: selectedVerse,
+              focusAreas: studentNotes,
+            }),
+          );
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) ws.send(event.data);
+          };
+          mediaRecorder.start(100);
+        };
+        ws.onmessage = (event) => {
+          try {
+            handleAiFeedback(JSON.parse(event.data));
+          } catch {}
+        };
+        ws.onerror = () => {
+          console.error("Recitation engine WebSocket connection failed");
+          setIsMicActive(false);
+        };
       } catch {
         setIsMicActive(false);
       }
@@ -397,7 +378,6 @@ export default function Mushaf({
     selectedVerse,
     studentNotes,
     mode,
-    mockAiFeedback,
     handleAiFeedback,
   ]);
 
