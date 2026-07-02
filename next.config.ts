@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["isomorphic-dompurify", "jsdom"],
   allowedDevOrigins: [
     "unpotent-luka-hypotonic.ngrok-free.dev/",
     "192.168.87.108",

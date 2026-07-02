@@ -27,9 +27,10 @@ function FocusedParticipant() {
   const otherParticipant = remoteParticipants.find((p) => !p.isLocal);
   const hasRemoteVideo = !!remoteTrack;
   const hasRemote = !!otherParticipant;
+  const participantCount = participants.length;
 
   return (
-    <div className="relative w-full h-full bg-zinc-950">
+    <div className="absolute inset-0 bg-zinc-950">
       {hasRemoteVideo ? (
         <VideoTrack trackRef={remoteTrack} className="w-full h-full object-contain bg-zinc-950" />
       ) : hasRemote ? (
@@ -58,13 +59,13 @@ function FocusedParticipant() {
       )}
 
       {localTrack && (
-        <div className="absolute bottom-24 right-4 w-44 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-white/20">
+        <div className="absolute bottom-28 right-4 w-44 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-white/20 z-10">
           <VideoTrack trackRef={localTrack} className="w-full h-full object-cover" />
         </div>
       )}
 
-      <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-sm text-xs text-white/70">
-        {participants.length < 2 ? "1/2 joined" : "2/2 in room"}
+      <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-sm text-xs text-white/70 pointer-events-none">
+        {participantCount < 2 ? "1/2 joined" : "2/2 in room"}
       </div>
     </div>
   );
@@ -73,6 +74,7 @@ function FocusedParticipant() {
 interface VideoRoomProps {
   liveKitUrl: string;
   token: string;
+  mediaStream?: MediaStream | null;
   onLeave: () => void;
 }
 
@@ -114,77 +116,119 @@ function CallControlsBar({
   onLeave,
   fullscreen,
   toggleFullscreen,
+  mediaStream,
 }: {
   onLeave: () => void;
   fullscreen: boolean;
   toggleFullscreen: () => void;
+  mediaStream?: MediaStream | null;
 }) {
   const { localParticipant } = useLocalParticipant();
   const connState = useConnectionState();
-  const [camOn, setCamOn] = useState(true);
-  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(false);
+  const [micOn, setMicOn] = useState(false);
   const [camError, setCamError] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
 
+  const publishedRef = useRef(false);
+
   useEffect(() => {
-    if (!localParticipant || connState !== LKConnectionState.Connected) return;
+    if (!localParticipant || connState !== LKConnectionState.Connected || publishedRef.current) return;
+    publishedRef.current = true;
     const enableMedia = async () => {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        const msg = "Camera/mic not available (insecure context or no permission)";
-        setCamError(msg);
-        setMicError(msg);
-        logToServer("error", msg);
-        return;
-      }
-      try {
-        await localParticipant.setCameraEnabled(true);
-      } catch (e: any) {
-        const msg = e?.message || "Camera access denied";
-        setCamError(msg);
-        logToServer("error", `Camera failed: ${msg}`);
-      }
-      try {
-        await localParticipant.setMicrophoneEnabled(true);
-      } catch (e: any) {
-        const msg = e?.message || "Microphone access denied";
-        setMicError(msg);
-        logToServer("error", `Microphone failed: ${msg}`);
+      if (!mediaStream) {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          const msg = "Camera/mic not available (insecure context or no permission)";
+          setCamError(msg);
+          setMicError(msg);
+          logToServer("error", msg);
+          return;
+        }
+        try {
+          await localParticipant.setCameraEnabled(true);
+          setCamOn(true);
+        } catch (e: any) {
+          const msg = e?.message || "Camera access denied";
+          setCamError(msg);
+          logToServer("error", `Camera failed: ${msg}`);
+        }
+        try {
+          await localParticipant.setMicrophoneEnabled(true);
+          setMicOn(true);
+        } catch (e: any) {
+          const msg = e?.message || "Microphone access denied";
+          setMicError(msg);
+          logToServer("error", `Microphone failed: ${msg}`);
+        }
       }
     };
     enableMedia();
-  }, [localParticipant, connState]);
+  }, [localParticipant, connState, mediaStream]);
+
+  const publishOrUnpublish = useCallback(async (track: MediaStreamTrack, publish: boolean) => {
+    if (!localParticipant) return;
+    try {
+      if (publish) {
+        const source = track.kind === "video" ? Track.Source.Camera : Track.Source.Microphone;
+        await localParticipant.publishTrack(track, { source });
+      } else {
+        await localParticipant.unpublishTrack(track);
+      }
+    } catch (e: any) {
+      const msg = e?.message || "Access denied";
+      if (track.kind === "video") setCamError(msg);
+      else setMicError(msg);
+      logToServer("error", `${track.kind} toggle failed: ${msg}`);
+    }
+  }, [localParticipant]);
 
   const toggleCamera = useCallback(() => {
     setCamOn((p) => {
       const next = !p;
       setCamError(null);
-      localParticipant?.setCameraEnabled(next).catch((e: Error) => {
-        const msg = e?.message || "Camera access denied";
-        setCamError(msg);
-        logToServer("error", `Camera toggle failed: ${msg}`);
-      });
+      if (mediaStream) {
+        for (const track of mediaStream.getVideoTracks()) {
+          track.enabled = next;
+          publishOrUnpublish(track, next);
+        }
+      } else {
+        localParticipant?.setCameraEnabled(next).catch((e: Error) => {
+          const msg = e?.message || "Camera access denied";
+          setCamError(msg);
+          logToServer("error", `Camera toggle failed: ${msg}`);
+        });
+      }
       return next;
     });
-  }, [localParticipant]);
+  }, [localParticipant, mediaStream, publishOrUnpublish]);
 
   const toggleMic = useCallback(() => {
     setMicOn((p) => {
       const next = !p;
       setMicError(null);
-      localParticipant?.setMicrophoneEnabled(next).catch((e: Error) => {
-        const msg = e?.message || "Microphone access denied";
-        setMicError(msg);
-        logToServer("error", `Microphone toggle failed: ${msg}`);
-      });
+      if (mediaStream) {
+        for (const track of mediaStream.getAudioTracks()) {
+          track.enabled = next;
+          publishOrUnpublish(track, next);
+        }
+      } else {
+        localParticipant?.setMicrophoneEnabled(next).catch((e: Error) => {
+          const msg = e?.message || "Microphone access denied";
+          setMicError(msg);
+          logToServer("error", `Microphone toggle failed: ${msg}`);
+        });
+      }
       return next;
     });
-  }, [localParticipant]);
+  }, [localParticipant, mediaStream, publishOrUnpublish]);
+
+  const buttonBase = "flex items-center justify-center transition-all active:scale-90 rounded-full";
+  const bgMuted = "bg-zinc-700 hover:bg-zinc-600 text-white";
+  const bgDanger = "bg-danger hover:bg-danger/80";
+  const bgAmber = "bg-amber-500/20 text-amber-400";
 
   return (
-    <div
-      className="absolute bottom-0 left-0 right-0 z-10"
-      style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom, 0px))" }}
-    >
+    <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none">
       {(camError || micError) && (
         <div className="px-3 py-2 bg-amber-500/15 border-b border-amber-500/20 text-center">
           <p className="text-xs text-amber-300 font-medium">
@@ -197,17 +241,14 @@ function CallControlsBar({
           <p className="text-[10px] text-amber-400/60 mt-0.5">Check browser permissions (lock icon in address bar)</p>
         </div>
       )}
-      <div className="flex items-center justify-center gap-3 py-3 px-2 bg-zinc-900/90 backdrop-blur-sm border-t border-white/5">
+      <div
+        className="flex items-center justify-center gap-3 py-4 px-2 bg-zinc-900/90 backdrop-blur-sm border-t border-white/5 pointer-events-auto"
+        style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
+      >
         <button
           type="button"
           onClick={toggleMic}
-          className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-            micError
-              ? "bg-amber-500/20 text-amber-400"
-              : micOn
-                ? "bg-zinc-700 hover:bg-zinc-600 text-white"
-                : "bg-danger/20 text-danger"
-          }`}
+          className={`size-14 md:size-12 ${buttonBase} ${micError ? bgAmber : micOn ? bgMuted : "bg-danger/20 text-danger"}`}
           title={micError ? "Microphone unavailable" : micOn ? "Mute microphone" : "Unmute microphone"}
         >
           <FontAwesomeIcon icon={micError ? faMicrophoneSlash : (micOn ? faMicrophone : faMicrophoneSlash)} className="size-5 md:size-4" />
@@ -216,13 +257,7 @@ function CallControlsBar({
         <button
           type="button"
           onClick={toggleCamera}
-          className={`size-14 md:size-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-            camError
-              ? "bg-amber-500/20 text-amber-400"
-              : camOn
-                ? "bg-zinc-700 hover:bg-zinc-600 text-white"
-                : "bg-danger/20 text-danger"
-          }`}
+          className={`size-14 md:size-12 ${buttonBase} ${camError ? bgAmber : camOn ? bgMuted : "bg-danger/20 text-danger"}`}
           title={camError ? "Camera unavailable" : camOn ? "Turn off camera" : "Turn on camera"}
         >
           <FontAwesomeIcon icon={camError ? faVideoSlash : (camOn ? faVideo : faVideoSlash)} className="size-5 md:size-4" />
@@ -231,16 +266,16 @@ function CallControlsBar({
         <button
           type="button"
           onClick={onLeave}
-          className="size-14 md:size-12 rounded-full bg-danger flex items-center justify-center hover:bg-danger/80 transition-all active:scale-90"
+          className="size-14 md:size-12 flex items-center justify-center transition-all active:scale-90 rounded-full bg-danger hover:bg-danger/80 text-white"
           title="Leave session"
         >
-          <FontAwesomeIcon icon={faPhoneSlash} className="size-5 md:size-4 text-white" />
+          <FontAwesomeIcon icon={faPhoneSlash} className="size-5 md:size-4" />
         </button>
 
         <button
           type="button"
           onClick={toggleFullscreen}
-          className="size-14 md:size-12 rounded-full bg-zinc-700 hover:bg-zinc-600 text-white flex items-center justify-center transition-all active:scale-90"
+          className={`size-14 md:size-12 ${buttonBase} ${bgMuted}`}
           title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
           <FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} className="size-5 md:size-4" />
@@ -250,7 +285,7 @@ function CallControlsBar({
   );
 }
 
-export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
+export function VideoRoom({ liveKitUrl, token, mediaStream, onLeave }: VideoRoomProps) {
   const [fullscreen, setFullscreen] = useState(false);
   const [disconnected, setDisconnected] = useState(false);
   const [connectionError, setConnectionError] = useState("");
@@ -282,21 +317,21 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
   }, []);
 
   return (
-    <div className="relative w-full h-full bg-black">
+    <div className="relative w-full h-full bg-black overflow-hidden">
       <LiveKitRoom
         audio={false}
         video={false}
         token={token}
         serverUrl={liveKitUrl}
         data-lk-theme="default"
-        className="w-full h-full"
+        className="absolute inset-0"
         onError={handleError}
         onDisconnected={handleDisconnected}
       >
         <RoomAudioRenderer />
         <FocusedParticipant />
 
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-20">
           <ConnectionBadge />
         </div>
 
@@ -305,12 +340,13 @@ export function VideoRoom({ liveKitUrl, token, onLeave }: VideoRoomProps) {
             onLeave={handleLeave}
             fullscreen={fullscreen}
             toggleFullscreen={toggleFullscreen}
+            mediaStream={mediaStream}
           />
         )}
       </LiveKitRoom>
 
       {disconnected && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="text-center max-w-xs">
             <div className="size-16 rounded-full bg-danger/10 mx-auto mb-4 flex items-center justify-center">
               <span className="text-2xl text-danger">!</span>

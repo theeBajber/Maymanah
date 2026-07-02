@@ -31,6 +31,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const now = new Date();
+    const isTest = new URL(_req.url).searchParams.has("test");
+    if (!isTest && now < appointment.startTime) {
+      return NextResponse.json({ error: "Session hasn't started yet" }, { status: 400 });
+    }
+    if (!isTest && appointment.endTime && now > appointment.endTime) {
+      return NextResponse.json({ error: "Session has ended" }, { status: 400 });
+    }
+
     const liveKitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || process.env.LIVEKIT_URL;
     if (!liveKitUrl || !liveKitUrl.startsWith("wss://")) {
       return NextResponse.json(

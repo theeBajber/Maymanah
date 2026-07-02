@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getJuzNumber } from '@/lib/quran';
+import { createMurajaAppointment } from '@/lib/mentorship';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,19 +28,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Update or create QuranProgress
+    const existing = await prisma.quranProgress.findUnique({
+      where: { userId: user.id },
+    });
+
+    const prevSurah = existing?.lastSurah ?? 1;
+    const prevVerse = existing?.lastVerse ?? 1;
+    const prevCompletedJuz = existing?.completedJuz ?? 0;
+
+    const newJuz = getJuzNumber(surahNumber, verseNumber);
+    const newCompletedJuz = Math.max(prevCompletedJuz, newJuz > getJuzNumber(prevSurah, prevVerse) ? newJuz - 1 : prevCompletedJuz);
+
     const progress = await prisma.quranProgress.upsert({
       where: { userId: user.id },
       update: {
         lastSurah: surahNumber,
         lastVerse: verseNumber,
+        completedJuz: newCompletedJuz,
       },
       create: {
         userId: user.id,
         lastSurah: surahNumber,
         lastVerse: verseNumber,
+        completedJuz: newCompletedJuz,
       },
     });
+
+    if (newCompletedJuz > prevCompletedJuz) {
+      await createMurajaAppointment(user.id);
+    }
 
     return NextResponse.json(progress);
   } catch (error) {

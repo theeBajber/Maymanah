@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
 import { CourseCategory } from "@prisma/client";
+import { autoPairHifdhStudent } from "@/lib/mentorship";
 
 export type EnrolledCourse = {
   id: string;

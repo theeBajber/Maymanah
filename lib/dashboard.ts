@@ -42,6 +42,12 @@ export type DashboardData = {
     teacherImage: string | null;
     meetingUrl: string | null;
   } | null;
+  weeklySchedule: {
+    dayOfWeek: number;
+    type: string;
+    startTime: string;
+    duration: number;
+  }[];
   achievements: DashboardAchievement[];
 };
 
@@ -159,6 +165,18 @@ export async function getDashboardData(email: string): Promise<DashboardData | n
 
   if (!user) return null;
 
+  const mentorship = await prisma.mentorship.findFirst({
+    where: { studentId: user.id, status: "ACTIVE" },
+    include: { recurringSlots: { orderBy: { dayOfWeek: "asc" } } },
+  });
+
+  const weeklySchedule = (mentorship?.recurringSlots ?? []).map((s) => ({
+    dayOfWeek: s.dayOfWeek,
+    type: s.type,
+    startTime: s.startTime,
+    duration: s.duration,
+  }));
+
   const activeEnrollments = user.enrollments.map((enrollment) => ({
     id: enrollment.course.id,
     title: enrollment.course.title,
@@ -176,16 +194,32 @@ export async function getDashboardData(email: string): Promise<DashboardData | n
       )
     : 0;
 
-  const allActivity = await prisma.loginSession.findMany({
-    where: { userId: user.id },
-    select: { lastActivity: true },
-    orderBy: { lastActivity: "desc" },
-  });
+  const [loginActivity, lessonActivity] = await Promise.all([
+    prisma.loginSession.findMany({
+      where: { userId: user.id },
+      select: { lastActivity: true },
+      orderBy: { lastActivity: "desc" },
+    }),
+    prisma.lessonProgress.findMany({
+      where: { studentId: user.id, completed: true, completedAt: { not: null } },
+      select: { completedAt: true },
+    }),
+  ]);
 
-  const streak = calculateStreak(allActivity.map((session) => session.lastActivity));
+  const allActivityDates = [
+    ...loginActivity.map((s) => s.lastActivity),
+    ...lessonActivity.map((lp) => lp.completedAt!),
+  ];
+
+  const streak = calculateStreak(allActivityDates);
 
   const leaderboardUsers = await prisma.user.findMany({
-    where: { assessments: { some: { score: { not: null } } } },
+    where: {
+      OR: [
+        { assessments: { some: { score: { not: null } } } },
+        { submissions: { some: { totalScore: { not: null } } } },
+      ],
+    },
     select: {
       id: true,
       name: true,
@@ -193,6 +227,10 @@ export async function getDashboardData(email: string): Promise<DashboardData | n
       assessments: {
         where: { score: { not: null } },
         select: { score: true },
+      },
+      submissions: {
+        where: { totalScore: { not: null } },
+        select: { totalScore: true },
       },
     },
   });
@@ -202,10 +240,15 @@ export async function getDashboardData(email: string): Promise<DashboardData | n
       id: leaderboardUser.id,
       name: leaderboardUser.name,
       image: leaderboardUser.image,
-      xp: leaderboardUser.assessments.reduce(
-        (sum, assessment) => sum + Math.round(assessment.score ?? 0),
-        0,
-      ),
+      xp:
+        leaderboardUser.assessments.reduce(
+          (sum, assessment) => sum + Math.round(assessment.score ?? 0),
+          0,
+        ) +
+        leaderboardUser.submissions.reduce(
+          (sum, submission) => sum + Math.round(submission.totalScore ?? 0),
+          0,
+        ),
     }))
     .sort((a, b) => b.xp - a.xp);
 
@@ -235,6 +278,7 @@ export async function getDashboardData(email: string): Promise<DashboardData | n
     currentUserRank: currentUserRank >= 0 ? currentUserRank + 1 : null,
     activeEnrollments,
     upcomingAppointment,
+    weeklySchedule,
     achievements: buildAchievements({
       courses: activeEnrollments,
       streak,
