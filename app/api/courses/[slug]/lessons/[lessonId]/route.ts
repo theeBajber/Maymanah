@@ -6,6 +6,23 @@ type RouteContext = {
   params: Promise<{ slug: string; lessonId: string }>;
 };
 
+function normalizeQuestionOptions(options: unknown) {
+  if (!Array.isArray(options)) return null;
+
+  return options
+    .map((option) => {
+      if (!option || typeof option !== "object") return null;
+      const text = (option as { text?: unknown }).text;
+      if (typeof text !== "string") return null;
+
+      return {
+        ...(option as Record<string, unknown>),
+        text,
+      };
+    })
+    .filter((option): option is Record<string, unknown> & { text: string } => Boolean(option));
+}
+
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const session = await auth();
@@ -93,7 +110,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
               id: q.id,
               questionText: q.questionText,
               questionType: q.questionType,
-              options: q.options,
+              options: normalizeQuestionOptions(q.options),
               marks: q.marks,
               orderIndex: q.orderIndex,
             })),
