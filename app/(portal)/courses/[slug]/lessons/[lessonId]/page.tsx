@@ -9,7 +9,6 @@ import {
   faCheckCircle,
   faChevronLeft,
   faChevronRight,
-  faClock,
   faGraduationCap,
   faListCheck,
   faLock,
@@ -18,6 +17,23 @@ import { MediaPlayer } from "@/components/ui/MediaPlayer";
 import { LessonQuiz } from "./LessonQuiz";
 
 export const dynamic = "force-dynamic";
+
+function normalizeQuestionOptions(options: unknown) {
+  if (!Array.isArray(options)) return null;
+
+  return options
+    .map((option) => {
+      if (!option || typeof option !== "object") return null;
+      const text = (option as { text?: unknown }).text;
+      if (typeof text !== "string") return null;
+
+      return {
+        ...(option as Record<string, unknown>),
+        text,
+      };
+    })
+    .filter((option): option is Record<string, unknown> & { text: string } => Boolean(option));
+}
 
 export default async function LessonPage({
   params,
@@ -184,7 +200,7 @@ export default async function LessonPage({
                 id: q.id,
                 questionText: q.questionText,
                 questionType: q.questionType,
-                options: q.options as Array<Record<string, unknown>> | null,
+                options: normalizeQuestionOptions(q.options),
                 marks: q.marks,
                 orderIndex: q.orderIndex,
               }))}

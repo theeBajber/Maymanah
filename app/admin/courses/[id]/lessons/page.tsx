@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma, safeQuery } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
-import { Plus, ArrowLeft, Pencil, Eye, EyeOff, GripVertical, FileText } from "lucide-react";
-import { DeleteLessonButton } from "./DeleteLessonButton";
+import { Plus, ArrowLeft } from "lucide-react";
+import { ReorderableLessonList } from "./ReorderableLessonList";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -62,76 +62,17 @@ export default async function AdminLessonsPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        {lessons.map((lesson, index) => (
-          <div
-            key={lesson.id}
-            className="flex items-center gap-3 bg-bg-card border border-border rounded-xl px-4 py-3 hover:border-border-strong transition-colors"
-          >
-            <GripVertical className="size-4 text-text-muted shrink-0 cursor-grab" />
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold text-primary">
-                {index + 1}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-primary truncate">
-                {lesson.title}
-              </p>
-              <div className="flex items-center gap-3 mt-0.5">
-                {lesson.duration && (
-                  <span className="text-xs text-text-muted">
-                    {lesson.duration} min
-                  </span>
-                )}
-                <span
-                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                    lesson.isPublished
-                      ? "bg-success-muted text-success"
-                      : "bg-warning-muted text-warning"
-                  }`}
-                >
-                  {lesson.isPublished ? (
-                    <Eye className="size-3" />
-                  ) : (
-                    <EyeOff className="size-3" />
-                  )}
-                  {lesson.isPublished ? "Published" : "Draft"}
-                </span>
-                <span className="text-xs text-text-muted">
-                  {lesson._count.lessonProgress} completions
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Link
-                href={`/admin/courses/${course.id}/lessons/${lesson.id}`}
-                className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
-              >
-                <Pencil className="size-4" />
-              </Link>
-              <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} courseId={course.id} />
-            </div>
-          </div>
-        ))}
-
-        {lessons.length === 0 && (
-          <div className="text-center py-16 bg-bg-card border border-border rounded-xl">
-            <FileText className="size-10 mx-auto mb-3 text-text-muted" />
-            <p className="font-medium text-text-primary">No lessons yet</p>
-            <p className="text-sm text-text-muted mt-1">
-              Add your first lesson to this course
-            </p>
-            <Link
-              href={`/admin/courses/${course.id}/lessons/new`}
-              className="inline-flex items-center gap-2 mt-4 px-4 py-2.5 bg-primary text-text-inverse rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
-            >
-              <Plus className="size-4" />
-              Create Lesson
-            </Link>
-          </div>
-        )}
-      </div>
+      <ReorderableLessonList
+        courseId={course.id}
+        lessons={lessons.map((l) => ({
+          id: l.id,
+          title: l.title,
+          duration: l.duration,
+          isPublished: l.isPublished,
+          order: l.order,
+          _count: { lessonProgress: l._count.lessonProgress },
+        }))}
+      />
     </div>
   );
 }
