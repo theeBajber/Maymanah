@@ -1,5 +1,3 @@
-import DOMPurify from "isomorphic-dompurify";
-
 const ALLOWED_TAGS = [
   "h1", "h2", "h3", "h4", "h5", "h6",
   "p", "br", "hr",
@@ -34,11 +32,21 @@ const ALLOWED_ATTR = [
   "start",
 ];
 
+let _purify: typeof import("isomorphic-dompurify") | null = null;
+
+function getPurify() {
+  if (!_purify) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    _purify = require("isomorphic-dompurify") as typeof import("isomorphic-dompurify");
+  }
+  return _purify;
+}
+
 export function sanitizeHtml(dirty: string): string {
-  return DOMPurify.sanitize(dirty, {
+  return getPurify().sanitize(dirty, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     ALLOW_DATA_ATTR: true,
     ADD_ATTR: ["target"],
-  });
+  }) as string;
 }
