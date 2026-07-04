@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       prisma.lesson.findUnique({
         where: { id: lessonId },
         include: {
-          course: { select: { slug: true } },
+          course: { select: { id: true, slug: true } },
           exam: {
             include: { questions: true },
           },
