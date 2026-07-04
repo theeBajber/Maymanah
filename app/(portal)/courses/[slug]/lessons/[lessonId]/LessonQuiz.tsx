@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimesCircle, faTrophy } from "@fortawesome/free-solid-svg-icons";
 
+type QuizOption = { text: string; isCorrect?: boolean };
+
 type QuestionData = {
   id: string;
   questionText: string;
@@ -13,6 +15,24 @@ type QuestionData = {
   marks: number;
   orderIndex: number;
 };
+
+function getOptions(options: QuestionData["options"]): QuizOption[] {
+  if (!Array.isArray(options)) return [];
+
+  const normalized: QuizOption[] = [];
+  for (const option of options) {
+    const text = option.text;
+    if (typeof text !== "string") continue;
+
+    const normalizedOption: QuizOption = { text };
+    if (typeof option.isCorrect === "boolean") {
+      normalizedOption.isCorrect = option.isCorrect;
+    }
+    normalized.push(normalizedOption);
+  }
+
+  return normalized;
+}
 
 type AnswerData = {
   id: string;
@@ -163,9 +183,9 @@ export function LessonQuiz({
                     {ans?.score ?? 0}/{q.marks}
                   </span>
                 </div>
-                {q.questionType === "MCQ" && q.options && (
+                {q.questionType === "MCQ" && getOptions(q.options).length > 0 && (
                   <div className="mt-1 text-xs text-text-secondary">
-                    {(q.options as Array<{ text: string; isCorrect?: boolean }>).map((opt, oi) => {
+                    {getOptions(q.options).map((opt, oi) => {
                       const selected = ans?.selectedOption === oi;
                       const correct = opt.isCorrect;
                       return (
@@ -210,6 +230,7 @@ export function LessonQuiz({
 
   // Quiz in progress
   const current = questions[currentIdx];
+  const currentOptions = current ? getOptions(current.options) : [];
   const answeredCount = Object.keys(answers).length;
 
   return (
@@ -256,9 +277,9 @@ export function LessonQuiz({
           </div>
           <p className="text-lg font-medium mb-6">{current.questionText}</p>
 
-          {current.questionType === "MCQ" && current.options && (
+          {current.questionType === "MCQ" && currentOptions.length > 0 && (
             <div className="flex flex-col gap-2">
-              {(current.options as Array<{ text: string }>).map((opt, oi) => {
+              {currentOptions.map((opt, oi) => {
                 const isSelected = answers[current.id]?.option === oi;
                 return (
                   <button
