@@ -95,6 +95,12 @@ export default async function Dash(props: {
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
 
+  const userCheck = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { gender: true },
+  });
+  if (!userCheck?.gender) redirect("/onboarding");
+
   if (session.user.role === "TEACHER") {
     return <UstadhDashboard session={session} />;
   }

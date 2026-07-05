@@ -20,6 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        otpCode: { label: "2FA Code", type: "text" },
       },
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) return null;
@@ -47,6 +48,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: credentials.email as string,
           });
           return null;
+        }
+
+        if (!user.emailVerified) {
+          return null;
+        }
+
+        if (user.twoFactorEnabled) {
+          const otpCode = credentials.otpCode as string | undefined;
+          if (!otpCode) {
+            return null;
+          }
+
+          const otpRecord = await prisma.twoFactorOTP.findFirst({
+            where: {
+              userId: user.id,
+              usedAt: null,
+              expiresAt: { gte: new Date() },
+            },
+            orderBy: { createdAt: "desc" },
+          });
+
+          if (!otpRecord) {
+            return null;
+          }
+
+          const isValidOTP = await bcrypt.compare(otpCode, otpRecord.code);
+          if (!isValidOTP) {
+            return null;
+          }
+
+          await prisma.twoFactorOTP.update({
+            where: { id: otpRecord.id },
+            data: { usedAt: new Date() },
+          });
         }
 
         await logAuditEvent({

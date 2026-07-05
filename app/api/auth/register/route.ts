@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
+import crypto from "crypto";
+import { sendVerificationEmail } from "@/lib/email";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name is too short"),
@@ -39,16 +41,30 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         role,
+        emailVerified: null,
         profile: { create: { timezone: "Africa/Nairobi" } },
       },
-      select: { id: true },
+      select: { id: true, email: true },
     });
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token,
+        expires,
+      },
+    });
+
+    await sendVerificationEmail(email, token);
 
     await logAuditEvent({
       action: "REGISTERED",
@@ -57,7 +73,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { message: "Account created successfully" },
+      { message: "Account created successfully. Please check your email to verify your account." },
       { status: 201 },
     );
   } catch (error) {

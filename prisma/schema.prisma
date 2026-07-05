@@ -53,7 +53,7 @@ model User {
   password              String?   // Only for credentials login; null for OAuth users
   gender                String?
   role                  UserRole  @default(STUDENT)
-  // twoFactorEnabled and twoFactorSecret removed (unimplemented)
+  twoFactorEnabled      Boolean   @default(false)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -81,6 +81,7 @@ model User {
   lessonProgress        LessonProgress[]
   submissions           Submission[]
   userAnalytics         UserAnalytics[]
+  twoFactorOTPs         TwoFactorOTP[]
 
   @@index([role])
 }
@@ -136,6 +137,19 @@ model LoginSession {
 
   @@index([userId])
   @@index([isActive])
+}
+
+// ─── Two-Factor Authentication ───
+model TwoFactorOTP {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([userId])
 }
 
 // ─── Curriculum ───

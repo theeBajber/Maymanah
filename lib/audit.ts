@@ -13,7 +13,12 @@ export type AuditAction =
   | "ADMIN_LESSON_CREATED"
   | "ADMIN_LESSON_UPDATED"
   | "ADMIN_LESSON_DELETED"
-  | "ROLE_CHANGED";
+  | "ROLE_CHANGED"
+  | "EMAIL_VERIFIED"
+  | "TWO_FACTOR_ENABLED"
+  | "TWO_FACTOR_DISABLED"
+  | "PASSWORD_RESET_REQUESTED"
+  | "PASSWORD_RESET_COMPLETED";
 
 export async function logAuditEvent(params: {
   action: AuditAction;
