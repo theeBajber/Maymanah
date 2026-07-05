@@ -13,6 +13,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { useToast } from "@/components/ui/toast";
 
 const STEPS = [
   { id: "basics", label: "Basics" },
@@ -71,10 +72,10 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const { data: session, status, update } = useSession();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   const isTeacher = session?.user?.role === "TEACHER";
 
@@ -138,7 +139,6 @@ export default function OnboardingPage() {
 
   const handleSubmit = async () => {
     setSaving(true);
-    setError("");
     try {
       const profileRes = await fetch("/api/user/update-profile", {
         method: "PATCH",
@@ -180,7 +180,7 @@ export default function OnboardingPage() {
 
       window.location.href = "/dashboard";
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      toast({ title: e instanceof Error ? e.message : "Something went wrong", variant: "error" });
       setSaving(false);
     }
   };
@@ -444,9 +444,6 @@ export default function OnboardingPage() {
                 Back
               </button>
 
-              {error && (
-                <p className="text-sm text-danger text-center mb-4">{error}</p>
-              )}
               <div className="flex items-center gap-3">
                 {step < STEPS.length - 1 ? (
                   <>

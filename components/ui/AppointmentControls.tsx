@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export function UpcomingAppointmentCard({
   id,
@@ -21,6 +22,7 @@ export function UpcomingAppointmentCard({
 }) {
   const [cancelling, setCancelling] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   async function handleCancel() {
     if (!confirm("Cancel this session?")) return;
@@ -35,7 +37,7 @@ export function UpcomingAppointmentCard({
         router.refresh();
       }
     } catch {
-      alert("Failed to cancel session");
+      toast({ title: "Failed to cancel session", variant: "error" });
     } finally {
       setCancelling(false);
     }

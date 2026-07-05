@@ -7,17 +7,17 @@ import { signIn } from "next-auth/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export default function Register() {
   const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [shake, setShake] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"STUDENT" | "TEACHER">("STUDENT");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const getPasswordStrength = (pwd: string) => {
@@ -37,25 +37,18 @@ export default function Register() {
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
-    setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      toast({ title: "Passwords do not match", variant: "error" });
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      toast({ title: "Password must be at least 8 characters", variant: "error" });
       return;
     }
     if (!isValidName(name)) {
-      setError("Please enter a valid name!");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      toast({ title: "Please enter a valid name!", variant: "error" });
       return;
     }
 
@@ -75,11 +68,7 @@ export default function Register() {
       setLoading(false);
 
       if (!res.ok) {
-        setError(
-          data.error?.[0]?.message || data.error || "Registration failed",
-        );
-        setShake(true);
-        setTimeout(() => setShake(false), 400);
+        toast({ title: data.error?.[0]?.message || data.error || "Registration failed", variant: "error" });
         return;
       }
 
@@ -91,9 +80,7 @@ export default function Register() {
       router.push("/onboarding");
     } catch {
       setLoading(false);
-      setError("Something went wrong. Please try again.");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      toast({ title: "Something went wrong. Please try again.", variant: "error" });
     }
   };
 
@@ -146,13 +133,6 @@ export default function Register() {
           </div>
         </div>
 
-        {error && (
-          <div
-            className={`mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium ${shake ? "shake" : ""}`}
-          >
-            {error}
-          </div>
-        )}
         <div className="flex flex-col gap-2">
           <label
             className="text-[10px] uppercase tracking-widest font-bold px-1"

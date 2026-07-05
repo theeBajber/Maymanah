@@ -13,13 +13,13 @@ import {
   faSpinner,
   faVideo,
   faVolumeHigh,
-  faExclamationTriangle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { VideoRoom } from "@/components/ui/VideoRoom";
+import { useToast } from "@/components/ui/toast";
 
 type ReviewItem = {
   id: number;
@@ -53,11 +53,11 @@ export default function SessionPage() {
   const router = useRouter();
   const params = useParams();
   const { status: authStatus } = useSession();
+  const { toast } = useToast();
   const [joinData, setJoinData] = useState<JoinData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [inCall, setInCall] = useState(false);
-  const [permError, setPermError] = useState("");
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([
@@ -125,9 +125,8 @@ export default function SessionPage() {
   }
 
   const handleJoinCall = useCallback(async () => {
-    setPermError("");
     if (!navigator.mediaDevices?.getUserMedia) {
-      setPermError("Camera/mic not available (insecure context or no permission)");
+      toast({ title: "Camera/mic not available", description: "Insecure context or no permission", variant: "error" });
       return;
     }
     try {
@@ -136,14 +135,14 @@ export default function SessionPage() {
       setInCall(true);
     } catch (e: any) {
       if (e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError") {
-        setPermError("Camera and microphone access was denied. Please allow permissions in your browser settings.");
+        toast({ title: "Camera and microphone access denied", description: "Please allow permissions in your browser settings.", variant: "error" });
       } else if (e?.name === "NotFoundError") {
-        setPermError("No camera or microphone found on this device.");
+        toast({ title: "No camera or microphone found", variant: "error" });
       } else {
-        setPermError(e?.message || "Could not access camera/microphone.");
+        toast({ title: e?.message || "Could not access camera/microphone", variant: "error" });
       }
     }
-  }, []);
+  }, [toast]);
 
   if (loading || authStatus === "loading") {
     return (
@@ -213,12 +212,7 @@ export default function SessionPage() {
                 <p className="text-sm text-text-secondary mb-6">
                   {isTeacher ? "You are the teacher" : "You are joining as a student"}
                 </p>
-                {permError && (
-                  <div className="mb-4 w-full max-w-sm rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-center">
-                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-400 mr-2" />
-                    <span className="text-sm text-amber-300">{permError}</span>
-                  </div>
-                )}
+
                 <div className="space-y-2 mb-6 w-full max-w-sm text-left">
                   <div className="flex items-center justify-between p-3 rounded-xl bg-bg-hover">
                     <span className="text-sm text-text-secondary">Room</span>

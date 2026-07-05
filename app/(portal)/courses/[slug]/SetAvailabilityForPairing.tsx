@@ -7,8 +7,8 @@ import {
   faClock,
   faCheck,
   faSpinner,
-  faExclamationCircle,
 } from "@fortawesome/free-solid-svg-icons";
+import { useToast } from "@/components/ui/toast";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6);
@@ -27,9 +27,9 @@ function parseSlotKey(key: SlotKey) {
 
 export function SetAvailabilityForPairing() {
   const router = useRouter();
+  const { toast } = useToast();
   const [selected, setSelected] = useState<Set<SlotKey>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const dragActionRef = useRef<"add" | "remove" | null>(null);
@@ -144,12 +144,11 @@ export function SetAvailabilityForPairing() {
 
   async function handleSaveAndPair() {
     if (selected.size === 0) {
-      setError("Select at least one time slot.");
+      toast({ title: "Select at least one time slot.", variant: "warning" });
       return;
     }
 
     setSaving(true);
-    setError(null);
 
     const slots = Array.from(selected).map((key) => {
       const { day, start, end } = parseSlotKey(key);
@@ -164,7 +163,7 @@ export function SetAvailabilityForPairing() {
       });
 
       if (!availRes.ok) {
-        setError("Failed to save availability. Try again.");
+        toast({ title: "Failed to save availability. Try again.", variant: "error" });
         setSaving(false);
         return;
       }
@@ -173,9 +172,10 @@ export function SetAvailabilityForPairing() {
 
       if (!pairRes.ok) {
         const data = await pairRes.json();
-        setError(
-          data.error || "Could not find a teacher. Try different times.",
-        );
+        toast({
+          title: data.error || "Could not find a teacher. Try different times.",
+          variant: "error",
+        });
         setSaving(false);
         return;
       }
@@ -183,7 +183,7 @@ export function SetAvailabilityForPairing() {
       setSuccess(true);
       setTimeout(() => router.refresh(), 1500);
     } catch {
-      setError("Something went wrong. Try again.");
+      toast({ title: "Something went wrong. Try again.", variant: "error" });
       setSaving(false);
     }
   }
@@ -282,13 +282,6 @@ export function SetAvailabilityForPairing() {
       <p className="text-xs text-text-muted mt-4">
         Click and drag to select multiple slots. Selected = available, blank = unavailable.
       </p>
-
-      {error && (
-        <div className="flex items-center gap-2 mt-4 text-sm text-danger">
-          <FontAwesomeIcon icon={faExclamationCircle} className="size-3.5" />
-          {error}
-        </div>
-      )}
 
       <div className="flex items-center justify-end gap-3 mt-5">
         <p className="text-[11px] text-text-muted">

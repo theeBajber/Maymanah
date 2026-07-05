@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useToast } from "@/components/ui/toast";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5);
@@ -34,11 +35,8 @@ export function AvailabilityGrid({
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : "UTC"
   );
+  const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   const dragActionRef = useRef<"add" | "remove" | null>(null);
   const isDraggingRef = useRef(false);
@@ -152,7 +150,6 @@ export function AvailabilityGrid({
 
   async function handleSave() {
     setSaving(true);
-    setMessage(null);
     const slots = Array.from(selected).map((key) => {
       const { day, start, end } = parseSlotKey(key);
       return { dayOfWeek: day, startTime: start, endTime: end };
@@ -164,15 +161,14 @@ export function AvailabilityGrid({
         body: JSON.stringify({ slots, timezone }),
       });
       if (res.ok) {
-        setMessage({ type: "success", text: "Availability saved successfully." });
+        toast({ title: "Availability saved successfully.", variant: "success" });
       } else {
-        setMessage({ type: "error", text: "Failed to save availability." });
+        toast({ title: "Failed to save availability.", variant: "error" });
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to save availability." });
+      toast({ title: "Failed to save availability.", variant: "error" });
     } finally {
       setSaving(false);
-      setTimeout(() => setMessage(null), 3000);
     }
   }
 
@@ -189,11 +185,6 @@ export function AvailabilityGrid({
           </select>
         </label>
         <div className="flex items-center gap-3">
-          {message && (
-            <span className={`text-sm ${message.type === "success" ? "text-success" : "text-danger"}`}>
-              {message.text}
-            </span>
-          )}
           <button onClick={handleSave} disabled={saving}
             className="bg-primary text-text-inverse px-5 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50">
             {saving ? "Saving..." : "Save"}

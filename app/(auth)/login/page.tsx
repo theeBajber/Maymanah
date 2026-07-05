@@ -6,18 +6,17 @@ import { signIn } from "next-auth/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export default function LogIn() {
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setpassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [shake, setShake] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
     const result = await signIn("credentials", {
       email,
@@ -26,10 +25,8 @@ export default function LogIn() {
     });
     setLoading(false);
     if (result?.error) {
-      setError("Invalid email or password");
+      toast({ title: "Invalid email or password", variant: "error" });
       setpassword("");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
       return;
     }
 
@@ -58,13 +55,6 @@ export default function LogIn() {
           <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
         </div>
       </div>
-      {error && (
-        <div
-          className={`mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium ${shake ? "shake" : ""}`}
-        >
-          {error}
-        </div>
-      )}
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-2">
           <label
