@@ -70,6 +70,39 @@ export async function sendOTP(to: string, code: string) {
   });
 }
 
+export async function sendTeacherRejectionEmail(to: string, name: string, reason?: string) {
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: `Teacher Application Update - ${APP_NAME}`,
+    html: htmlWrapper(
+      "Teacher Application Status",
+      `<p style="margin:0 0 16px;color:#555;line-height:1.6">Assalamu Alaikum ${name},</p>
+      <p style="margin:0 0 16px;color:#555;line-height:1.6">Thank you for your interest in becoming a teacher on ${APP_NAME}. After careful review, we regret to inform you that your application has not been approved at this time.</p>
+      ${reason ? `<p style="margin:0 0 16px;color:#555;line-height:1.6"><strong>Reason:</strong> ${reason}</p>` : ""}
+      <p style="margin:0 0 16px;color:#555;line-height:1.6">You are welcome to reapply in the future. If you have any questions, please contact our support team.</p>
+      <p style="margin:0;color:#555;line-height:1.6">Jazak Allah Khair,<br/>The ${APP_NAME} Team</p>`,
+    ),
+  });
+}
+
+export async function sendTeacherApprovalEmail(to: string, name: string) {
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: `Teacher Application Approved - ${APP_NAME}`,
+    html: htmlWrapper(
+      "Welcome to the Teaching Team!",
+      `<p style="margin:0 0 16px;color:#555;line-height:1.6">Assalamu Alaikum ${name},</p>
+      <p style="margin:0 0 16px;color:#555;line-height:1.6">We are pleased to inform you that your teacher application has been <strong>approved</strong>! You can now log in and start managing your students and sessions.</p>
+      <table cellpadding="0" cellspacing="0"><tr><td>
+        <a href="${BASE_URL}/dashboard" style="display:inline-block;padding:12px 32px;background:#16a34a;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Go to Dashboard</a>
+      </td></tr></table>
+      <p style="margin:16px 0 0;color:#555;line-height:1.6">Jazak Allah Khair,<br/>The ${APP_NAME} Team</p>`,
+    ),
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, token: string) {
   const link = `${BASE_URL}/reset-password?token=${token}`;
   await transporter.sendMail({

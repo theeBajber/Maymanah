@@ -18,7 +18,11 @@ export type AuditAction =
   | "TWO_FACTOR_ENABLED"
   | "TWO_FACTOR_DISABLED"
   | "PASSWORD_RESET_REQUESTED"
-  | "PASSWORD_RESET_COMPLETED";
+  | "PASSWORD_RESET_COMPLETED"
+  | "ADMIN_TEACHER_APPROVED"
+  | "ADMIN_TEACHER_REJECTED"
+  | "ADMIN_USER_ROLE_CHANGED"
+  | "ADMIN_USER_DELETED";
 
 export async function logAuditEvent(params: {
   action: AuditAction;
