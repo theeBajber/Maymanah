@@ -19,6 +19,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useTopNavContent } from "@/lib/TopNavContext";
 
 function ProfileDropdown({
   open,
@@ -126,6 +127,7 @@ function NotificationDropdown({
 }
 
 export function TopNav() {
+  const { content } = useTopNavContent();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount] = useState(0);
@@ -178,6 +180,12 @@ export function TopNav() {
             Maymanah
           </span>
         </Link>
+
+        {content && (
+          <div className="flex-1 flex justify-center px-4">
+            {content}
+          </div>
+        )}
 
         <div className="flex items-center gap-1.5 md:gap-2">
           <ThemeToggle />
