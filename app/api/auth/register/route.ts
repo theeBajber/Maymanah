@@ -47,6 +47,7 @@ export async function POST(req: Request) {
         email,
         password: hashedPassword,
         role,
+        xp: 1,
         emailVerified: null,
         profile: { create: { timezone: "Africa/Nairobi" } },
       },

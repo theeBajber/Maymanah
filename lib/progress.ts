@@ -44,6 +44,13 @@ export async function completeLesson(
     }),
   );
 
+  await safeQuery(() =>
+    prisma.user.update({
+      where: { id: session.user.id },
+      data: { xp: { increment: 5 } },
+    }),
+  );
+
   // Update enrollment progress
   const lesson = await safeQuery(() =>
     prisma.lesson.findUnique({
@@ -79,9 +86,21 @@ export async function completeLesson(
           userId: session.user.id,
           courseId: lesson.courseId,
         },
-        data: { progress: pct },
+        data: {
+          progress: pct,
+          ...(pct === 100 ? { status: "COMPLETED", completedAt: new Date() } : {}),
+        },
       }),
     );
+
+    if (pct === 100) {
+      await safeQuery(() =>
+        prisma.user.update({
+          where: { id: session.user.id },
+          data: { xp: { increment: 20 } },
+        }),
+      );
+    }
   }
 
   return progress;

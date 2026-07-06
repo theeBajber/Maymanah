@@ -274,7 +274,7 @@ export default async function Dash(props: {
                     <LeaderBoardCard
                       key={user.id}
                       currentUser={user.id === dashboardData.user.id}
-                      rank={idx + 1}
+                      rank={user.rank}
                       name={user.name}
                       xp={user.xp}
                       image={user.image}

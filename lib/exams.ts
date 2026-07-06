@@ -121,7 +121,7 @@ export async function gradeExam(submissionId: string) {
     }
   }
 
-  return safeQuery(() =>
+  const graded = await safeQuery(() =>
     prisma.submission.update({
       where: { id: submissionId },
       data: {
@@ -130,4 +130,14 @@ export async function gradeExam(submissionId: string) {
       },
     }),
   );
+
+  const xp = Math.round((totalScore / (submission.exam.totalMarks ?? 1)) * 10);
+  await safeQuery(() =>
+    prisma.user.update({
+      where: { id: graded.studentId },
+      data: { xp: { increment: xp } },
+    }),
+  );
+
+  return graded;
 }

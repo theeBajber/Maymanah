@@ -1792,6 +1792,63 @@ async function main() {
 
   console.log("✔ Completed enrollment seeded");
 
+  // ─── Backfill XP for existing students ──────────────────────────────────────
+  console.log("\n🎯 Backfilling XP for existing students...");
+  const xpStudents = await prisma.user.findMany({
+    where: { role: "STUDENT" },
+    select: {
+      id: true,
+      _count: {
+        select: {
+          enrollments: true,
+          lessonProgress: { where: { completed: true } },
+        },
+      },
+      enrollments: {
+        where: { progress: 100 },
+        select: { id: true },
+      },
+      assessments: {
+        where: { score: { not: null } },
+        select: { score: true },
+      },
+      submissions: {
+        where: { totalScore: { not: null }, status: "GRADED" },
+        select: { totalScore: true, examId: true },
+      },
+    },
+  });
+
+  const allExamIds = [...new Set(xpStudents.flatMap((s) => s.submissions.map((sub) => sub.examId)))];
+  const exams = await prisma.exam.findMany({
+    where: { id: { in: allExamIds } },
+    select: { id: true, totalMarks: true },
+  });
+  const examMap = new Map(exams.map((e) => [e.id, e.totalMarks]));
+
+  for (const student of xpStudents) {
+    let xp = 1;
+
+    xp += student._count.enrollments * 5;
+    xp += student._count.lessonProgress * 5;
+    xp += student.enrollments.length * 20;
+
+    for (const a of student.assessments) {
+      xp += Math.round((a.score ?? 0) / 10);
+    }
+
+    for (const s of student.submissions) {
+      const totalMarks = examMap.get(s.examId) ?? 1;
+      xp += Math.round(((s.totalScore ?? 0) / totalMarks) * 10);
+    }
+
+    await prisma.user.update({
+      where: { id: student.id },
+      data: { xp },
+    });
+  }
+  console.log(`✔ XP backfilled for ${xpStudents.length} students`);
+
   console.log("\n✅ Database seeded successfully");
 
   // ─── Seed rich content & quizzes ─────────────────────────────────────────

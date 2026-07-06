@@ -206,6 +206,13 @@ export async function enrollCourse(slug: string): Promise<CourseDetail | null> {
     }),
   );
 
+  await safeQuery(() =>
+    prisma.user.update({
+      where: { id: user.id },
+      data: { xp: { increment: 5 } },
+    }),
+  );
+
   const updatedCourse = await safeQuery(() =>
     prisma.course.findUnique({
       where: { slug },
