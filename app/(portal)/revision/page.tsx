@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Mushaf from '@/components/Mushaf';
 import useSWR from 'swr';
 import { useToast } from '@/components/ui/toast';
+import { useTopNavContent } from "@/lib/TopNavContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBookQuran,
@@ -88,14 +89,45 @@ const surahNames = [
 
 export default function RevisionPage() {
   const { toast } = useToast();
+  const { setContent } = useTopNavContent();
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [surahFilter, setSurahFilter] = useState<number | null>(null);
 
   const { data: notesData } = useSWR('/api/user/notes', fetcher);
   const { data: journalData } = useSWR('/api/revision/journal', fetcher);
 
   const journalEntries: JournalEntry[] = journalData?.entries ?? [];
+
+  const filteredEntries = surahFilter
+    ? journalEntries.filter((e) => e.surahNumber === surahFilter)
+    : journalEntries;
+
+  useEffect(() => {
+    setContent(
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min={1}
+          max={114}
+          value={surahFilter ?? ""}
+          onChange={(e) => setSurahFilter(e.target.value ? parseInt(e.target.value) : null)}
+          placeholder="Surah #"
+          className="w-24 h-9 px-3 rounded-xl border border-border bg-bg-primary text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-primary transition-colors"
+        />
+        {surahFilter && (
+          <button
+            onClick={() => setSurahFilter(null)}
+            className="text-xs text-text-muted hover:text-text-primary font-medium"
+          >
+            Clear
+          </button>
+        )}
+      </div>,
+    );
+    return () => setContent(null);
+  }, [setContent, surahFilter]);
 
   const handleSessionEnd = async (summary: SessionSummary) => {
     setSessionSummary(summary);
@@ -119,8 +151,8 @@ export default function RevisionPage() {
   };
 
   const surahName = sessionSummary ? surahNames[sessionSummary.surahNumber] ?? `Surah ${sessionSummary.surahNumber}` : '';
-  const avgAccuracy = journalEntries.length > 0
-    ? Math.round(journalEntries.reduce((s, e) => s + e.accuracy, 0) / journalEntries.length)
+  const avgAccuracy = filteredEntries.length > 0
+    ? Math.round(filteredEntries.reduce((s, e) => s + e.accuracy, 0) / filteredEntries.length)
     : 0;
 
   return (
@@ -130,7 +162,7 @@ export default function RevisionPage() {
           <h1 className="text-3xl font-bold text-text-primary tracking-tight">Quran Revision</h1>
           <p className="text-sm text-text-secondary mt-1">
             {journalEntries.length > 0
-              ? `${journalEntries.length} session${journalEntries.length > 1 ? 's' : ''} completed`
+              ? `${filteredEntries.length} session${filteredEntries.length !== 1 ? 's' : ''} completed${surahFilter ? ` (Surah ${surahFilter})` : ''}`
               : 'Practice your memorization with AI-powered revision'}
           </p>
         </div>
@@ -243,7 +275,7 @@ export default function RevisionPage() {
         </div>
       )}
 
-      {journalEntries.length > 0 && (
+      {filteredEntries.length > 0 && (
         <div className="rounded-2xl border border-border bg-bg-elevated overflow-hidden">
           <button
             onClick={() => setShowHistory(!showHistory)}
@@ -255,7 +287,7 @@ export default function RevisionPage() {
               </div>
               <div className="text-left">
                 <h3 className="font-semibold text-text-primary text-sm">Revision History</h3>
-                <p className="text-xs text-text-secondary">{journalEntries.length} past sessions</p>
+                <p className="text-xs text-text-secondary">{filteredEntries.length} past session{filteredEntries.length !== 1 ? "s" : ""}</p>
               </div>
             </div>
             <FontAwesomeIcon
@@ -266,7 +298,7 @@ export default function RevisionPage() {
 
           {showHistory && (
             <div className="px-6 pb-4 space-y-2">
-              {journalEntries.slice(0, 10).map((entry) => {
+              {filteredEntries.slice(0, 10).map((entry) => {
                 const entrySurah = surahNames[entry.surahNumber] ?? `Surah ${entry.surahNumber}`;
                 return (
                   <div

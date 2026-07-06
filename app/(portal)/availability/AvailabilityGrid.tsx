@@ -20,8 +20,10 @@ function parseSlotKey(key: SlotKey) {
 
 export function AvailabilityGrid({
   initialSlots,
+  dayFilter,
 }: {
   initialSlots: { dayOfWeek: number; startTime: string; endTime: string }[];
+  dayFilter?: number | null;
 }) {
   const [selected, setSelected] = useState<Set<SlotKey>>(() => {
     const s = new Set<SlotKey>();
@@ -194,10 +196,13 @@ export function AvailabilityGrid({
 
       <div className="overflow-x-auto">
         <div className="grid gap-px bg-border rounded-xl overflow-hidden"
-          style={{ gridTemplateColumns: `80px repeat(7, 1fr)`, gridTemplateRows: `auto repeat(${HOURS.length * 2}, 28px)` }}>
+          style={{
+            gridTemplateColumns: dayFilter != null ? `80px 1fr` : `80px repeat(7, 1fr)`,
+            gridTemplateRows: `auto repeat(${HOURS.length * 2}, 28px)`,
+          }}>
           <div className="bg-bg-card p-2 text-xs font-semibold text-text-secondary text-center" />
-          {DAYS.map((day) => (
-            <div key={day} className="bg-bg-card p-2 text-xs font-semibold text-text-secondary text-center">{day}</div>
+          {(dayFilter != null ? [dayFilter] : DAYS.map((_, i) => i)).map((day) => (
+            <div key={day} className="bg-bg-card p-2 text-xs font-semibold text-text-secondary text-center">{DAYS[day]}</div>
           ))}
           {HOURS.map((hour, hourIndex) =>
             MINUTES.map((min, minIndex) => {
@@ -207,10 +212,11 @@ export function AvailabilityGrid({
               const endHour = min === 0 ? hour : hour + 1;
               const end = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
               const timeLabel = min === 0 ? `${hour}:00` : "";
+              const dayRange = dayFilter != null ? [dayFilter] : Array.from({ length: 7 }, (_, i) => i);
               return (
                 <div key={`${hour}-${min}`} className="contents">
                   <div className="bg-bg-card text-[10px] text-text-muted flex items-center justify-center">{timeLabel}</div>
-                  {Array.from({ length: 7 }, (_, day) => {
+                  {dayRange.map((day) => {
                     const key = toSlotKey(day, start, end);
                     const isSelected = selected.has(key);
                     return (
