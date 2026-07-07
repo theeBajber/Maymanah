@@ -30,6 +30,13 @@ type ReviewItem = {
   status: "new" | "review" | "done";
 };
 
+interface SessionPlan {
+  fromSurah: number;
+  fromVerse: number;
+  toSurah: number;
+  toVerse: number;
+}
+
 interface JoinData {
   token: string;
   roomName: string;
@@ -42,6 +49,7 @@ interface JoinData {
     status: string;
     isTeacher: boolean;
   };
+  plan: SessionPlan | null;
 }
 
 const ayahLines = [
@@ -62,6 +70,37 @@ export default function SessionPage() {
   const [loading, setLoading] = useState(true);
   const [inCall, setInCall] = useState(false);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  const [sessionPlan, setSessionPlan] = useState<SessionPlan>({
+    fromSurah: 1, fromVerse: 1, toSurah: 1, toVerse: 1,
+  });
+  const [planSaving, setPlanSaving] = useState(false);
+
+  useEffect(() => {
+    if (joinData?.plan) setSessionPlan(joinData.plan);
+  }, [joinData]);
+
+  async function savePlan() {
+    if (!joinData) return;
+    setPlanSaving(true);
+    try {
+      const res = await fetch(`/api/appointments/${joinData.appointment.id}/plan`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sessionPlan),
+      });
+      if (res.ok) {
+        toast({ title: "Session plan saved", variant: "success" });
+      } else {
+        const err = await res.json();
+        toast({ title: err.error || "Failed to save plan", variant: "error" });
+      }
+    } catch {
+      toast({ title: "Something went wrong", variant: "error" });
+    } finally {
+      setPlanSaving(false);
+    }
+  }
 
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([
     { id: 1, passage: "An-Naba 1-5", note: "Hold ghunnah evenly in verses 1 and 2.", status: "review" },
@@ -275,17 +314,46 @@ export default function SessionPage() {
                     </button>
                   </div>
                 </div>
-                <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-                  <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
-                    <option>Surah An-Naba</option>
-                    <option>Surah Al-Mulk</option>
-                    <option>Surah Al-Qalam</option>
-                  </select>
-                  <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
-                    <option>Ayat 1-10</option>
-                    <option>Ayat 11-20</option>
-                    <option>Ayat 21-30</option>
-                  </select>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <label className="text-xs text-text-secondary">From Surah</label>
+                    <label className="text-xs text-text-secondary">From Verse</label>
+                    <input
+                      type="number" min={1} max={114}
+                      value={sessionPlan.fromSurah}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, fromSurah: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                    <input
+                      type="number" min={1}
+                      value={sessionPlan.fromVerse}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, fromVerse: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <label className="text-xs text-text-secondary">To Surah</label>
+                    <label className="text-xs text-text-secondary">To Verse</label>
+                    <input
+                      type="number" min={1} max={114}
+                      value={sessionPlan.toSurah}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, toSurah: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                    <input
+                      type="number" min={1}
+                      value={sessionPlan.toVerse}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, toVerse: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                  </div>
+                  <button
+                    onClick={savePlan}
+                    disabled={planSaving}
+                    className="w-full rounded bg-primary px-4 py-2 text-sm font-semibold text-text-inverse disabled:opacity-50 hover:brightness-110 transition-all"
+                  >
+                    {planSaving ? "Saving..." : "Save Plan"}
+                  </button>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary p-4">
                   <div className="mb-3 flex items-center gap-2 text-sm text-text-secondary">

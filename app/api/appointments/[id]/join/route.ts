@@ -16,6 +16,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       where: { id },
       include: {
         mentorship: { select: { teacherId: true, studentId: true } },
+        sessionPlan: true,
       },
     });
 
@@ -56,6 +57,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     const token = await generateLiveKitToken({ identity, name: userName, roomName });
 
+    await prisma.appointment.update({
+      where: { id },
+      data: { joinedAt: appointment.joinedAt ?? new Date(), status: "ONGOING" },
+    });
+
     return NextResponse.json({
       token,
       roomName,
@@ -68,6 +74,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         status: appointment.status,
         isTeacher,
       },
+      plan: appointment.sessionPlan,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Internal server error";

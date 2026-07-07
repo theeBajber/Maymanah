@@ -367,3 +367,33 @@ export async function generateUpcomingAppointments(mentorshipId: string, daysAhe
 
   return created;
 }
+
+export async function markMissedAppointments() {
+  const now = new Date();
+  await prisma.appointment.updateMany({
+    where: {
+      status: "SCHEDULED",
+      endTime: { lt: now },
+      joinedAt: null,
+      missed: false,
+    },
+    data: { missed: true },
+  });
+}
+
+export async function getReliabilityScore(userId: string): Promise<number> {
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      OR: [{ teacherId: userId }, { mentorship: { studentId: userId } }],
+      status: { in: ["SCHEDULED", "ONGOING", "COMPLETED"] },
+    },
+    orderBy: { startTime: "desc" },
+    take: 20,
+    select: { joinedAt: true, startTime: true, status: true },
+  });
+
+  if (appointments.length === 0) return 100;
+
+  const joined = appointments.filter((a) => a.joinedAt !== null).length;
+  return Math.round((joined / appointments.length) * 100);
+}

@@ -1,9 +1,11 @@
 "use client";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import {
   faArrowsToDot,
   faBell,
   faBookOpen,
   faChalkboardUser,
+  faCommentDots,
   faGear,
   faHome,
   faSignOut,
@@ -86,6 +88,15 @@ function ProfileDropdown({
   );
 }
 
+interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
 function NotificationDropdown({
   open,
   onClose,
@@ -95,6 +106,36 @@ function NotificationDropdown({
   onClose: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const typeIcons: Record<string, IconProp> = {
+    session_reminder: faVideo,
+    message: faBell,
+    note_added: faChalkboardUser,
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    fetch("/api/notifications")
+      .then((r) => r.json())
+      .then((data) => {
+        setNotifications(data.notifications ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [open]);
+
+  async function markAllRead() {
+    await fetch("/api/notifications/read", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    });
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  }
+
   if (!open) return null;
 
   return (
@@ -104,24 +145,72 @@ function NotificationDropdown({
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
-        <button
-          onClick={onClose}
-          className="size-6 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-all"
-        >
-          <FontAwesomeIcon icon={faXmark} className="size-4" />
-        </button>
-      </div>
-      <div className="p-8 flex flex-col items-center justify-center gap-2 text-center">
-        <div className="size-12 rounded-full bg-bg-hover flex items-center justify-center">
-          <FontAwesomeIcon icon={faBell} className="size-5 text-text-muted" />
+        <div className="flex items-center gap-2">
+          {notifications.some((n) => !n.isRead) && (
+            <button
+              onClick={markAllRead}
+              className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              Mark all read
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="size-6 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-all"
+          >
+            <FontAwesomeIcon icon={faXmark} className="size-4" />
+          </button>
         </div>
-        <p className="text-sm font-medium text-text-primary">
-          No notifications yet
-        </p>
-        <p className="text-xs text-text-muted max-w-[200px]">
-          We&apos;ll let you know when something new arrives.
-        </p>
       </div>
+      {loading ? (
+        <div className="p-8 text-center text-sm text-text-muted">Loading...</div>
+      ) : notifications.length === 0 ? (
+        <div className="p-8 flex flex-col items-center justify-center gap-2 text-center">
+          <div className="size-12 rounded-full bg-bg-hover flex items-center justify-center">
+            <FontAwesomeIcon icon={faBell} className="size-5 text-text-muted" />
+          </div>
+          <p className="text-sm font-medium text-text-primary">
+            No notifications yet
+          </p>
+          <p className="text-xs text-text-muted max-w-[200px]">
+            We&apos;ll let you know when something new arrives.
+          </p>
+        </div>
+      ) : (
+        <div className="max-h-80 overflow-y-auto">
+          {notifications.map((n) => (
+            <div
+              key={n.id}
+              className={`flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-bg-hover transition-colors ${
+                !n.isRead ? "bg-primary/5" : ""
+              }`}
+            >
+              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <FontAwesomeIcon
+                  icon={typeIcons[n.type] ?? faBell}
+                  className="size-3.5 text-primary"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm ${n.isRead ? "text-text-primary" : "font-semibold text-text-primary"}`}>
+                  {n.title}
+                </p>
+                {n.body && (
+                  <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{n.body}</p>
+                )}
+                <p className="text-[10px] text-text-muted mt-1">
+                  {new Date(n.createdAt).toLocaleDateString("en-US", {
+                    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                  })}
+                </p>
+              </div>
+              {!n.isRead && (
+                <span className="size-2 rounded-full bg-primary shrink-0 mt-2" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -130,7 +219,18 @@ export function TopNav() {
   const { content } = useTopNavContent();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [unreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCount = () =>
+      fetch("/api/notifications/unread-count")
+        .then((r) => r.json())
+        .then((data) => setUnreadCount(data.count ?? 0))
+        .catch(() => {});
+    fetchCount();
+    const id = setInterval(fetchCount, 30_000);
+    return () => clearInterval(id);
+  }, []);
   const { data: session } = useSession();
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -194,6 +294,7 @@ export function TopNav() {
               onClick={() => {
                 setNotifOpen((prev) => !prev);
                 setProfileOpen(false);
+                if (!notifOpen) setUnreadCount(0);
               }}
               className="relative size-9 flex items-center justify-center rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-all active:scale-95"
               aria-label="Notifications"
@@ -252,6 +353,7 @@ export function SideNav() {
         { name: "Dashboard", href: "/dashboard", icon: faHome },
         { name: "Sessions", href: "/sessions", icon: faVideo },
         { name: "My Students", href: "/students", icon: faUsers },
+        { name: "Messages", href: "/messages", icon: faCommentDots },
         { name: "Availability", href: "/availability", icon: faCalendarDays },
         { name: "Settings", href: "/settings", icon: faGear },
       ]
