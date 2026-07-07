@@ -6,6 +6,7 @@ import {
   faChevronLeft,
   faChevronRight,
   faCircle,
+  faFlag,
   faMicrophone,
   faPen,
   faPhone,
@@ -13,13 +14,14 @@ import {
   faSpinner,
   faVideo,
   faVolumeHigh,
-  faExclamationTriangle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { VideoRoom } from "@/components/ui/VideoRoom";
+import { useToast } from "@/components/ui/toast";
 
 type ReviewItem = {
   id: number;
@@ -28,10 +30,18 @@ type ReviewItem = {
   status: "new" | "review" | "done";
 };
 
+interface SessionPlan {
+  fromSurah: number;
+  fromVerse: number;
+  toSurah: number;
+  toVerse: number;
+}
+
 interface JoinData {
   token: string;
   roomName: string;
   liveKitUrl: string;
+  otherUserId: string;
   appointment: {
     id: string;
     title: string | null;
@@ -39,6 +49,7 @@ interface JoinData {
     status: string;
     isTeacher: boolean;
   };
+  plan: SessionPlan | null;
 }
 
 const ayahLines = [
@@ -53,12 +64,43 @@ export default function SessionPage() {
   const router = useRouter();
   const params = useParams();
   const { status: authStatus } = useSession();
+  const { toast } = useToast();
   const [joinData, setJoinData] = useState<JoinData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [inCall, setInCall] = useState(false);
-  const [permError, setPermError] = useState("");
   const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  const [sessionPlan, setSessionPlan] = useState<SessionPlan>({
+    fromSurah: 1, fromVerse: 1, toSurah: 1, toVerse: 1,
+  });
+  const [planSaving, setPlanSaving] = useState(false);
+
+  useEffect(() => {
+    if (joinData?.plan) setSessionPlan(joinData.plan);
+  }, [joinData]);
+
+  async function savePlan() {
+    if (!joinData) return;
+    setPlanSaving(true);
+    try {
+      const res = await fetch(`/api/appointments/${joinData.appointment.id}/plan`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sessionPlan),
+      });
+      if (res.ok) {
+        toast({ title: "Session plan saved", variant: "success" });
+      } else {
+        const err = await res.json();
+        toast({ title: err.error || "Failed to save plan", variant: "error" });
+      }
+    } catch {
+      toast({ title: "Something went wrong", variant: "error" });
+    } finally {
+      setPlanSaving(false);
+    }
+  }
 
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([
     { id: 1, passage: "An-Naba 1-5", note: "Hold ghunnah evenly in verses 1 and 2.", status: "review" },
@@ -125,9 +167,8 @@ export default function SessionPage() {
   }
 
   const handleJoinCall = useCallback(async () => {
-    setPermError("");
     if (!navigator.mediaDevices?.getUserMedia) {
-      setPermError("Camera/mic not available (insecure context or no permission)");
+      toast({ title: "Camera/mic not available", description: "Insecure context or no permission", variant: "error" });
       return;
     }
     try {
@@ -136,14 +177,14 @@ export default function SessionPage() {
       setInCall(true);
     } catch (e: any) {
       if (e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError") {
-        setPermError("Camera and microphone access was denied. Please allow permissions in your browser settings.");
+        toast({ title: "Camera and microphone access denied", description: "Please allow permissions in your browser settings.", variant: "error" });
       } else if (e?.name === "NotFoundError") {
-        setPermError("No camera or microphone found on this device.");
+        toast({ title: "No camera or microphone found", variant: "error" });
       } else {
-        setPermError(e?.message || "Could not access camera/microphone.");
+        toast({ title: e?.message || "Could not access camera/microphone", variant: "error" });
       }
     }
-  }, []);
+  }, [toast]);
 
   if (loading || authStatus === "loading") {
     return (
@@ -193,6 +234,13 @@ export default function SessionPage() {
               {isTeacher ? "Teaching" : "Student"}
             </span>
             <span className="rounded-full bg-bg-card border border-border px-3 py-1">{activeItems} follow-ups</span>
+            <Link
+              href={`/portal/report?userId=${joinData.otherUserId}`}
+              className="rounded-full bg-danger/10 px-3 py-1 text-danger font-medium hover:bg-danger/20 transition-colors flex items-center gap-1.5 text-xs"
+            >
+              <FontAwesomeIcon icon={faFlag} className="size-3" />
+              Report
+            </Link>
           </div>
         </div>
       </div>
@@ -213,12 +261,7 @@ export default function SessionPage() {
                 <p className="text-sm text-text-secondary mb-6">
                   {isTeacher ? "You are the teacher" : "You are joining as a student"}
                 </p>
-                {permError && (
-                  <div className="mb-4 w-full max-w-sm rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-center">
-                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-400 mr-2" />
-                    <span className="text-sm text-amber-300">{permError}</span>
-                  </div>
-                )}
+
                 <div className="space-y-2 mb-6 w-full max-w-sm text-left">
                   <div className="flex items-center justify-between p-3 rounded-xl bg-bg-hover">
                     <span className="text-sm text-text-secondary">Room</span>
@@ -271,17 +314,46 @@ export default function SessionPage() {
                     </button>
                   </div>
                 </div>
-                <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-                  <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
-                    <option>Surah An-Naba</option>
-                    <option>Surah Al-Mulk</option>
-                    <option>Surah Al-Qalam</option>
-                  </select>
-                  <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
-                    <option>Ayat 1-10</option>
-                    <option>Ayat 11-20</option>
-                    <option>Ayat 21-30</option>
-                  </select>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <label className="text-xs text-text-secondary">From Surah</label>
+                    <label className="text-xs text-text-secondary">From Verse</label>
+                    <input
+                      type="number" min={1} max={114}
+                      value={sessionPlan.fromSurah}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, fromSurah: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                    <input
+                      type="number" min={1}
+                      value={sessionPlan.fromVerse}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, fromVerse: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <label className="text-xs text-text-secondary">To Surah</label>
+                    <label className="text-xs text-text-secondary">To Verse</label>
+                    <input
+                      type="number" min={1} max={114}
+                      value={sessionPlan.toSurah}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, toSurah: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                    <input
+                      type="number" min={1}
+                      value={sessionPlan.toVerse}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, toVerse: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                  </div>
+                  <button
+                    onClick={savePlan}
+                    disabled={planSaving}
+                    className="w-full rounded bg-primary px-4 py-2 text-sm font-semibold text-text-inverse disabled:opacity-50 hover:brightness-110 transition-all"
+                  >
+                    {planSaving ? "Saving..." : "Save Plan"}
+                  </button>
                 </div>
                 <div className="rounded-lg border border-border bg-bg-primary p-4">
                   <div className="mb-3 flex items-center gap-2 text-sm text-text-secondary">

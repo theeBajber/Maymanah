@@ -1,13 +1,13 @@
-import NextAuth from "next-auth";
+import NextAuth, { type Session } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
+import { prisma, isNeonColdStart, reconnectPrisma } from "@/lib/prisma";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 import { logAuditEvent } from "@/lib/audit";
 import { headers } from "next/headers";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const { handlers: _handlers, auth: _auth, signIn: _signIn, signOut: _signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   pages: {
@@ -20,6 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        otpCode: { label: "2FA Code", type: "text" },
       },
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) return null;
@@ -47,6 +48,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: credentials.email as string,
           });
           return null;
+        }
+
+        if (!user.emailVerified) {
+          return null;
+        }
+
+        if (user.twoFactorEnabled) {
+          const otpCode = credentials.otpCode as string | undefined;
+          if (!otpCode) {
+            return null;
+          }
+
+          const otpRecord = await prisma.twoFactorOTP.findFirst({
+            where: {
+              userId: user.id,
+              usedAt: null,
+              expiresAt: { gte: new Date() },
+            },
+            orderBy: { createdAt: "desc" },
+          });
+
+          if (!otpRecord) {
+            return null;
+          }
+
+          const isValidOTP = await bcrypt.compare(otpCode, otpRecord.code);
+          if (!isValidOTP) {
+            return null;
+          }
+
+          await prisma.twoFactorOTP.update({
+            where: { id: otpRecord.id },
+            data: { usedAt: new Date() },
+          });
         }
 
         await logAuditEvent({
@@ -104,3 +139,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+async function authWithRetry(): Promise<Session | null> {
+  try {
+    return await _auth();
+  } catch (err: unknown) {
+    if (!isNeonColdStart(err)) throw err;
+    await reconnectPrisma();
+    return _auth();
+  }
+}
+
+export const handlers = _handlers;
+export const auth = authWithRetry as () => Promise<Session | null>;
+export const signIn = _signIn;
+export const signOut = _signOut;

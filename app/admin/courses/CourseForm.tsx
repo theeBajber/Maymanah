@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/toast";
 
 const categories = ["Quran", "Fiqh", "History", "Arabic", "Aqeedah"] as const;
 
@@ -20,8 +21,8 @@ type CourseData = {
 
 export function CourseForm({ course }: { course?: CourseData }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const [form, setForm] = useState<CourseData>(
     course || {
       title: "",
@@ -54,7 +55,6 @@ export function CourseForm({ course }: { course?: CourseData }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setError("");
 
     try {
       const url = isEditing
@@ -76,7 +76,7 @@ export function CourseForm({ course }: { course?: CourseData }) {
       router.push("/admin/courses");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      toast({ title: err instanceof Error ? err.message : "Something went wrong", variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -107,12 +107,6 @@ export function CourseForm({ course }: { course?: CourseData }) {
         onSubmit={handleSubmit}
         className="max-w-2xl space-y-6 bg-bg-card border border-border rounded-xl p-6"
       >
-        {error && (
-          <div className="p-3 rounded-lg bg-danger-muted text-danger text-sm">
-            {error}
-          </div>
-        )}
-
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1.5">

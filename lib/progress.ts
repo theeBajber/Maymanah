@@ -44,6 +44,13 @@ export async function completeLesson(
     }),
   );
 
+  await safeQuery(() =>
+    prisma.user.update({
+      where: { id: session.user.id },
+      data: { xp: { increment: 5 } },
+    }),
+  );
+
   // Update enrollment progress
   const lesson = await safeQuery(() =>
     prisma.lesson.findUnique({
@@ -73,15 +80,64 @@ export async function completeLesson(
     const total = lesson.course._count.lessons;
     const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
+    if (pct === 100) {
+      const finalExam = await safeQuery(() =>
+        prisma.exam.findFirst({
+          where: { courseId: lesson.courseId, examType: "FINAL", isPublished: true },
+          select: { id: true, passMark: true, totalMarks: true },
+        }),
+      );
+
+      if (finalExam) {
+        const graded = await safeQuery(() =>
+          prisma.submission.findFirst({
+            where: {
+              examId: finalExam.id,
+              studentId: session.user.id,
+              status: "GRADED",
+            },
+            orderBy: { attemptNumber: "desc" },
+            select: { totalScore: true },
+          }),
+        );
+
+        const pctPassed = graded && (finalExam.totalMarks ?? 1) > 0
+          ? ((graded.totalScore ?? 0) / (finalExam.totalMarks ?? 1)) * 100 >= (finalExam.passMark ?? 50)
+          : false;
+
+        if (!pctPassed) {
+          await safeQuery(() =>
+            prisma.enrollment.updateMany({
+              where: { userId: session.user.id, courseId: lesson.courseId },
+              data: { progress: 99 },
+            }),
+          );
+          return progress;
+        }
+      }
+    }
+
     await safeQuery(() =>
       prisma.enrollment.updateMany({
         where: {
           userId: session.user.id,
           courseId: lesson.courseId,
         },
-        data: { progress: pct },
+        data: {
+          progress: pct,
+          ...(pct === 100 ? { status: "COMPLETED", completedAt: new Date() } : {}),
+        },
       }),
     );
+
+    if (pct === 100) {
+      await safeQuery(() =>
+        prisma.user.update({
+          where: { id: session.user.id },
+          data: { xp: { increment: 20 } },
+        }),
+      );
+    }
   }
 
   return progress;

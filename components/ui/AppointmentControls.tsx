@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export function UpcomingAppointmentCard({
   id,
@@ -20,7 +21,12 @@ export function UpcomingAppointmentCard({
   canCancel: boolean;
 }) {
   const [cancelling, setCancelling] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [showReschedulePicker, setShowReschedulePicker] = useState(false);
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
   const router = useRouter();
+  const { toast } = useToast();
 
   async function handleCancel() {
     if (!confirm("Cancel this session?")) return;
@@ -35,9 +41,34 @@ export function UpcomingAppointmentCard({
         router.refresh();
       }
     } catch {
-      alert("Failed to cancel session");
+      toast({ title: "Failed to cancel session", variant: "error" });
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleReschedule() {
+    if (!newDate || !newTime) return;
+    setRescheduling(true);
+    try {
+      const startTime = new Date(`${newDate}T${newTime}`).toISOString();
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reschedule", startTime }),
+      });
+      if (res.ok) {
+        toast({ title: "Session rescheduled", variant: "success" });
+        setShowReschedulePicker(false);
+        router.refresh();
+      } else {
+        const err = await res.json();
+        toast({ title: err.error || "Failed to reschedule", variant: "error" });
+      }
+    } catch {
+      toast({ title: "Something went wrong", variant: "error" });
+    } finally {
+      setRescheduling(false);
     }
   }
 
@@ -91,14 +122,52 @@ export function UpcomingAppointmentCard({
                 Join
               </Link>
             )}
-            {canCancel && (
-              <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="text-sm border border-danger/30 text-danger px-3 py-1.5 rounded-lg hover:bg-danger/5 transition-colors disabled:opacity-50"
-              >
-                {cancelling ? "..." : "Cancel"}
-              </button>
+            {showReschedulePicker ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="w-36 px-2 py-1.5 text-xs rounded-lg border border-border bg-bg-primary text-text-primary"
+                />
+                <input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="w-28 px-2 py-1.5 text-xs rounded-lg border border-border bg-bg-primary text-text-primary"
+                />
+                <button
+                  onClick={handleReschedule}
+                  disabled={rescheduling || !newDate || !newTime}
+                  className="text-xs font-medium bg-primary text-text-inverse px-2.5 py-1.5 rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
+                >
+                  {rescheduling ? "..." : "Save"}
+                </button>
+                <button
+                  onClick={() => setShowReschedulePicker(false)}
+                  className="text-xs text-text-muted hover:text-text-primary px-2"
+                >
+                  Back
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => setShowReschedulePicker(true)}
+                  className="text-sm border border-primary/30 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
+                >
+                  Reschedule
+                </button>
+                {canCancel && (
+                  <button
+                    onClick={handleCancel}
+                    disabled={cancelling}
+                    className="text-sm border border-danger/30 text-danger px-3 py-1.5 rounded-lg hover:bg-danger/5 transition-colors disabled:opacity-50"
+                  >
+                    {cancelling ? "..." : "Cancel"}
+                  </button>
+                )}
+              </>
             )}
           </>
         )}

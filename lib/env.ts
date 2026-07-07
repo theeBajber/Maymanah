@@ -2,6 +2,10 @@ const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
   "AUTH_SECRET",
   "NEXTAUTH_URL",
+  "SMTP_HOST",
+  "SMTP_USER",
+  "SMTP_PASS",
+  "SMTP_FROM",
 ] as const;
 
 export function validateEnv() {

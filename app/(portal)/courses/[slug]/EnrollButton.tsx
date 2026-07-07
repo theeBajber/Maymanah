@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 
 export default function EnrollButton({
   courseSlug,
@@ -10,6 +11,7 @@ export default function EnrollButton({
   isEnrolled: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
 
   async function handleClick() {
     if (isEnrolled) {
@@ -29,7 +31,7 @@ export default function EnrollButton({
       router.refresh();
     } else {
       const data = await res.json();
-      alert(data.error || "Something went wrong");
+      toast({ title: data.error || "Something went wrong", variant: "error" });
     }
   }
 

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export function DailySessionButton({
   startTime,
@@ -13,6 +14,7 @@ export function DailySessionButton({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const { toast } = useToast();
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
@@ -35,10 +37,10 @@ export function DailySessionButton({
         router.push(`/session/${data.id}${isTest ? "?test=1" : ""}`);
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to start session");
+        toast({ title: err.error || "Failed to start session", variant: "error" });
       }
     } catch {
-      alert("Something went wrong");
+      toast({ title: "Something went wrong", variant: "error" });
     } finally {
       setLoading(false);
     }

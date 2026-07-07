@@ -15,6 +15,7 @@ export type DashboardLeaderboardUser = {
   name: string | null;
   image: string | null;
   xp: number;
+  rank: number;
 };
 
 export type DashboardAchievement = {
@@ -213,46 +214,37 @@ export async function getDashboardData(email: string): Promise<DashboardData | n
 
   const streak = calculateStreak(allActivityDates);
 
-  const leaderboardUsers = await prisma.user.findMany({
+  const currentXp = user.xp ?? 0;
+
+  const studentsAhead = await prisma.user.count({
     where: {
+      role: "STUDENT",
       OR: [
-        { assessments: { some: { score: { not: null } } } },
-        { submissions: { some: { totalScore: { not: null } } } },
+        { xp: { gt: currentXp } },
+        { xp: currentXp, createdAt: { lt: user.createdAt } },
       ],
-    },
-    select: {
-      id: true,
-      name: true,
-      image: true,
-      assessments: {
-        where: { score: { not: null } },
-        select: { score: true },
-      },
-      submissions: {
-        where: { totalScore: { not: null } },
-        select: { totalScore: true },
-      },
     },
   });
 
-  const rankedUsers = leaderboardUsers
-    .map((leaderboardUser) => ({
-      id: leaderboardUser.id,
-      name: leaderboardUser.name,
-      image: leaderboardUser.image,
-      xp:
-        leaderboardUser.assessments.reduce(
-          (sum, assessment) => sum + Math.round(assessment.score ?? 0),
-          0,
-        ) +
-        leaderboardUser.submissions.reduce(
-          (sum, submission) => sum + Math.round(submission.totalScore ?? 0),
-          0,
-        ),
-    }))
-    .sort((a, b) => b.xp - a.xp);
+  const currentUserRank = studentsAhead + 1;
+  const startIndex = Math.max(0, currentUserRank - 3);
 
-  const currentUserRank = rankedUsers.findIndex((rankedUser) => rankedUser.id === user.id);
+  const rankedUsers = await prisma.user.findMany({
+    where: { role: "STUDENT" },
+    orderBy: [{ xp: "desc" }, { createdAt: "asc" }],
+    select: { id: true, name: true, image: true, xp: true },
+    skip: startIndex,
+    take: 5,
+  });
+
+  const leaderboard = rankedUsers.map((u, i) => ({
+    id: u.id,
+    name: u.name,
+    image: u.image,
+    xp: u.xp,
+    rank: startIndex + i + 1,
+  }));
+
   const upcoming = user.appointments[0];
   const bestAssessmentScore = user.assessments.reduce<number | null>((best, assessment) => {
     if (assessment.score === null) return best;
@@ -274,8 +266,8 @@ export async function getDashboardData(email: string): Promise<DashboardData | n
     user: { id: user.id, name: user.name, image: user.image },
     weeklyProgress,
     streak,
-    leaderboard: rankedUsers.slice(0, 5),
-    currentUserRank: currentUserRank >= 0 ? currentUserRank + 1 : null,
+    leaderboard,
+    currentUserRank,
     activeEnrollments,
     upcomingAppointment,
     weeklySchedule,
