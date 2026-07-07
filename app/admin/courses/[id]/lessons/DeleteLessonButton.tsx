@@ -2,6 +2,7 @@
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export function DeleteLessonButton({
   lessonId,
@@ -13,6 +14,7 @@ export function DeleteLessonButton({
   courseId: string;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -30,7 +32,7 @@ export function DeleteLessonButton({
       if (!res.ok) throw new Error("Failed to delete");
       router.refresh();
     } catch {
-      alert("Failed to delete lesson");
+      toast({ title: "Failed to delete lesson", variant: "error" });
     } finally {
       setDeleting(false);
       setConfirming(false);

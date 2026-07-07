@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
+import { getShuffledQuestions } from "@/lib/exams";
 
 type RouteContext = { params: Promise<{ examId: string }> };
 
@@ -13,10 +14,15 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     const exam = await safeQuery(() =>
       prisma.exam.findUnique({
         where: { id: examId },
-        select: { id: true },
+        select: { id: true, shuffleQuestions: true },
       }),
     );
     if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+
+    if (exam.shuffleQuestions) {
+      const shuffled = await getShuffledQuestions(examId);
+      return NextResponse.json(shuffled);
+    }
 
     const questions = await safeQuery(() =>
       prisma.question.findMany({

@@ -11,12 +11,12 @@ import {
   X,
   BookOpen,
   Sparkles,
-  AlertCircle,
   Trash2,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/toast";
 
 type Option = { text: string; isCorrect: boolean };
 type QuizQuestion = {
@@ -39,11 +39,11 @@ export function ImportBookClient({
   course: { id: string; title: string; slug: string };
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [lessons, setLessons] = useState<LessonPreview[]>([]);
-  const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
 
   const validateFile = useCallback((f: File): string | null => {
@@ -66,14 +66,13 @@ export function ImportBookClient({
     (f: File) => {
       const err = validateFile(f);
       if (err) {
-        setError(err);
+        toast({ title: err, variant: "error" });
         return;
       }
       setFile(f);
-      setError("");
       setStatus("idle");
     },
-    [validateFile],
+    [toast, validateFile],
   );
 
   const handleDrop = useCallback(
@@ -89,7 +88,6 @@ export function ImportBookClient({
   const handleParse = async () => {
     if (!file) return;
     setStatus("parsing");
-    setError("");
 
     const formData = new FormData();
     formData.set("file", file);
@@ -109,14 +107,13 @@ export function ImportBookClient({
       setLessons(data.lessons);
       setStatus("preview");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      toast({ title: err instanceof Error ? err.message : "Something went wrong", variant: "error" });
       setStatus("idle");
     }
   };
 
   const handleSave = async () => {
     setStatus("saving");
-    setError("");
 
     const formData = new FormData();
     formData.set("file", file!);
@@ -137,7 +134,7 @@ export function ImportBookClient({
       setStatus("done");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      toast({ title: err instanceof Error ? err.message : "Something went wrong", variant: "error" });
       setStatus("preview");
     }
   };
@@ -146,7 +143,6 @@ export function ImportBookClient({
     setFile(null);
     setLessons([]);
     setStatus("idle");
-    setError("");
   };
 
   if (status === "done") {
@@ -267,13 +263,6 @@ export function ImportBookClient({
           <p className="text-text-secondary mt-1">{course.title}</p>
         </div>
       </div>
-
-      {error && (
-        <div className="flex items-start gap-3 p-4 mb-6 rounded-xl bg-danger-muted text-danger text-sm">
-          <AlertCircle className="size-5 shrink-0 mt-0.5" />
-          <span>{error}</span>
-        </div>
-      )}
 
       {status === "preview" && lessons.length > 0 && (
         <div>

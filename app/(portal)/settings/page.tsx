@@ -24,6 +24,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { OtpInput } from "@/components/ui/OtpInput";
 
 type TabType =
   | "profile"
@@ -480,6 +481,94 @@ function SecuritySettings() {
   });
   const [loading, setLoading] = useState(false);
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+  const [twoFALoading, setTwoFALoading] = useState(true);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [twoFAOTP, setTwoFAOTP] = useState("");
+  const [twoFAStep, setTwoFAStep] = useState<"prompt" | "otp" | "disable">("prompt");
+  const [disablePassword, setDisablePassword] = useState("");
+  const [twoFAActionLoading, setTwoFAActionLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/two-factor-status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data.enabled === "boolean") {
+          setTwoFAEnabled(data.enabled);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setTwoFALoading(false));
+  }, []);
+
+  const handleEnable2FA = async () => {
+    setTwoFAActionLoading(true);
+    try {
+      const res = await fetch("/api/auth/2fa/enable", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: data.error || "Failed to enable 2FA", variant: "error" });
+        return;
+      }
+      setTwoFAStep("otp");
+      setTwoFAOTP("");
+      toast({ title: "Verification code sent to your email.", variant: "success" });
+    } catch {
+      toast({ title: "Something went wrong.", variant: "error" });
+    } finally {
+      setTwoFAActionLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (twoFAOTP.length !== 6) return;
+    setTwoFAActionLoading(true);
+    try {
+      const res = await fetch("/api/auth/2fa/verify-enable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otpCode: twoFAOTP }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: data.error || "Invalid code", variant: "error" });
+        return;
+      }
+      setTwoFAEnabled(true);
+      setShow2FAModal(false);
+      setTwoFAStep("prompt");
+      toast({ title: "Two-factor authentication enabled!", variant: "success" });
+    } catch {
+      toast({ title: "Something went wrong.", variant: "error" });
+    } finally {
+      setTwoFAActionLoading(false);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!disablePassword) return;
+    setTwoFAActionLoading(true);
+    try {
+      const res = await fetch("/api/auth/2fa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: disablePassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: data.error || "Failed to disable 2FA", variant: "error" });
+        return;
+      }
+      setTwoFAEnabled(false);
+      setShow2FAModal(false);
+      setTwoFAStep("prompt");
+      setDisablePassword("");
+      toast({ title: "Two-factor authentication disabled.", variant: "success" });
+    } catch {
+      toast({ title: "Something went wrong.", variant: "error" });
+    } finally {
+      setTwoFAActionLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -588,24 +677,120 @@ function SecuritySettings() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <span className="text-text-primary text-sm">2FA Status:</span>
             <div className="flex items-center gap-4">
-              <span
-                className={`text-sm font-medium ${twoFAEnabled ? "text-success" : "text-text-muted"}`}
-              >
-                {twoFAEnabled ? "Enabled" : "Disabled"}
-              </span>
-              <button
-                onClick={() => setTwoFAEnabled(!twoFAEnabled)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  twoFAEnabled
-                    ? "bg-danger/10 text-danger hover:bg-danger/20"
-                    : "bg-primary text-text-inverse hover:brightness-110"
-                }`}
-              >
-                {twoFAEnabled ? "Disable" : "Enable"}
-              </button>
+              {twoFALoading ? (
+                <Skeleton className="h-5 w-16" />
+              ) : (
+                <>
+                  <span
+                    className={`text-sm font-medium ${twoFAEnabled ? "text-success" : "text-text-muted"}`}
+                  >
+                    {twoFAEnabled ? "Enabled" : "Disabled"}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (twoFAEnabled) {
+                        setTwoFAStep("disable");
+                        setDisablePassword("");
+                      } else {
+                        setTwoFAStep("prompt");
+                      }
+                      setShow2FAModal(true);
+                    }}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                      twoFAEnabled
+                        ? "bg-danger/10 text-danger hover:bg-danger/20"
+                        : "bg-primary text-text-inverse hover:brightness-110"
+                    }`}
+                  >
+                    {twoFAEnabled ? "Disable" : "Enable"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
+
+        {show2FAModal && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-bg-elevated rounded-2xl border border-border shadow-2xl p-6 w-full max-w-md">
+              {twoFAStep === "prompt" && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-bold text-text-primary">Enable 2FA</h4>
+                  <p className="text-sm text-text-secondary">
+                    A verification code will be sent to your email. Enter it to confirm.
+                  </p>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShow2FAModal(false)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-border text-text-secondary font-medium hover:bg-bg-hover transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleEnable2FA}
+                      disabled={twoFAActionLoading}
+                      className="flex-1 px-4 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50"
+                    >
+                      {twoFAActionLoading ? "Sending..." : "Send Code"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {twoFAStep === "otp" && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-bold text-text-primary">Enter verification code</h4>
+                  <p className="text-sm text-text-secondary text-center">Check your email for the 6-digit code.</p>
+                  <OtpInput value={twoFAOTP} onChange={setTwoFAOTP} disabled={twoFAActionLoading} />
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => { setShow2FAModal(false); setTwoFAStep("prompt"); }}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-border text-text-secondary font-medium hover:bg-bg-hover transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleVerifyOTP}
+                      disabled={twoFAActionLoading || twoFAOTP.length !== 6}
+                      className="flex-1 px-4 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50"
+                    >
+                      {twoFAActionLoading ? "Verifying..." : "Verify"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {twoFAStep === "disable" && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-bold text-text-primary">Disable 2FA</h4>
+                  <p className="text-sm text-text-secondary">Enter your password to confirm.</p>
+                  <input
+                    type="password"
+                    value={disablePassword}
+                    onChange={(e) => setDisablePassword(e.target.value)}
+                    placeholder="Your password"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                  />
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShow2FAModal(false)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-border text-text-secondary font-medium hover:bg-bg-hover transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDisable2FA}
+                      disabled={twoFAActionLoading || !disablePassword}
+                      className="flex-1 px-4 py-2.5 bg-danger text-white rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50"
+                    >
+                      {twoFAActionLoading ? "Disabling..." : "Disable"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

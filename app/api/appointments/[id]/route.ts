@@ -28,14 +28,21 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
     const appointment = await prisma.appointment.findUnique({
       where: { id },
-      select: { id: true, teacherId: true, status: true },
+      select: {
+        id: true,
+        teacherId: true,
+        status: true,
+        mentorship: { select: { studentId: true } },
+      },
     });
 
     if (!appointment) {
       return NextResponse.json({ error: "Appointment not found" }, { status: 404 });
     }
 
-    if (appointment.teacherId !== session.user.id) {
+    const isTeacher = appointment.teacherId === session.user.id;
+    const isStudent = appointment.mentorship?.studentId === session.user.id;
+    if (!isTeacher && !isStudent) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

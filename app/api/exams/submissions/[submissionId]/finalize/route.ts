@@ -28,16 +28,40 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
 
     const graded = await gradeExam(submissionId);
 
-    // If this exam is a lesson quiz, mark the lesson complete
     if (graded) {
       const exam = await safeQuery(() =>
         prisma.exam.findUnique({
           where: { id: submission.examId },
-          select: { lessonId: true },
+          select: { id: true, lessonId: true, examType: true, courseId: true, passMark: true, totalMarks: true },
         }),
       );
+
       if (exam?.lessonId) {
         await completeLesson(exam.lessonId, graded.totalScore ?? undefined);
+      }
+
+      if (exam?.examType === "FINAL" && graded.totalScore != null) {
+        const { passFinalExam, canRetakeExam, resetCourseProgress } = await import("@/lib/exams");
+
+        const pct = (exam.totalMarks ?? 1) > 0 ? (graded.totalScore / (exam.totalMarks ?? 1)) * 100 : 0;
+        if (pct >= (exam.passMark ?? 50)) {
+          await passFinalExam(submissionId);
+        } else {
+          const retakeAllowed = await canRetakeExam(exam.id, session.user.id);
+          if (!retakeAllowed) {
+            const result = await safeQuery(() =>
+              prisma.submission.findUnique({
+                where: { id: submissionId },
+                include: {
+                  exam: { select: { id: true, passMark: true, totalMarks: true, lessonId: true, examType: true } },
+                  answers: { include: { question: true } },
+                },
+              }),
+            );
+            await resetCourseProgress(exam.courseId, session.user.id);
+            return NextResponse.json(result);
+          }
+        }
       }
     }
 
@@ -45,7 +69,7 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
       prisma.submission.findUnique({
         where: { id: submissionId },
         include: {
-          exam: { select: { passMark: true, totalMarks: true, lessonId: true } },
+          exam: { select: { id: true, passMark: true, totalMarks: true, lessonId: true, examType: true } },
           answers: { include: { question: true } },
         },
       }),

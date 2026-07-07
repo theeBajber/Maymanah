@@ -95,6 +95,12 @@ export default async function Dash(props: {
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
 
+  const userCheck = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { gender: true },
+  });
+  if (!userCheck?.gender) redirect("/onboarding");
+
   if (session.user.role === "TEACHER") {
     return <UstadhDashboard session={session} />;
   }
@@ -119,6 +125,17 @@ export default async function Dash(props: {
     enrollments: Awaited<ReturnType<typeof getActiveEnrollments>>;
   } | null = null;
 
+  const certificates = await safeQuery(() =>
+    prisma.ijazah.findMany({
+      where: { userId: session.user.id },
+      include: {
+        course: { select: { title: true, slug: true, image: true, category: true } },
+      },
+      orderBy: { issuedAt: "desc" },
+      take: 3,
+    }),
+  ).catch(() => []);
+
   if (tab === "analytics") {
     const [submissions, completedLessons, enrollments] = await Promise.all([
       getStudentSubmissions(session.user.id),
@@ -132,7 +149,9 @@ export default async function Dash(props: {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-elevated to-bg-secondary border border-border p-6 md:p-8 flex items-center gap-6 justify-between">
         <div className="flex flex-col max-w-2xl gap-2">
-          <h1 className={`text-text-primary text-3xl md:text-4xl font-bold tracking-tight`}>
+          <h1
+            className={`text-text-primary text-3xl md:text-4xl font-bold tracking-tight`}
+          >
             Hey, {userName}
           </h1>
           <p className="text-text-secondary text-sm md:text-base">{heroCopy}</p>
@@ -217,14 +236,19 @@ export default async function Dash(props: {
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-text-primary">Active Courses</h2>
-                <p className="text-sm text-text-secondary">Pick up where you left off</p>
+                <h2 className="text-lg font-bold text-text-primary">
+                  Active Courses
+                </h2>
+                <p className="text-sm text-text-secondary">
+                  Pick up where you left off
+                </p>
               </div>
               <Link
                 href="/courses"
                 className="text-sm font-medium text-primary hover:text-primary-light transition-colors flex items-center gap-1.5"
               >
-                View All <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                View All{" "}
+                <FontAwesomeIcon icon={faArrowRight} className="size-3" />
               </Link>
             </div>
 
@@ -244,7 +268,10 @@ export default async function Dash(props: {
             ) : (
               <div className="rounded-2xl border border-dashed border-border bg-bg-elevated/50 p-10 text-center">
                 <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <FontAwesomeIcon icon={faBookOpen} className="text-primary text-lg" />
+                  <FontAwesomeIcon
+                    icon={faBookOpen}
+                    className="text-primary text-lg"
+                  />
                 </div>
                 <p className="text-text-secondary text-sm">
                   No active courses yet. Browse our catalog to get started.
@@ -253,7 +280,8 @@ export default async function Dash(props: {
                   href="/courses"
                   className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-primary hover:underline"
                 >
-                  Browse courses <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                  Browse courses{" "}
+                  <FontAwesomeIcon icon={faArrowRight} className="size-3" />
                 </Link>
               </div>
             )}
@@ -268,14 +296,16 @@ export default async function Dash(props: {
                     <LeaderBoardCard
                       key={user.id}
                       currentUser={user.id === dashboardData.user.id}
-                      rank={idx + 1}
+                      rank={user.rank}
                       name={user.name}
                       xp={user.xp}
                       image={user.image}
                     />
                   ))
                 ) : (
-                  <p className="text-sm text-text-secondary">No leaderboard data yet.</p>
+                  <p className="text-sm text-text-secondary">
+                    No leaderboard data yet.
+                  </p>
                 )}
               </div>
             </div>
@@ -334,26 +364,44 @@ export default async function Dash(props: {
                 </h3>
                 <div className="space-y-2">
                   {dashboardData.weeklySchedule.map((slot) => {
-                    const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][slot.dayOfWeek];
+                    const dayName = [
+                      "Sun",
+                      "Mon",
+                      "Tue",
+                      "Wed",
+                      "Thu",
+                      "Fri",
+                      "Sat",
+                    ][slot.dayOfWeek];
                     const isToday = slot.dayOfWeek === new Date().getDay();
                     return (
                       <div
                         key={`${slot.dayOfWeek}-${slot.type}`}
                         className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm ${
-                          isToday ? "bg-primary/10 ring-1 ring-primary/30" : "bg-bg-hover"
+                          isToday
+                            ? "bg-primary/10 ring-1 ring-primary/30"
+                            : "bg-bg-hover"
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <span className={`font-bold w-8 ${isToday ? "text-primary" : "text-text-primary"}`}>
+                          <span
+                            className={`font-bold w-8 ${isToday ? "text-primary" : "text-text-primary"}`}
+                          >
                             {dayName}
                           </span>
                           <span className="text-text-secondary text-xs uppercase tracking-wider font-medium">
-                            {slot.type === "DAILY_HIFDH" ? "Hifdh" : "Muraja'ah"}
+                            {slot.type === "DAILY_HIFDH"
+                              ? "Hifdh"
+                              : "Muraja'ah"}
                           </span>
                         </div>
                         <span className="text-text-primary font-medium">
-                          {new Date("2000-01-01T" + slot.startTime).toLocaleTimeString("en-US", {
-                            hour: "numeric", minute: "2-digit", hour12: true,
+                          {new Date(
+                            "2000-01-01T" + slot.startTime,
+                          ).toLocaleTimeString("en-US", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
                           })}
                         </span>
                       </div>
@@ -372,7 +420,9 @@ export default async function Dash(props: {
                 <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
                   Weekly Schedule
                 </h3>
-                <p className="text-sm text-text-secondary">No sessions scheduled yet.</p>
+                <p className="text-sm text-text-secondary">
+                  No sessions scheduled yet.
+                </p>
               </div>
             )}
 
@@ -394,7 +444,10 @@ export default async function Dash(props: {
                         <div
                           className={`size-12 rounded-full flex items-center justify-center border-2 transition-transform group-hover:scale-110 ${presentation.className}`}
                         >
-                          <FontAwesomeIcon icon={presentation.icon} className="size-4" />
+                          <FontAwesomeIcon
+                            icon={presentation.icon}
+                            className="size-4"
+                          />
                         </div>
                         <p className="text-[11px] font-semibold text-text-primary leading-tight">
                           {achievement.title}
@@ -410,6 +463,46 @@ export default async function Dash(props: {
               )}
             </div>
 
+            {certificates.length > 0 && (
+              <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
+                  My Certificates
+                </h3>
+                <div className="space-y-3">
+                  {certificates.map((cert) => (
+                    <Link
+                      key={cert.id}
+                      href={`/certificates/${cert.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-bg-hover hover:bg-primary/5 transition-colors group"
+                    >
+                      <div className="size-10 rounded-lg bg-success-muted flex items-center justify-center shrink-0">
+                        <FontAwesomeIcon icon={faAward} className="size-4 text-success" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {cert.course.title}
+                        </p>
+                        <p className="text-xs text-text-muted">
+                          {new Date(cert.issuedAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                      <FontAwesomeIcon icon={faArrowRight} className="size-3 text-text-muted group-hover:text-primary transition-colors" />
+                    </Link>
+                  ))}
+                </div>
+                <Link
+                  href="/courses"
+                  className="block text-xs text-primary hover:text-primary-light font-medium mt-3"
+                >
+                  View all certificates
+                </Link>
+              </div>
+            )}
+
             <div className="rounded-2xl border border-border bg-bg-elevated p-5 space-y-2">
               <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
                 Quick Resources
@@ -418,20 +511,32 @@ export default async function Dash(props: {
                 href="/revision"
                 className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-bg-hover hover:bg-primary/5 hover:text-primary transition-colors text-sm text-text-secondary"
               >
-                <FontAwesomeIcon icon={faMusic} className="size-4 text-primary/60" />
+                <FontAwesomeIcon
+                  icon={faMusic}
+                  className="size-4 text-primary/60"
+                />
                 <div className="flex flex-col">
-                  <span className="font-medium text-text-primary">Revision</span>
-                  <span className="text-xs text-text-muted">Review your memorization plan</span>
+                  <span className="font-medium text-text-primary">
+                    Revision
+                  </span>
+                  <span className="text-xs text-text-muted">
+                    Review your memorization plan
+                  </span>
                 </div>
               </Link>
               <Link
                 href="/mushaf"
                 className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-bg-hover hover:bg-primary/5 hover:text-primary transition-colors text-sm text-text-secondary"
               >
-                <FontAwesomeIcon icon={faBookOpen} className="size-4 text-primary/60" />
+                <FontAwesomeIcon
+                  icon={faBookOpen}
+                  className="size-4 text-primary/60"
+                />
                 <div className="flex flex-col">
                   <span className="font-medium text-text-primary">Mushaf</span>
-                  <span className="text-xs text-text-muted">Read from the holy Quran</span>
+                  <span className="text-xs text-text-muted">
+                    Read from the holy Quran
+                  </span>
                 </div>
               </Link>
             </div>
@@ -448,7 +553,12 @@ async function getStudentSubmissions(studentId: string) {
       where: { studentId, status: "GRADED" },
       include: {
         exam: {
-          select: { title: true, totalMarks: true, passMark: true, courseId: true },
+          select: {
+            title: true,
+            totalMarks: true,
+            passMark: true,
+            courseId: true,
+          },
         },
       },
       orderBy: { submittedAt: "desc" },
@@ -462,7 +572,11 @@ async function getCompletedLessons(studentId: string) {
       where: { studentId, completed: true },
       include: {
         lesson: {
-          select: { title: true, courseId: true, course: { select: { title: true, slug: true } } },
+          select: {
+            title: true,
+            courseId: true,
+            course: { select: { title: true, slug: true } },
+          },
         },
       },
       orderBy: { completedAt: "desc" },
@@ -490,16 +604,31 @@ function AnalyticsContent({
 }) {
   const { submissions, completedLessons, enrollments } = data;
 
-  const avgScore = submissions.length > 0
-    ? submissions.reduce((sum, s) => sum + (s.totalScore ?? 0) / s.exam.totalMarks * 100, 0) / submissions.length
-    : 0;
-  const passCount = submissions.filter((s) => s.exam.totalMarks > 0 && ((s.totalScore ?? 0) / s.exam.totalMarks) * 100 >= 50).length;
+  const avgScore =
+    submissions.length > 0
+      ? submissions.reduce(
+          (sum, s) => sum + ((s.totalScore ?? 0) / s.exam.totalMarks) * 100,
+          0,
+        ) / submissions.length
+      : 0;
+  const passCount = submissions.filter(
+    (s) =>
+      s.exam.totalMarks > 0 &&
+      ((s.totalScore ?? 0) / s.exam.totalMarks) * 100 >= 50,
+  ).length;
 
-  const courseModules: Record<string, { title: string; slug: string; done: number }> = {};
+  const courseModules: Record<
+    string,
+    { title: string; slug: string; done: number }
+  > = {};
   for (const lp of completedLessons) {
     const cId = lp.lesson.courseId;
     if (!courseModules[cId]) {
-      courseModules[cId] = { title: lp.lesson.course.title, slug: lp.lesson.course.slug, done: 0 };
+      courseModules[cId] = {
+        title: lp.lesson.course.title,
+        slug: lp.lesson.course.slug,
+        done: 0,
+      };
     }
     courseModules[cId].done++;
   }
@@ -510,11 +639,18 @@ function AnalyticsContent({
         <div className="rounded-2xl border border-border bg-bg-elevated p-5">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FontAwesomeIcon icon={faClipboardCheck} className="text-primary size-4" />
+              <FontAwesomeIcon
+                icon={faClipboardCheck}
+                className="text-primary size-4"
+              />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{submissions.length}</p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">Quizzes Taken</p>
+              <p className="text-2xl font-bold text-text-primary">
+                {submissions.length}
+              </p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+                Quizzes Taken
+              </p>
             </div>
           </div>
         </div>
@@ -524,30 +660,48 @@ function AnalyticsContent({
               <FontAwesomeIcon icon={faAward} className="text-success size-4" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{avgScore.toFixed(0)}%</p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">Avg Score</p>
+              <p className="text-2xl font-bold text-text-primary">
+                {avgScore.toFixed(0)}%
+              </p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+                Avg Score
+              </p>
             </div>
           </div>
         </div>
         <div className="rounded-2xl border border-border bg-bg-elevated p-5">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FontAwesomeIcon icon={faBookOpen} className="text-primary size-4" />
+              <FontAwesomeIcon
+                icon={faBookOpen}
+                className="text-primary size-4"
+              />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{completedLessons.length}</p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">Modules Done</p>
+              <p className="text-2xl font-bold text-text-primary">
+                {completedLessons.length}
+              </p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+                Modules Done
+              </p>
             </div>
           </div>
         </div>
         <div className="rounded-2xl border border-border bg-bg-elevated p-5">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-info/10 flex items-center justify-center">
-              <FontAwesomeIcon icon={faGraduationCap} className="text-info size-4" />
+              <FontAwesomeIcon
+                icon={faGraduationCap}
+                className="text-info size-4"
+              />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{passCount}/{submissions.length}</p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">Passed</p>
+              <p className="text-2xl font-bold text-text-primary">
+                {passCount}/{submissions.length}
+              </p>
+              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+                Passed
+              </p>
             </div>
           </div>
         </div>
@@ -561,14 +715,30 @@ function AnalyticsContent({
           ) : (
             <div className="space-y-2">
               {submissions.slice(0, 5).map((s) => {
-                const pct = s.exam.totalMarks > 0 ? ((s.totalScore ?? 0) / s.exam.totalMarks) * 100 : 0;
+                const pct =
+                  s.exam.totalMarks > 0
+                    ? ((s.totalScore ?? 0) / s.exam.totalMarks) * 100
+                    : 0;
                 const passed = pct >= 50;
                 return (
-                  <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-bg-hover">
-                    <p className="text-sm font-medium text-text-primary">{s.exam.title}</p>
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between p-3 rounded-xl bg-bg-hover"
+                  >
+                    <p className="text-sm font-medium text-text-primary">
+                      {s.exam.title}
+                    </p>
                     <div className="text-right">
-                      <p className={`font-bold text-sm ${passed ? "text-success" : "text-danger"}`}>{s.totalScore}/{s.exam.totalMarks}</p>
-                      <p className={`text-[11px] ${passed ? "text-success" : "text-danger"}`}>{pct.toFixed(0)}%</p>
+                      <p
+                        className={`font-bold text-sm ${passed ? "text-success" : "text-danger"}`}
+                      >
+                        {s.totalScore}/{s.exam.totalMarks}
+                      </p>
+                      <p
+                        className={`text-[11px] ${passed ? "text-success" : "text-danger"}`}
+                      >
+                        {pct.toFixed(0)}%
+                      </p>
                     </div>
                   </div>
                 );
@@ -578,37 +748,39 @@ function AnalyticsContent({
         </div>
 
         <div className="rounded-2xl border border-border bg-bg-elevated p-5">
-          <h2 className="font-bold text-text-primary mb-4">Modules Completed</h2>
+          <h2 className="font-bold text-text-primary mb-4">
+            Modules Completed
+          </h2>
           {Object.keys(courseModules).length === 0 ? (
-            <p className="text-sm text-text-secondary">No modules completed yet.</p>
+            <p className="text-sm text-text-secondary">
+              No modules completed yet.
+            </p>
           ) : (
             <div className="space-y-2">
               {Object.entries(courseModules).map(([cId, data]) => (
-                <Link key={cId} href={`/courses/${data.slug}`} className="flex items-center justify-between p-3 rounded-xl bg-bg-hover hover:bg-primary/5 transition-colors">
+                <Link
+                  key={cId}
+                  href={`/courses/${data.slug}`}
+                  className="flex items-center justify-between p-3 rounded-xl bg-bg-hover hover:bg-primary/5 transition-colors"
+                >
                   <div>
-                    <p className="font-medium text-sm text-text-primary">{data.title}</p>
-                    <p className="text-xs text-text-secondary">{data.done} modules completed</p>
+                    <p className="font-medium text-sm text-text-primary">
+                      {data.title}
+                    </p>
+                    <p className="text-xs text-text-secondary">
+                      {data.done} modules completed
+                    </p>
                   </div>
-                  <FontAwesomeIcon icon={faArrowRight} className="size-3 text-text-muted" />
+                  <FontAwesomeIcon
+                    icon={faArrowRight}
+                    className="size-3 text-text-muted"
+                  />
                 </Link>
               ))}
             </div>
           )}
         </div>
       </div>
-
-      {enrollments.length > 0 && (
-        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
-          <h2 className="font-bold text-text-primary mb-4">Active Courses</h2>
-          <div className="flex flex-wrap gap-2">
-            {enrollments.map((e) => (
-              <Link key={e.courseId} href={`/courses/${e.course.slug}`} className="px-4 py-2 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-colors text-sm font-medium">
-                {e.course.title}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -632,71 +804,78 @@ async function UstadhDashboard({ session }: { session: Session }) {
     59,
   );
 
-  const [todaySessions, weekSessions, activeMatches, completedThisMonth, weeklySlots] =
-    await Promise.all([
-      prisma.appointment.findMany({
-        where: {
-          teacherId: ustadhId,
-          startTime: { gte: startOfDay, lt: endOfDay },
+  const [
+    todaySessions,
+    weekSessions,
+    activeMatches,
+    completedThisMonth,
+    weeklySlots,
+  ] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        teacherId: ustadhId,
+        startTime: { gte: startOfDay, lt: endOfDay },
+      },
+      include: {
+        mentorship: {
+          include: { student: { select: { id: true, name: true } } },
         },
-        include: {
-          mentorship: {
-            include: { student: { select: { id: true, name: true } } },
-          },
+      },
+      orderBy: { startTime: "asc" },
+    }),
+    prisma.appointment.findMany({
+      where: {
+        teacherId: ustadhId,
+        startTime: { gte: startOfWeek, lt: endOfWeek },
+      },
+      include: {
+        mentorship: {
+          include: { student: { select: { id: true, name: true } } },
         },
-        orderBy: { startTime: "asc" },
-      }),
-      prisma.appointment.findMany({
-        where: {
-          teacherId: ustadhId,
-          startTime: { gte: startOfWeek, lt: endOfWeek },
-        },
-        include: {
-          mentorship: {
-            include: { student: { select: { id: true, name: true } } },
-          },
-        },
-        orderBy: { startTime: "asc" },
-      }),
-      prisma.mentorship.findMany({
-        where: { teacherId: ustadhId, status: "ACTIVE" },
-        include: {
-          student: {
-            select: {
-              id: true,
-              name: true,
-              quranProgress: true,
-              studentNotes: {
-                where: { ustadhId, resolved: false },
-                select: { id: true },
-              },
+      },
+      orderBy: { startTime: "asc" },
+    }),
+    prisma.mentorship.findMany({
+      where: { teacherId: ustadhId, status: "ACTIVE" },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            quranProgress: true,
+            studentNotes: {
+              where: { ustadhId, resolved: false },
+              select: { id: true },
             },
           },
         },
-      }),
-      prisma.appointment.count({
-        where: {
-          teacherId: ustadhId,
-          status: "COMPLETED",
-          startTime: { gte: startOfMonth, lt: endOfMonth },
+      },
+    }),
+    prisma.appointment.count({
+      where: {
+        teacherId: ustadhId,
+        status: "COMPLETED",
+        startTime: { gte: startOfMonth, lt: endOfMonth },
+      },
+    }),
+    prisma.recurringSlot.findMany({
+      where: {
+        mentorship: { teacherId: ustadhId, status: "ACTIVE" },
+      },
+      include: {
+        mentorship: {
+          select: { student: { select: { id: true, name: true } } },
         },
-      }),
-      prisma.recurringSlot.findMany({
-        where: {
-          mentorship: { teacherId: ustadhId, status: "ACTIVE" },
-        },
-        include: {
-          mentorship: {
-            select: { student: { select: { id: true, name: true } } },
-          },
-        },
-        orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-      }),
-    ]);
+      },
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+    }),
+  ]);
 
   const title = session.user.gender === "female" ? "Ustadha" : "Ustadh";
   const firstName = session.user.name?.split(" ")[0] ?? "";
-  const todayRecurringCount = weeklySlots.filter((s) => s.dayOfWeek === now.getDay()).length;
+  const todayRecurringCount = weeklySlots.filter(
+    (s) => s.dayOfWeek === now.getDay(),
+  ).length;
 
   const weekGrouped: Record<number, typeof weekSessions> = {};
   for (const s of weekSessions) {
@@ -743,10 +922,15 @@ async function UstadhDashboard({ session }: { session: Session }) {
         <div className="rounded-2xl border border-border bg-bg-elevated p-5">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FontAwesomeIcon icon={faUserGroup} className="text-primary size-4" />
+              <FontAwesomeIcon
+                icon={faUserGroup}
+                className="text-primary size-4"
+              />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{activeMatches.length}</p>
+              <p className="text-2xl font-bold text-text-primary">
+                {activeMatches.length}
+              </p>
               <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
                 Active Students
               </p>
@@ -756,10 +940,15 @@ async function UstadhDashboard({ session }: { session: Session }) {
         <div className="rounded-2xl border border-border bg-bg-elevated p-5">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-success/10 flex items-center justify-center">
-              <FontAwesomeIcon icon={faCheckCircle} className="text-success size-4" />
+              <FontAwesomeIcon
+                icon={faCheckCircle}
+                className="text-success size-4"
+              />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{completedThisMonth}</p>
+              <p className="text-2xl font-bold text-text-primary">
+                {completedThisMonth}
+              </p>
               <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
                 Sessions This Month
               </p>
@@ -769,10 +958,15 @@ async function UstadhDashboard({ session }: { session: Session }) {
         <div className="rounded-2xl border border-border bg-bg-elevated p-5">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-info/10 flex items-center justify-center">
-              <FontAwesomeIcon icon={faCalendarDay} className="text-info size-4" />
+              <FontAwesomeIcon
+                icon={faCalendarDay}
+                className="text-info size-4"
+              />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{todaySessions.length || todayRecurringCount}</p>
+              <p className="text-2xl font-bold text-text-primary">
+                {todaySessions.length || todayRecurringCount}
+              </p>
               <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
                 Today&apos;s Sessions
               </p>
@@ -782,32 +976,43 @@ async function UstadhDashboard({ session }: { session: Session }) {
       </div>
 
       <section>
-        <h2 className="text-lg font-bold text-text-primary mb-4">Today&apos;s Sessions</h2>
+        <h2 className="text-lg font-bold text-text-primary mb-4">
+          Today&apos;s Sessions
+        </h2>
         {todaySessions.length === 0 && todayRecurringCount === 0 ? (
-          <p className="text-sm text-text-secondary">No sessions scheduled for today.</p>
+          <p className="text-sm text-text-secondary">
+            No sessions scheduled for today.
+          </p>
         ) : todaySessions.length === 0 ? (
           <div className="space-y-2">
-            {weeklySlots.filter((s) => s.dayOfWeek === now.getDay()).map((s) => (
-              <div
-                key={s.id}
-                className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 flex items-center justify-between"
-              >
-                <div>
-                  <p className="font-medium text-text-primary">
-                    {s.mentorship.student.name?.split(" ")[0] ?? "Student"}
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    {s.type === "DAILY_HIFDH" ? "Hifdh" : "Muraja'ah"} ·{" "}
-                    {new Date(`2000-01-01T${s.startTime}`).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
-                  </p>
+            {weeklySlots
+              .filter((s) => s.dayOfWeek === now.getDay())
+              .map((s) => (
+                <div
+                  key={s.id}
+                  className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-medium text-text-primary">
+                      {s.mentorship.student.name?.split(" ")[0] ?? "Student"}
+                    </p>
+                    <p className="text-sm text-text-secondary">
+                      {s.type === "DAILY_HIFDH" ? "Hifdh" : "Muraja'ah"} ·{" "}
+                      {new Date(`2000-01-01T${s.startTime}`).toLocaleTimeString(
+                        "en-US",
+                        {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        },
+                      )}
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-text-muted">
+                    Waiting for student to start
+                  </span>
                 </div>
-                <span className="text-[11px] text-text-muted">Waiting for student to start</span>
-              </div>
-            ))}
+              ))}
           </div>
         ) : (
           <div className="space-y-2">
@@ -815,7 +1020,9 @@ async function UstadhDashboard({ session }: { session: Session }) {
               <UpcomingAppointmentCard
                 key={s.id}
                 id={s.id}
-                studentName={s.mentorship.student.name?.split(" ")[0] ?? "Student"}
+                studentName={
+                  s.mentorship.student.name?.split(" ")[0] ?? "Student"
+                }
                 startTime={s.startTime}
                 status={s.status}
                 canJoin={canJoin(s.startTime, now.getTime())}
@@ -854,20 +1061,23 @@ async function UstadhDashboard({ session }: { session: Session }) {
                         <p className="font-medium text-text-primary">
                           {s.mentorship.student.name?.split(" ")[0] ?? "S"}
                         </p>
-                        <p className="text-text-muted">{formatTime(s.startTime)}</p>
-                      </div>
-                    ))}
-                    {dayAppointments.length === 0 && daySlots.map((s) => (
-                      <div
-                        key={s.id}
-                        className="text-xs bg-bg-hover rounded-lg px-2.5 py-1.5 border border-dashed border-border"
-                      >
-                        <p className="font-medium text-text-primary">
-                          {s.mentorship.student.name?.split(" ")[0] ?? "S"}
+                        <p className="text-text-muted">
+                          {formatTime(s.startTime)}
                         </p>
-                        <p className="text-text-muted">{s.startTime}</p>
                       </div>
                     ))}
+                    {dayAppointments.length === 0 &&
+                      daySlots.map((s) => (
+                        <div
+                          key={s.id}
+                          className="text-xs bg-bg-hover rounded-lg px-2.5 py-1.5 border border-dashed border-border"
+                        >
+                          <p className="font-medium text-text-primary">
+                            {s.mentorship.student.name?.split(" ")[0] ?? "S"}
+                          </p>
+                          <p className="text-text-muted">{s.startTime}</p>
+                        </div>
+                      ))}
                   </div>
                 </div>
               );
@@ -883,12 +1093,13 @@ async function UstadhDashboard({ session }: { session: Session }) {
             href="/students"
             className="text-sm font-medium text-primary hover:text-primary-light flex items-center gap-1"
           >
-            View All{" "}
-            <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+            View All <FontAwesomeIcon icon={faArrowRight} className="size-3" />
           </Link>
         </div>
         {activeMatches.length === 0 ? (
-          <p className="text-sm text-text-secondary">No active students assigned.</p>
+          <p className="text-sm text-text-secondary">
+            No active students assigned.
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeMatches.map((m) => {

@@ -11,6 +11,7 @@ import {
   Music,
   ChevronDown,
   Check,
+  Bookmark,
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -167,6 +168,49 @@ export default function Mushaf({
     new Map(),
   );
   const [showControls, setShowControls] = useState(true);
+  const [bookmarkedVerses, setBookmarkedVerses] = useState<Set<string>>(new Set());
+  const [bookmarkLoading, setBookmarkLoading] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch("/api/bookmarks")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.bookmarks) {
+          setBookmarkedVerses(
+            new Set(data.bookmarks.map((b: { surah: number; ayah: number }) => `${b.surah}:${b.ayah}`)),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  async function toggleBookmark(surah: number, ayah: number) {
+    const key = `${surah}:${ayah}`;
+    setBookmarkLoading((prev) => new Set(prev).add(key));
+    try {
+      const res = await fetch("/api/bookmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ surah, ayah }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBookmarkedVerses((prev) => {
+          const next = new Set(prev);
+          if (data.bookmarked) next.add(key);
+          else next.delete(key);
+          return next;
+        });
+      }
+    } catch {
+    } finally {
+      setBookmarkLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -566,25 +610,51 @@ export default function Mushaf({
             {verseNum}
           </span>
           {mode === "standalone" && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePlayVerse(verseNum);
-              }}
-              className={`p-2 rounded-full transition-all duration-200 ${
-                isActive && isPlaying
-                  ? "bg-primary text-text-inverse"
-                  : "opacity-0 group-hover:opacity-100 bg-bg-secondary text-text-secondary hover:bg-primary hover:text-text-inverse"
-              }`}
-            >
-              {isActive && isLoading ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : isActive && isPlaying ? (
-                <Pause size={14} />
-              ) : (
-                <Play size={14} />
-              )}
-            </button>
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleBookmark(selectedSurah, verseNum);
+                }}
+                className={`p-2 rounded-full transition-all duration-200 ${
+                  bookmarkedVerses.has(`${selectedSurah}:${verseNum}`)
+                    ? "text-amber-500 opacity-100"
+                    : "opacity-0 group-hover:opacity-100 text-text-secondary hover:text-amber-500"
+                }`}
+              >
+                {bookmarkLoading.has(`${selectedSurah}:${verseNum}`) ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Bookmark
+                    size={14}
+                    fill={
+                      bookmarkedVerses.has(`${selectedSurah}:${verseNum}`)
+                        ? "currentColor"
+                        : "none"
+                    }
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlayVerse(verseNum);
+                }}
+                className={`p-2 rounded-full transition-all duration-200 ${
+                  isActive && isPlaying
+                    ? "bg-primary text-text-inverse"
+                    : "opacity-0 group-hover:opacity-100 bg-bg-secondary text-text-secondary hover:bg-primary hover:text-text-inverse"
+                }`}
+              >
+                {isActive && isLoading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : isActive && isPlaying ? (
+                  <Pause size={14} />
+                ) : (
+                  <Play size={14} />
+                )}
+              </button>
+            </>
           )}
         </div>
         <p

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useToast } from "@/components/ui/toast";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5);
@@ -19,8 +20,10 @@ function parseSlotKey(key: SlotKey) {
 
 export function AvailabilityGrid({
   initialSlots,
+  dayFilter,
 }: {
   initialSlots: { dayOfWeek: number; startTime: string; endTime: string }[];
+  dayFilter?: number | null;
 }) {
   const [selected, setSelected] = useState<Set<SlotKey>>(() => {
     const s = new Set<SlotKey>();
@@ -34,11 +37,8 @@ export function AvailabilityGrid({
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : "UTC"
   );
+  const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   const dragActionRef = useRef<"add" | "remove" | null>(null);
   const isDraggingRef = useRef(false);
@@ -152,7 +152,6 @@ export function AvailabilityGrid({
 
   async function handleSave() {
     setSaving(true);
-    setMessage(null);
     const slots = Array.from(selected).map((key) => {
       const { day, start, end } = parseSlotKey(key);
       return { dayOfWeek: day, startTime: start, endTime: end };
@@ -164,15 +163,14 @@ export function AvailabilityGrid({
         body: JSON.stringify({ slots, timezone }),
       });
       if (res.ok) {
-        setMessage({ type: "success", text: "Availability saved successfully." });
+        toast({ title: "Availability saved successfully.", variant: "success" });
       } else {
-        setMessage({ type: "error", text: "Failed to save availability." });
+        toast({ title: "Failed to save availability.", variant: "error" });
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to save availability." });
+      toast({ title: "Failed to save availability.", variant: "error" });
     } finally {
       setSaving(false);
-      setTimeout(() => setMessage(null), 3000);
     }
   }
 
@@ -189,11 +187,6 @@ export function AvailabilityGrid({
           </select>
         </label>
         <div className="flex items-center gap-3">
-          {message && (
-            <span className={`text-sm ${message.type === "success" ? "text-success" : "text-danger"}`}>
-              {message.text}
-            </span>
-          )}
           <button onClick={handleSave} disabled={saving}
             className="bg-primary text-text-inverse px-5 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50">
             {saving ? "Saving..." : "Save"}
@@ -203,10 +196,13 @@ export function AvailabilityGrid({
 
       <div className="overflow-x-auto">
         <div className="grid gap-px bg-border rounded-xl overflow-hidden"
-          style={{ gridTemplateColumns: `80px repeat(7, 1fr)`, gridTemplateRows: `auto repeat(${HOURS.length * 2}, 28px)` }}>
+          style={{
+            gridTemplateColumns: dayFilter != null ? `80px 1fr` : `80px repeat(7, 1fr)`,
+            gridTemplateRows: `auto repeat(${HOURS.length * 2}, 28px)`,
+          }}>
           <div className="bg-bg-card p-2 text-xs font-semibold text-text-secondary text-center" />
-          {DAYS.map((day) => (
-            <div key={day} className="bg-bg-card p-2 text-xs font-semibold text-text-secondary text-center">{day}</div>
+          {(dayFilter != null ? [dayFilter] : DAYS.map((_, i) => i)).map((day) => (
+            <div key={day} className="bg-bg-card p-2 text-xs font-semibold text-text-secondary text-center">{DAYS[day]}</div>
           ))}
           {HOURS.map((hour, hourIndex) =>
             MINUTES.map((min, minIndex) => {
@@ -216,10 +212,11 @@ export function AvailabilityGrid({
               const endHour = min === 0 ? hour : hour + 1;
               const end = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
               const timeLabel = min === 0 ? `${hour}:00` : "";
+              const dayRange = dayFilter != null ? [dayFilter] : Array.from({ length: 7 }, (_, i) => i);
               return (
                 <div key={`${hour}-${min}`} className="contents">
                   <div className="bg-bg-card text-[10px] text-text-muted flex items-center justify-center">{timeLabel}</div>
-                  {Array.from({ length: 7 }, (_, day) => {
+                  {dayRange.map((day) => {
                     const key = toSlotKey(day, start, end);
                     const isSelected = selected.has(key);
                     return (

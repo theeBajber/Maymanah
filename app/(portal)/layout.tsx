@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SideNav, TopNav } from "@/components/ui/PortalNav";
+import { TopNavProvider } from "@/lib/TopNavContext";
 
 export const metadata: Metadata = {
   title: "Maymanah - Portal",
@@ -65,11 +66,13 @@ export default async function PortalLayout({
 
   return (
     <div className="min-h-screen bg-bg-primary">
-      <TopNav />
-      <SideNav />
-      <main className="md:pl-16 pt-16">
-        {children}
-      </main>
+      <TopNavProvider>
+        <TopNav />
+        <SideNav />
+        <main className="md:pl-16 pt-16">
+          {children}
+        </main>
+      </TopNavProvider>
     </div>
   );
 }

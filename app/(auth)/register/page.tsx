@@ -1,24 +1,23 @@
 "use client";
 
-import { faArrowRight, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRight, faSpinner, faEnvelope, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
-import { signIn } from "next-auth/react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export default function Register() {
-  const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [shake, setShake] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"STUDENT" | "TEACHER">("STUDENT");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [resending, setResending] = useState(false);
 
   const getPasswordStrength = (pwd: string) => {
     if (pwd.length === 0) return null;
@@ -35,30 +34,24 @@ export default function Register() {
 
   const strength = getPasswordStrength(password);
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      toast({ title: "Passwords do not match", variant: "error" });
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      toast({ title: "Password must be at least 8 characters", variant: "error" });
       return;
     }
     if (!isValidName(name)) {
-      setError("Please enter a valid name!");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      toast({ title: "Please enter a valid name!", variant: "error" });
       return;
     }
 
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -75,39 +68,80 @@ export default function Register() {
       setLoading(false);
 
       if (!res.ok) {
-        setError(
-          data.error?.[0]?.message || data.error || "Registration failed",
-        );
-        setShake(true);
-        setTimeout(() => setShake(false), 400);
+        toast({ title: data.error?.[0]?.message || data.error || "Registration failed", variant: "error" });
         return;
       }
 
-      await signIn("credentials", {
-        email: email.trim().toLowerCase(),
-        password,
-        redirect: false,
-      });
-      router.push("/onboarding");
+      setRegisteredEmail(email.trim().toLowerCase());
     } catch {
       setLoading(false);
-      setError("Something went wrong. Please try again.");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      toast({ title: "Something went wrong. Please try again.", variant: "error" });
     }
   };
 
+  if (registeredEmail) {
+    return (
+      <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-10 md:p-14 w-full max-w-xl animate-in fade-in duration-500">
+        <div className="flex flex-col items-center gap-2 mb-8">
+          <h1 className="text-4xl md:text-5xl font-black flex items-center gap-4 uppercase tracking-wider">
+            <Image className="h-12 w-auto" src={"/logo.png"} height={339} width={439} alt="" />
+            Maymanah
+          </h1>
+        </div>
+        <div className="text-center py-6 space-y-6">
+          <div className="w-20 h-20 mx-auto rounded-full bg-success/10 flex items-center justify-center">
+            <FontAwesomeIcon icon={faEnvelope} className="size-8 text-success" />
+          </div>
+          <h2 className="text-2xl font-bold text-text-primary">Check your email</h2>
+          <p className="text-text-secondary text-sm leading-relaxed max-w-sm mx-auto">
+            We sent a verification link to <strong className="text-text-primary">{registeredEmail}</strong>.
+            Click the link to activate your account.
+          </p>
+          <p className="text-xs text-text-muted">
+            Didn't get the email? Check your spam folder or{" "}
+            <button
+              type="button"
+              disabled={resending}
+              onClick={async () => {
+                setResending(true);
+                try {
+                  const res = await fetch("/api/auth/resend-verification", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: registeredEmail }),
+                  });
+                  if (res.ok) {
+                    toast({ title: "Verification email resent!", variant: "success" });
+                  } else {
+                    toast({ title: "Failed to resend. Try again later.", variant: "error" });
+                  }
+                } catch {
+                  toast({ title: "Failed to resend. Try again later.", variant: "error" });
+                } finally {
+                  setResending(false);
+                }
+              }}
+              className="text-primary font-medium hover:underline disabled:opacity-50"
+            >
+              {resending ? "Sending..." : "resend"}
+            </button>
+          </p>
+          <a
+            href="/login"
+            className="inline-block mt-4 px-8 py-3 bg-primary text-text-inverse rounded-xl font-bold hover:brightness-110 transition-all active:scale-[0.97]"
+          >
+            Go to Login
+          </a>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-8 md:p-14 relative overflow-hidden w-full max-w-xl">
-      <div className="flex flex-col items-center gap-2 mb-6">
+    <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-8 md:p-14 w-full max-w-xl animate-in fade-in duration-500">
+      <div className="flex flex-col items-center gap-2 mb-8">
         <h1 className="text-4xl md:text-5xl font-black flex items-center gap-4 uppercase tracking-wider">
-          <Image
-            className="h-12 w-auto"
-            src={"/logo.png"}
-            height={339}
-            width={439}
-            alt=""
-          />
+          <Image className="h-12 w-auto" src={"/logo.png"} height={339} width={439} alt="" />
           Maymanah
         </h1>
         <div className="flex items-center justify-center">
@@ -118,16 +152,17 @@ export default function Register() {
           <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
+
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="w-full justify-center flex items-center">
-          <div className="bg-bg-primary p-1.5 rounded-xl flex gap-1 border border-primary/10 w-fit">
+          <div className="bg-bg-primary p-1 rounded-xl flex gap-1 border border-border w-fit">
             <button
               type="button"
               onClick={() => setRole("STUDENT")}
-              className={`px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
                 role === "STUDENT"
-                  ? "bg-primary text-text-inverse shadow-lg shadow-primary/20"
-                  : "hover:text-text-secondary"
+                  ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
               Learner
@@ -135,10 +170,10 @@ export default function Register() {
             <button
               type="button"
               onClick={() => setRole("TEACHER")}
-              className={`px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
                 role === "TEACHER"
-                  ? "bg-primary text-text-inverse shadow-lg shadow-primary/20"
-                  : "hover:text-text-secondary"
+                  ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
               Teacher
@@ -146,24 +181,14 @@ export default function Register() {
           </div>
         </div>
 
-        {error && (
-          <div
-            className={`mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium ${shake ? "shake" : ""}`}
-          >
-            {error}
-          </div>
-        )}
-        <div className="flex flex-col gap-2">
-          <label
-            className="text-[10px] uppercase tracking-widest font-bold px-1"
-            htmlFor="name"
-          >
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] uppercase tracking-widest font-bold px-1" htmlFor="name">
             Full Name
           </label>
-          <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-            <User className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
+          <div className="flex items-center gap-3 px-4 h-12 border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors">
+            <User className="size-4 shrink-0 text-text-muted" />
             <input
-              className="w-full placeholder:text-primary/30 focus:outline-none bg-transparent"
+              className="w-full bg-transparent placeholder:text-text-muted/50 focus:outline-none text-sm"
               id="name"
               placeholder="Umar Farouq"
               type="text"
@@ -174,17 +199,14 @@ export default function Register() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label
-            className="text-[10px] uppercase tracking-widest font-bold px-1"
-            htmlFor="email"
-          >
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] uppercase tracking-widest font-bold px-1" htmlFor="email">
             Email Address
           </label>
-          <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-            <Mail className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
+          <div className="flex items-center gap-3 px-4 h-12 border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors">
+            <Mail className="size-4 shrink-0 text-text-muted" />
             <input
-              className="w-full placeholder:text-primary/30 focus:outline-none bg-transparent"
+              className="w-full bg-transparent placeholder:text-text-muted/50 focus:outline-none text-sm"
               id="email"
               placeholder="scholar@Maymanah.com"
               type="email"
@@ -195,18 +217,15 @@ export default function Register() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="flex w-full flex-col gap-2">
-            <label
-              className="text-[10px] uppercase tracking-widest font-bold"
-              htmlFor="password"
-            >
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex w-full flex-col gap-1.5">
+            <label className="text-[10px] uppercase tracking-widest font-bold" htmlFor="password">
               Password
             </label>
-            <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-              <Lock className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
+            <div className="flex items-center gap-3 px-4 h-12 border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors">
+              <Lock className="size-4 shrink-0 text-text-muted" />
               <input
-                className="w-full placeholder:text-primary/30 focus:outline-none bg-transparent"
+                className="w-full bg-transparent placeholder:text-text-muted/50 focus:outline-none text-sm"
                 id="password"
                 placeholder="•••••••••••"
                 type={showPassword ? "text" : "password"}
@@ -217,29 +236,22 @@ export default function Register() {
               <button
                 type="button"
                 tabIndex={-1}
-                className="text-primary hover:text-primary-dark transition-colors"
+                className="text-text-muted hover:text-text-primary transition-colors shrink-0"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? (
-                  <EyeOff className="size-4!" />
-                ) : (
-                  <Eye className="size-4!" />
-                )}
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
           </div>
 
-          <div className="flex w-full flex-col gap-2">
-            <label
-              className="text-[10px] uppercase tracking-widest font-bold"
-              htmlFor="repeat"
-            >
+          <div className="flex w-full flex-col gap-1.5">
+            <label className="text-[10px] uppercase tracking-widest font-bold" htmlFor="repeat">
               Confirm Password
             </label>
-            <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-              <Lock className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
+            <div className="flex items-center gap-3 px-4 h-12 border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors">
+              <Lock className="size-4 shrink-0 text-text-muted" />
               <input
-                className="w-full placeholder:text-primary/30 focus:outline-none bg-transparent"
+                className="w-full bg-transparent placeholder:text-text-muted/50 focus:outline-none text-sm"
                 id="repeat"
                 placeholder="•••••••••••"
                 type={showPassword ? "text" : "password"}
@@ -247,79 +259,49 @@ export default function Register() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
-              <button
-                type="button"
-                tabIndex={-1}
-                className="text-primary hover:text-primary-dark transition-colors"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="size-4!" />
-                ) : (
-                  <Eye className="size-4!" />
-                )}
-              </button>
             </div>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex w-full flex-col gap-1 px-1">
+
+        <div className="flex flex-col sm:flex-row gap-3 items-start">
+          <div className="flex-1 w-full px-1 space-y-1">
             {strength && (
               <>
                 <div className="h-1 w-full bg-border rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${strength.color} ${strength.width}`}
-                  />
+                  <div className={`h-full rounded-full transition-all duration-300 ${strength.color} ${strength.width}`} />
                 </div>
-                <span
-                  className={`text-[10px] font-bold ${strength.color.replace("bg-", "text-")}`}
-                >
+                <span className={`text-[10px] font-bold ${strength.color.replace("bg-", "text-")}`}>
                   {strength.label}
                 </span>
               </>
             )}
           </div>
-
-          <div className="flex w-full px-1">
+          <div className="flex-1 w-full px-1">
             {confirmPassword && (
-              <p
-                className={`text-[10px] font-bold ${password === confirmPassword ? "text-success" : "text-danger"}`}
-              >
-                {password === confirmPassword
-                  ? "✓ Passwords match"
-                  : "✗ Passwords do not match"}
+              <p className={`text-[10px] font-bold ${password === confirmPassword ? "text-success" : "text-danger"}`}>
+                {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
               </p>
             )}
           </div>
         </div>
 
         <button
-          disabled={
-            loading ||
-            !name ||
-            !email ||
-            !password ||
-            password !== confirmPassword ||
-            password.length < 8
-          }
-          className="w-full h-14 bg-primary text-text-inverse rounded-xl font-black text-lg tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed! disabled:hover:shadow-primary/20 disabled:hover:translate-y-0"
+          disabled={loading || !name || !email || !password || password !== confirmPassword || password.length < 8}
+          className="w-full h-12 bg-primary text-text-inverse rounded-xl font-bold text-base tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-primary/20"
           type="submit"
         >
           {loading ? "Creating Account" : "Create Account"}
           <FontAwesomeIcon
             icon={loading ? faSpinner : faArrowRight}
-            className={`size-4! transition-transform ${loading ? "animate-spin" : ""} ${!loading && email && password && name && password === confirmPassword && password.length >= 7 ? "group-hover:translate-x-1" : ""}`}
+            className={`size-3.5 transition-transform ${loading ? "animate-spin" : ""} ${!loading && email && password && name && password === confirmPassword && password.length >= 7 ? "group-hover:translate-x-0.5" : ""}`}
           />
         </button>
 
-        <div className="flex justify-between w-full items-center px-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold">
+        <div className="flex justify-between items-center px-1 pt-1">
+          <span className="text-[10px] uppercase tracking-widest font-bold text-text-muted">
             Already enrolled?
           </span>
-          <a
-            className="text-[10px] uppercase tracking-widest text-primary font-bold hover:text-primary-dark transition-colors"
-            href="/login"
-          >
+          <a className="text-[10px] uppercase tracking-widest text-primary font-bold hover:underline transition-all" href="/login">
             Log In
           </a>
         </div>

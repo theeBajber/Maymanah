@@ -20,44 +20,41 @@ function createClient() {
   return new PrismaClient({ adapter });
 }
 
+export function isNeonColdStart(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /closed the connection|connection.*terminated|ECONNREFUSED|ConnectionClosed|clientVersion/i.test(msg);
+}
+
+export async function reconnectPrisma() {
+  try { await prisma.$disconnect(); } catch {}
+  const newClient = createClient();
+  try { await newClient.$connect(); } catch {}
+  prisma = newClient;
+  globalForPrisma.prisma = newClient;
+}
+
 export let prisma: PrismaClient = globalForPrisma.prisma || createClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-async function createNewClient() {
-  const client = createClient();
-  try {
-    await client.$connect();
-  } catch {
-    // Neon might still be waking up; don't throw here
-  }
-  return client;
-}
-
 export async function safeQuery<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (
-      /closed the connection|connection.*terminated|ECONNREFUSED|ConnectionClosed/i.test(
-        msg,
-      )
-    ) {
-      // Clean up old client
-      try {
-        await prisma.$disconnect();
-      } catch {}
+    if (!isNeonColdStart(err)) throw err;
+    await reconnectPrisma();
+    return await fn();
+  }
+}
 
-      // Create fresh client with fresh adapter
-      const newClient = await createNewClient();
-      prisma = newClient;
-      globalForPrisma.prisma = newClient;
-
-      return await fn();
-    }
-    throw err;
+export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: unknown) {
+    if (!isNeonColdStart(err)) throw err;
+    await reconnectPrisma();
+    return await fn();
   }
 }
