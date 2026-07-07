@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
@@ -17,14 +17,15 @@ export async function POST() {
     }
 
     const session = await auth();
-    if (!session?.user?.email) {
+    const email = session?.user?.email;
+    if (!email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const user = await safeQuery(() => prisma.user.findUnique({
+      where: { email },
       select: { id: true, email: true, twoFactorEnabled: true },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -40,13 +41,13 @@ export async function POST() {
     const code = crypto.randomInt(100000, 999999).toString();
     const hashedCode = await bcrypt.hash(code, 10);
 
-    await prisma.twoFactorOTP.create({
+    await safeQuery(() => prisma.twoFactorOTP.create({
       data: {
         userId: user.id,
         code: hashedCode,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
-    });
+    }));
 
     await sendOTP(user.email!, code);
 

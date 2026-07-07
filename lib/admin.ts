@@ -350,14 +350,17 @@ export async function getAnalytics() {
       select: {
         id: true,
         totalScore: true,
-        exam: { select: { passMark: true, title: true, courseId: true } },
+        exam: { select: { passMark: true, totalMarks: true, title: true, courseId: true } },
       },
     }),
   );
 
-  const passedExams = gradedSubmissions.filter(
-    (s) => s.totalScore !== null && s.exam.passMark !== null && s.totalScore >= s.exam.passMark,
-  ).length;
+  const passedExams = gradedSubmissions.filter((s) => {
+    if (s.totalScore === null || s.exam.passMark === null) return false;
+    const totalMarks = s.exam.totalMarks ?? 1;
+    const pct = totalMarks > 0 ? (s.totalScore / totalMarks) * 100 : 0;
+    return pct >= s.exam.passMark;
+  }).length;
 
   // Recent audit log
   const recentAuditLog = await safeQuery(() =>

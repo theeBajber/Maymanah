@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
@@ -20,10 +20,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await safeQuery(() => prisma.user.findUnique({
       where: { email },
       select: { id: true, email: true },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json(
@@ -31,22 +31,22 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingTokens = await prisma.verificationToken.findMany({
+    const existingTokens = await safeQuery(() => prisma.verificationToken.findMany({
       where: { identifier: email },
       select: { token: true },
-    });
+    }));
     for (const t of existingTokens) {
-      await prisma.verificationToken.delete({
+      await safeQuery(() => prisma.verificationToken.delete({
         where: { identifier_token: { identifier: email, token: t.token } },
-      });
+      }));
     }
 
     const token = crypto.randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 60 * 60 * 1000);
 
-    await prisma.verificationToken.create({
+    await safeQuery(() => prisma.verificationToken.create({
       data: { identifier: email, token, expires },
-    });
+    }));
 
     await sendPasswordResetEmail(email, token);
 

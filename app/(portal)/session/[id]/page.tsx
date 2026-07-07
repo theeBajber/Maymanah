@@ -6,6 +6,7 @@ import {
   faChevronLeft,
   faChevronRight,
   faCircle,
+  faFlag,
   faMicrophone,
   faPen,
   faPhone,
@@ -15,6 +16,7 @@ import {
   faVolumeHigh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
@@ -32,6 +34,7 @@ interface JoinData {
   token: string;
   roomName: string;
   liveKitUrl: string;
+  otherUserId: string;
   appointment: {
     id: string;
     title: string | null;
@@ -192,6 +195,13 @@ export default function SessionPage() {
               {isTeacher ? "Teaching" : "Student"}
             </span>
             <span className="rounded-full bg-bg-card border border-border px-3 py-1">{activeItems} follow-ups</span>
+            <Link
+              href={`/portal/report?userId=${joinData.otherUserId}`}
+              className="rounded-full bg-danger/10 px-3 py-1 text-danger font-medium hover:bg-danger/20 transition-colors flex items-center gap-1.5 text-xs"
+            >
+              <FontAwesomeIcon icon={faFlag} className="size-3" />
+              Report
+            </Link>
           </div>
         </div>
       </div>

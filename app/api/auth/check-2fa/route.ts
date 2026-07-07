@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -17,10 +17,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await safeQuery(() => prisma.user.findUnique({
       where: { email },
       select: { twoFactorEnabled: true, emailVerified: true },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ exists: false });

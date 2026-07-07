@@ -31,6 +31,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const otherUserId = isTeacher ? appointment.mentorship.studentId : appointment.teacherId;
+
     const now = new Date();
     const isTest = new URL(_req.url).searchParams.has("test");
     if (!isTest && now < appointment.startTime) {
@@ -58,6 +60,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       token,
       roomName,
       liveKitUrl,
+      otherUserId,
       appointment: {
         id: appointment.id,
         title: appointment.title,

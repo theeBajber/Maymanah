@@ -55,6 +55,7 @@ export default async function LessonPage({
             questions: { orderBy: { orderIndex: "asc" } },
             submissions: {
               where: { studentId: session.user.id },
+              orderBy: { attemptNumber: "desc" },
               include: { answers: true },
               take: 1,
             },

@@ -68,7 +68,7 @@ function ResetPasswordForm() {
     } finally {
       setLoading(false);
     }
-  }, [token, password, otpCode, toast, router]);
+  }, [token, password, confirmPassword, otpCode, toast, router]);
 
   return (
     <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-10 md:p-14 w-full max-w-xl animate-in fade-in duration-500">

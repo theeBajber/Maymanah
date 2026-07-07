@@ -219,6 +219,7 @@ model Enrollment {
   status      EnrollmentStatus  @default(ACTIVE)
   progress    Int               @default(0) // 0-100
   enrolledAt  DateTime          @default(now())
+  passedAt    DateTime?
   completedAt DateTime?
 
   @@unique([userId, courseId])
@@ -390,21 +391,22 @@ model Question {
 }
 
 model Submission {
-  id          String           @id @default(cuid())
-  examId      String
-  exam        Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  status      SubmissionStatus @default(IN_PROGRESS)
-  totalScore  Float?
-  startedAt   DateTime         @default(now())
-  submittedAt DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id             String           @id @default(cuid())
+  examId         String
+  exam           Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status         SubmissionStatus @default(IN_PROGRESS)
+  totalScore     Float?
+  attemptNumber  Int              @default(1)
+  startedAt      DateTime         @default(now())
+  submittedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   answers Answer[]
 
-  @@unique([examId, studentId])
+  @@index([examId, studentId])
   @@index([examId])
   @@index([studentId])
 }
@@ -445,15 +447,18 @@ model UserAnalytics {
 
 // ─── Ijazah & Progress ───
 model Ijazah {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId       String
-  course         Course   @relation(fields: [courseId], references: [id])
-  issuedAt       DateTime @default(now())
-  issuedBy       String?  // Admin name or "SYSTEM"
-  certificateUrl String?
-  isVerified     Boolean  @default(false)
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId         String
+  course           Course   @relation(fields: [courseId], references: [id])
+  issuedAt         DateTime @default(now())
+  issuedBy         String?  // Admin name or "SYSTEM"
+  certificateUrl   String?
+  certificatePdfUrl String?
+  verificationCode String? @unique
+  expiresAt        DateTime?
+  isVerified       Boolean  @default(false)
 
   @@unique([userId, courseId])
   @@index([userId])

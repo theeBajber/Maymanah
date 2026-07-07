@@ -1,13 +1,13 @@
-import NextAuth from "next-auth";
+import NextAuth, { type Session } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
+import { prisma, isNeonColdStart, reconnectPrisma } from "@/lib/prisma";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 import { logAuditEvent } from "@/lib/audit";
 import { headers } from "next/headers";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const { handlers: _handlers, auth: _auth, signIn: _signIn, signOut: _signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   pages: {
@@ -139,3 +139,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+async function authWithRetry(): Promise<Session | null> {
+  try {
+    return await _auth();
+  } catch (err: unknown) {
+    if (!isNeonColdStart(err)) throw err;
+    await reconnectPrisma();
+    return _auth();
+  }
+}
+
+export const handlers = _handlers;
+export const auth = authWithRetry as () => Promise<Session | null>;
+export const signIn = _signIn;
+export const signOut = _signOut;

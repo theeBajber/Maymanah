@@ -7,6 +7,7 @@ import {
   faChalkboardUser,
   faUsers,
   faChartBar,
+  faAward,
   faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -16,6 +17,7 @@ const links = [
   { name: "Courses", href: "/admin/courses", icon: faBookOpen },
   { name: "Teachers", href: "/admin/teachers", icon: faChalkboardUser },
   { name: "Users", href: "/admin/users", icon: faUsers },
+  { name: "Certificates", href: "/admin/certificates", icon: faAward },
   { name: "Analytics", href: "/admin/analytics", icon: faChartBar },
 ];
 

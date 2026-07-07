@@ -2,6 +2,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { amiri } from "@/components/ui/fonts";
+import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFlag } from "@fortawesome/free-solid-svg-icons";
 import { StudentNotesClient } from "./StudentNotesClient";
 
 export const dynamic = "force-dynamic";
@@ -94,11 +97,20 @@ export default async function StudentDetail({ params }: PageContext) {
 
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto">
-        <section className="bg-bg-card rounded-xl p-6 border border-border">
-          <h1 className={`text-3xl text-primary ${amiri.className}`}>
-            {student.name?.split(" ")[0] ?? "Student"}
-          </h1>
-          <div className="grid grid-cols-3 gap-4 mt-4">
+<section className="bg-bg-card rounded-xl p-6 border border-border">
+      <div className="flex items-center justify-between">
+        <h1 className={`text-3xl text-primary ${amiri.className}`}>
+          {student.name?.split(" ")[0] ?? "Student"}
+        </h1>
+        <Link
+          href={`/portal/report?userId=${studentId}`}
+          className="rounded-full bg-danger/10 px-4 py-2 text-danger font-medium hover:bg-danger/20 transition-colors flex items-center gap-2 text-sm"
+        >
+          <FontAwesomeIcon icon={faFlag} className="size-3.5" />
+          Report
+        </Link>
+      </div>
+      <div className="grid grid-cols-3 gap-4 mt-4">
             <div>
               <p className="text-xs text-text-secondary uppercase tracking-wider">Current Position</p>
               <p className="text-lg font-semibold mt-1">Surah {progress?.lastSurah ?? "?"}:{progress?.lastVerse ?? "?"}</p>

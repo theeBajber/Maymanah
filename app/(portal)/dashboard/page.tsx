@@ -125,6 +125,17 @@ export default async function Dash(props: {
     enrollments: Awaited<ReturnType<typeof getActiveEnrollments>>;
   } | null = null;
 
+  const certificates = await safeQuery(() =>
+    prisma.ijazah.findMany({
+      where: { userId: session.user.id },
+      include: {
+        course: { select: { title: true, slug: true, image: true, category: true } },
+      },
+      orderBy: { issuedAt: "desc" },
+      take: 3,
+    }),
+  ).catch(() => []);
+
   if (tab === "analytics") {
     const [submissions, completedLessons, enrollments] = await Promise.all([
       getStudentSubmissions(session.user.id),
@@ -451,6 +462,46 @@ export default async function Dash(props: {
                 </p>
               )}
             </div>
+
+            {certificates.length > 0 && (
+              <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
+                  My Certificates
+                </h3>
+                <div className="space-y-3">
+                  {certificates.map((cert) => (
+                    <Link
+                      key={cert.id}
+                      href={`/certificates/${cert.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-bg-hover hover:bg-primary/5 transition-colors group"
+                    >
+                      <div className="size-10 rounded-lg bg-success-muted flex items-center justify-center shrink-0">
+                        <FontAwesomeIcon icon={faAward} className="size-4 text-success" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {cert.course.title}
+                        </p>
+                        <p className="text-xs text-text-muted">
+                          {new Date(cert.issuedAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                      <FontAwesomeIcon icon={faArrowRight} className="size-3 text-text-muted group-hover:text-primary transition-colors" />
+                    </Link>
+                  ))}
+                </div>
+                <Link
+                  href="/courses"
+                  className="block text-xs text-primary hover:text-primary-light font-medium mt-3"
+                >
+                  View all certificates
+                </Link>
+              </div>
+            )}
 
             <div className="rounded-2xl border border-border bg-bg-elevated p-5 space-y-2">
               <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">

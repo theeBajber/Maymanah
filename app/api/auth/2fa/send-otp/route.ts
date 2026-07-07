@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
@@ -20,10 +20,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await safeQuery(() => prisma.user.findUnique({
       where: { email },
       select: { id: true, email: true, twoFactorEnabled: true },
-    });
+    }));
 
     if (!user || !user.twoFactorEnabled) {
       return NextResponse.json(
@@ -35,13 +35,13 @@ export async function POST(req: Request) {
     const code = crypto.randomInt(100000, 999999).toString();
     const hashedCode = await bcrypt.hash(code, 10);
 
-    await prisma.twoFactorOTP.create({
+    await safeQuery(() => prisma.twoFactorOTP.create({
       data: {
         userId: user.id,
         code: hashedCode,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
-    });
+    }));
 
     await sendOTP(user.email!, code);
 

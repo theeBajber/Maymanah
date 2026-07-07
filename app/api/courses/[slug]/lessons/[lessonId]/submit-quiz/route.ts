@@ -49,8 +49,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     let totalScore = 0;
 
     const existingSubmission = await safeQuery(() =>
-      prisma.submission.findUnique({
-        where: { examId_studentId: { examId: exam.id, studentId: session.user.id } },
+      prisma.submission.findFirst({
+        where: { examId: exam.id, studentId: session.user.id },
       }),
     );
 
@@ -115,11 +115,12 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       }),
     );
 
+    const pct = (exam.totalMarks ?? 1) > 0 ? (totalScore / (exam.totalMarks ?? 1)) * 100 : 0;
     return NextResponse.json({
       submissionId: submission.id,
       totalScore,
       totalMarks: exam.totalMarks,
-      passed: totalScore >= exam.passMark,
+      passed: pct >= exam.passMark,
     });
   } catch (error) {
     console.error("Quiz submit error:", error);

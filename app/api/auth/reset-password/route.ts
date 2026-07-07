@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
@@ -39,9 +39,9 @@ export async function POST(req: NextRequest) {
 
     const { token, password, otpCode } = parsed.data;
 
-    const record = await prisma.verificationToken.findFirst({
+    const record = await safeQuery(() => prisma.verificationToken.findFirst({
       where: { token, expires: { gte: new Date() } },
-    });
+    }));
 
     if (!record) {
       return NextResponse.json(
@@ -50,10 +50,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await safeQuery(() => prisma.user.findUnique({
       where: { email: record.identifier },
       select: { id: true, email: true, twoFactorEnabled: true },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json(
@@ -67,13 +67,13 @@ export async function POST(req: NextRequest) {
         const code = crypto.randomInt(100000, 999999).toString();
         const hashedCode = await bcrypt.hash(code, 10);
 
-        await prisma.twoFactorOTP.create({
+        await safeQuery(() => prisma.twoFactorOTP.create({
           data: {
             userId: user.id,
             code: hashedCode,
             expiresAt: new Date(Date.now() + 10 * 60 * 1000),
           },
-        });
+        }));
 
         await sendOTP(user.email!, code);
 
@@ -83,14 +83,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const otpRecord = await prisma.twoFactorOTP.findFirst({
+      const otpRecord = await safeQuery(() => prisma.twoFactorOTP.findFirst({
         where: {
           userId: user.id,
           usedAt: null,
           expiresAt: { gte: new Date() },
         },
         orderBy: { createdAt: "desc" },
-      });
+      }));
 
       if (!otpRecord) {
         return NextResponse.json(
@@ -107,22 +107,22 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await prisma.twoFactorOTP.update({
+      await safeQuery(() => prisma.twoFactorOTP.update({
         where: { id: otpRecord.id },
         data: { usedAt: new Date() },
-      });
+      }));
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    await prisma.user.update({
+    await safeQuery(() => prisma.user.update({
       where: { id: user.id },
       data: { password: hashedPassword },
-    });
+    }));
 
-    await prisma.verificationToken.delete({
+    await safeQuery(() => prisma.verificationToken.delete({
       where: { identifier_token: { identifier: record.identifier, token } },
-    });
+    }));
 
     await logAuditEvent({
       action: "PASSWORD_RESET_COMPLETED",

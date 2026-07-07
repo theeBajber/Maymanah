@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
@@ -16,7 +16,8 @@ export async function POST(req: Request) {
     }
 
     const session = await auth();
-    if (!session?.user?.email) {
+    const email = session?.user?.email;
+    if (!email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,10 +26,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Password is required" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const user = await safeQuery(() => prisma.user.findUnique({
+      where: { email },
       select: { id: true, password: true },
-    });
+    }));
 
     if (!user || !user.password) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -39,10 +40,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
     }
 
-    await prisma.user.update({
+    await safeQuery(() => prisma.user.update({
       where: { id: user.id },
       data: { twoFactorEnabled: false },
-    });
+    }));
 
     await logAuditEvent({
       action: "TWO_FACTOR_DISABLED",

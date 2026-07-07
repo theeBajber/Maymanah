@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
@@ -16,7 +16,8 @@ export async function POST(req: Request) {
     }
 
     const session = await auth();
-    if (!session?.user?.email) {
+    const email = session?.user?.email;
+    if (!email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,10 +26,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Verification code is required" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const user = await safeQuery(() => prisma.user.findUnique({
+      where: { email },
       select: { id: true, email: true, twoFactorEnabled: true },
-    });
+    }));
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -41,14 +42,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const otpRecord = await prisma.twoFactorOTP.findFirst({
+    const otpRecord = await safeQuery(() => prisma.twoFactorOTP.findFirst({
       where: {
         userId: user.id,
         usedAt: null,
         expiresAt: { gte: new Date() },
       },
       orderBy: { createdAt: "desc" },
-    });
+    }));
 
     if (!otpRecord) {
       return NextResponse.json(
@@ -65,15 +66,15 @@ export async function POST(req: Request) {
       );
     }
 
-    await prisma.twoFactorOTP.update({
+    await safeQuery(() => prisma.twoFactorOTP.update({
       where: { id: otpRecord.id },
       data: { usedAt: new Date() },
-    });
+    }));
 
-    await prisma.user.update({
+    await safeQuery(() => prisma.user.update({
       where: { id: user.id },
       data: { twoFactorEnabled: true },
-    });
+    }));
 
     await logAuditEvent({
       action: "TWO_FACTOR_ENABLED",

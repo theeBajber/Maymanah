@@ -63,6 +63,7 @@ const courseDetailSelect = {
   category: true,
   description: true,
   lessons: {
+    where: { isPublished: true },
     select: {
       id: true,
       title: true,

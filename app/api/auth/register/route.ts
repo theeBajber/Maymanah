@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, email, password, role } = registerSchema.parse(body);
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await safeQuery(() => prisma.user.findUnique({ where: { email } }));
     if (existing) {
       return NextResponse.json(
         { error: "Email already registered" },
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
+    const user = await safeQuery(() => prisma.user.create({
       data: {
         name,
         email,
@@ -52,18 +52,18 @@ export async function POST(req: Request) {
         profile: { create: { timezone: "Africa/Nairobi" } },
       },
       select: { id: true, email: true },
-    });
+    }));
 
     const token = crypto.randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await prisma.verificationToken.create({
+    await safeQuery(() => prisma.verificationToken.create({
       data: {
         identifier: email,
         token,
         expires,
       },
-    });
+    }));
 
     await sendVerificationEmail(email, token);
 
