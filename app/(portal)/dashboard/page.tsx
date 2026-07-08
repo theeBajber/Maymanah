@@ -1023,6 +1023,8 @@ async function UstadhDashboard({ session }: { session: Session }) {
                 studentName={
                   s.mentorship.student.name?.split(" ")[0] ?? "Student"
                 }
+                studentId={s.mentorship.student.id}
+                teacherId={ustadhId}
                 startTime={s.startTime}
                 status={s.status}
                 canJoin={canJoin(s.startTime, now.getTime())}

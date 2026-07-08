@@ -25,25 +25,27 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const teacherId = searchParams.get("teacherId");
+    const studentId = searchParams.get("studentId");
     const mentorshipId = searchParams.get("mentorshipId");
     const dateStr = searchParams.get("date");
     const sessionType = searchParams.get("sessionType") ?? "DAILY_HIFDH";
 
-    if (!teacherId || !mentorshipId || !dateStr) {
+    if (!teacherId || !dateStr) {
       return NextResponse.json({ error: "Missing required params" }, { status: 400 });
     }
 
     const date = new Date(dateStr + "T00:00:00Z");
     const dayOfWeek = date.getUTCDay();
 
-    const teacherAvail = await safeQuery(() =>
+    const userId = studentId ?? teacherId;
+    const sourceAvail = await safeQuery(() =>
       prisma.availability.findMany({
-        where: { userId: teacherId, isRecurring: true, dayOfWeek },
+        where: { userId, isRecurring: true, dayOfWeek },
         orderBy: { startTime: "asc" },
       }),
     );
 
-    if (!teacherAvail?.length) {
+    if (!sourceAvail?.length) {
       return NextResponse.json({ slots: [] });
     }
 
@@ -73,7 +75,7 @@ export async function GET(req: NextRequest) {
 
     const allBlocks: { start: Date; end: Date; key: string }[] = [];
 
-    for (const avail of teacherAvail) {
+    for (const avail of sourceAvail) {
       const startMin = timeToMinutes(avail.startTime);
       const endMin = timeToMinutes(avail.endTime);
       for (let m = startMin; m + BLOCK <= endMin; m += BLOCK) {
