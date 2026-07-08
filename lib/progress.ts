@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
+import { issueCertificate } from "@/lib/certificate";
 
 export async function getLessonProgress(
   lessonId: string,
@@ -141,4 +142,66 @@ export async function completeLesson(
   }
 
   return progress;
+}
+
+export async function updateHifdhProgress(studentId: string) {
+  const course = await safeQuery(() =>
+    prisma.course.findFirst({ where: { slug: "hifdh-ul-quran" }, select: { id: true } }),
+  );
+  if (!course) return;
+
+  const result = await safeQuery(() =>
+    prisma.sessionPlan.aggregate({
+      _max: { toSurah: true },
+      where: {
+        appointment: {
+          mentorship: { studentId },
+        },
+      },
+    }),
+  );
+
+  const maxSurah = result._max.toSurah ?? 0;
+  const pct = Math.round((maxSurah / 114) * 100);
+
+  await safeQuery(() =>
+    prisma.enrollment.updateMany({
+      where: { userId: studentId, courseId: course.id },
+      data: {
+        progress: pct,
+        ...(pct === 100 ? { status: "COMPLETED", completedAt: new Date() } : {}),
+      },
+    }),
+  );
+
+  if (pct === 100) {
+    const latestPlan = await safeQuery(() =>
+      prisma.sessionPlan.findFirst({
+        where: {
+          appointment: { mentorship: { studentId } },
+        },
+        orderBy: { updatedAt: "desc" },
+        include: {
+          appointment: {
+            include: {
+              mentorship: {
+                include: { teacher: { select: { name: true } } },
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const teacherName = latestPlan?.appointment?.mentorship?.teacher?.name ?? undefined;
+
+    await issueCertificate(studentId, course.id, teacherName);
+
+    await safeQuery(() =>
+      prisma.user.update({
+        where: { id: studentId },
+        data: { xp: { increment: 20 } },
+      }),
+    );
+  }
 }
