@@ -25,6 +25,7 @@ export function UpcomingAppointmentCard({
   const [showReschedulePicker, setShowReschedulePicker] = useState(false);
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
+  const [mismatchHint, setMismatchHint] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -50,6 +51,7 @@ export function UpcomingAppointmentCard({
   async function handleReschedule() {
     if (!newDate || !newTime) return;
     setRescheduling(true);
+    setMismatchHint(false);
     try {
       const startTime = new Date(`${newDate}T${newTime}`).toISOString();
       const res = await fetch(`/api/appointments/${id}`, {
@@ -58,7 +60,11 @@ export function UpcomingAppointmentCard({
         body: JSON.stringify({ action: "reschedule", startTime }),
       });
       if (res.ok) {
+        const data = await res.json();
         toast({ title: "Session rescheduled", variant: "success" });
+        if (data.availabilityMismatch) {
+          setMismatchHint(true);
+        }
         setShowReschedulePicker(false);
         router.refresh();
       } else {
@@ -97,6 +103,11 @@ export function UpcomingAppointmentCard({
       <div>
         <p className="font-medium text-text-primary">{studentName}</p>
         <p className="text-sm text-text-secondary">{formatDate(startTime)}</p>
+        {mismatchHint && (
+          <p className="text-xs text-warning mt-1">
+            Student may need to update their availability for this new time.
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <span

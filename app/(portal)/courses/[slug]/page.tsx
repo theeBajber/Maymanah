@@ -15,7 +15,6 @@ import {
   faGraduationCap,
   faArrowRight,
   faVideo,
-  faCalendar,
   faBolt,
   faStar,
   faSun,
@@ -26,6 +25,8 @@ import EnrollButton from "./EnrollButton";
 import { DailySessionButton } from "./DailySessionButton";
 import { SetAvailabilityForPairing } from "./SetAvailabilityForPairing";
 import ReviewSection from "./ReviewSection";
+import { RescheduleSlotButton } from "./RescheduleSlotButton";
+import { ScheduleSectionClient } from "./ScheduleSectionClient";
 
 export const dynamic = "force-dynamic";
 
@@ -202,9 +203,10 @@ export default async function CourseDetailPage({
     endTime: Date | null;
     status: string;
     sessionType: string;
+    joinedAt: Date | null;
+    missed: boolean;
     teacher: { id: string; name: string | null; image: string | null } | null;
   }[] = [];
-  let upcomingMuraja: typeof allAppointments = [];
   let pastSessions: typeof allAppointments = [];
 
   let recurringSlots: {
@@ -215,6 +217,13 @@ export default async function CourseDetailPage({
   }[] = [];
   let teacherName: string | null = null;
   let teacherId: string | null = null;
+  let mentorshipId: string | null = null;
+  let teacherAvail: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
+  let mismatchNotifications: {
+    id: string;
+    body: string | null;
+    metadata: any;
+  }[] = [];
 
   if (course.slug === "hifdh-ul-quran" && userId) {
     const mentorship = await safeQuery(() =>
@@ -223,6 +232,7 @@ export default async function CourseDetailPage({
         include: {
           teacher: { select: { id: true, name: true } },
           recurringSlots: {
+            orderBy: { dayOfWeek: "asc" },
             select: {
               type: true,
               dayOfWeek: true,
@@ -237,7 +247,29 @@ export default async function CourseDetailPage({
     if (mentorship) {
       teacherName = mentorship.teacher.name;
       teacherId = mentorship.teacher.id;
+      mentorshipId = mentorship.id;
       recurringSlots = mentorship.recurringSlots;
+
+      teacherAvail = (await safeQuery(() =>
+        prisma.availability.findMany({
+          where: { userId: teacherId!, isRecurring: true },
+          select: { dayOfWeek: true, startTime: true, endTime: true },
+          orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+        }),
+      ).catch(() => [])) ?? [];
+
+      mismatchNotifications =
+        (await safeQuery(() =>
+          prisma.notification.findMany({
+            where: {
+              userId,
+              type: "session_rescheduled",
+              isRead: false,
+            },
+            select: { id: true, body: true, metadata: true },
+            orderBy: { createdAt: "desc" },
+          }),
+        ).catch(() => [])) ?? [];
 
       const today = new Date();
       const dayOfWeek = today.getDay();
@@ -268,12 +300,22 @@ export default async function CourseDetailPage({
           }),
         ).catch(() => [])) ?? [];
 
-      upcomingMuraja = allAppointments.filter(
-        (a) =>
-          a.sessionType !== "DAILY_HIFDH" &&
-          a.status === "SCHEDULED" &&
-          new Date(a.startTime) > new Date(),
-      );
+      if (daily && dailySlot) {
+        const todaysAppt = allAppointments.find(
+          (a) =>
+            a.sessionType === "DAILY_HIFDH" &&
+            a.startTime.toDateString() === today.toDateString() &&
+            Math.abs(a.startTime.getTime() - dailySlot!.startTime.getTime()) > 60000,
+        );
+        if (todaysAppt) {
+          dailySlot = {
+            startTime: todaysAppt.startTime,
+            endTime: todaysAppt.endTime ?? dailySlot.endTime,
+            duration: dailySlot.duration,
+          };
+        }
+      }
+
       pastSessions = allAppointments.filter(
         (a) => a.status === "COMPLETED" || new Date(a.startTime) <= new Date(),
       );
@@ -300,6 +342,19 @@ export default async function CourseDetailPage({
 
   function canJoinSession(startTime: Date, endTime: Date | null) {
     return now >= startTime && (!endTime || now <= endTime);
+  }
+
+  function getNextOccurrence(slot: { dayOfWeek: number; startTime: string }): Date | null {
+    const today = new Date();
+    const todayDay = today.getDay();
+    const daysUntil = (slot.dayOfWeek - todayDay + 7) % 7;
+    if (daysUntil > 6 - todayDay) return null;
+    const next = new Date(today);
+    next.setDate(today.getDate() + daysUntil);
+    const [h, m] = slot.startTime.split(":").map(Number);
+    next.setHours(h, m, 0, 0);
+    if (daysUntil === 0 && next.getTime() - today.getTime() < 2 * 60 * 60 * 1000) return null;
+    return next;
   }
 
   return (
@@ -445,8 +500,9 @@ export default async function CourseDetailPage({
                     hour: "2-digit",
                     minute: "2-digit",
                   });
+                  const nextOccurrence = getNextOccurrence(s);
                   return (
-                    <div key={s.type}>
+                    <div key={`${s.type}-${s.dayOfWeek}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -466,6 +522,14 @@ export default async function CourseDetailPage({
                             </p>
                           </div>
                         </div>
+                        {nextOccurrence && mentorshipId && teacherId && (
+                          <RescheduleSlotButton
+                            mentorshipId={mentorshipId}
+                            teacherId={teacherId}
+                            sessionType={s.type}
+                            nextOccurrence={nextOccurrence.toISOString()}
+                          />
+                        )}
                       </div>
                     </div>
                   );
@@ -475,6 +539,14 @@ export default async function CourseDetailPage({
                 <p className="text-xs text-text-muted mt-3 border-t border-border pt-3">
                   Teacher: {teacherName}
                 </p>
+              )}
+              {mentorshipId && teacherId && (
+                <ScheduleSectionClient
+                  mentorshipId={mentorshipId}
+                  teacherId={teacherId}
+                  teacherAvail={teacherAvail}
+                  mismatchNotifications={mismatchNotifications}
+                />
               )}
             </div>
           )}
@@ -516,7 +588,6 @@ export default async function CourseDetailPage({
           )}
 
           {!dailySlot &&
-            upcomingMuraja.length === 0 &&
             pastSessions.length === 0 &&
             !(isEnrolled && recurringSlots.length === 0) && (
               <div className="rounded-2xl border border-dashed border-border/60 bg-bg-elevated/50 p-12 text-center">
