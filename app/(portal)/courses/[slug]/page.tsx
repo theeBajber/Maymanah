@@ -69,7 +69,7 @@ export default async function CourseDetailPage({
   } | null = null;
   let certificate: { id: string } | null = null;
 
-  if (isEnrolled && userId && course.slug !== "hifdh-ul-quran") {
+  if (isEnrolled && userId) {
     const [progress, exams, fexam, ijazah] = await Promise.all([
       safeQuery(() =>
         prisma.lessonProgress.findMany({
@@ -145,7 +145,7 @@ export default async function CourseDetailPage({
   }
 
   let firstUnlocked = 0;
-  if (isEnrolled && course.slug !== "hifdh-ul-quran") {
+  if (isEnrolled) {
     for (let i = 0; i < course.lessons.length; i++) {
       if (i > 0 && !lessonProgress[course.lessons[i - 1].id]?.completed) break;
       firstUnlocked = i;
@@ -166,7 +166,7 @@ export default async function CourseDetailPage({
   }[] = [];
   let averageRating: number | null = null;
 
-  if (certificate && userId && course.slug !== "hifdh-ul-quran") {
+  if (certificate && userId) {
     const [review, reviews] = await Promise.all([
       safeQuery(() =>
         prisma.courseReview.findUnique({

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createNotification } from "@/lib/notifications";
 
 const updateSchema = z.object({
-  action: z.enum(["cancel", "reschedule"]),
+  action: z.enum(["cancel", "reschedule", "complete"]),
   startTime: z.string().optional(),
 });
 
@@ -48,8 +48,12 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    if (appointment.status !== "SCHEDULED") {
+    if (appointment.status !== "SCHEDULED" && parsed.data.action !== "complete") {
       return NextResponse.json({ error: "Can only modify scheduled appointments" }, { status: 400 });
+    }
+
+    if (parsed.data.action === "complete" && appointment.status !== "ONGOING") {
+      return NextResponse.json({ error: "Can only complete ongoing appointments" }, { status: 400 });
     }
 
     if (parsed.data.action === "cancel") {
@@ -132,6 +136,14 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       }
 
       return NextResponse.json({ success: true, action: "rescheduled", availabilityMismatch });
+    }
+
+    if (parsed.data.action === "complete") {
+      await prisma.appointment.update({
+        where: { id },
+        data: { status: "COMPLETED", endedAt: new Date() },
+      });
+      return NextResponse.json({ success: true, action: "completed" });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
