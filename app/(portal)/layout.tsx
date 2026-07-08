@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SideNav, TopNav } from "@/components/ui/PortalNav";
 import { TopNavProvider } from "@/lib/TopNavContext";
+import TeacherChat from "@/components/TeacherChat";
 
 export const metadata: Metadata = {
   title: "Maymanah - Portal",
@@ -72,6 +73,7 @@ export default async function PortalLayout({
         <main className="md:pl-16 pt-16">
           {children}
         </main>
+        <TeacherChat />
       </TopNavProvider>
     </div>
   );
