@@ -5,7 +5,7 @@ function generateVerificationCode(): string {
   return `MAY-${randomBytes(4).toString("hex").toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 }
 
-export async function issueCertificate(userId: string, courseId: string) {
+export async function issueCertificate(userId: string, courseId: string, issuedBy?: string) {
   const existing = await safeQuery(() =>
     prisma.ijazah.findUnique({
       where: { userId_courseId: { userId, courseId } },
@@ -37,7 +37,7 @@ export async function issueCertificate(userId: string, courseId: string) {
       data: {
         userId,
         courseId,
-        issuedBy: "SYSTEM",
+        issuedBy: issuedBy ?? "SYSTEM",
         isVerified: true,
         verificationCode,
       },

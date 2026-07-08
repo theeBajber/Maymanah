@@ -18,7 +18,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTopNavContent } from "@/lib/TopNavContext";
@@ -106,6 +106,8 @@ function NotificationDropdown({
   onClose: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const router = useRouter();
+  const { data: session } = useSession();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -178,37 +180,57 @@ function NotificationDropdown({
         </div>
       ) : (
         <div className="max-h-80 overflow-y-auto">
-          {notifications.map((n) => (
-            <div
-              key={n.id}
-              className={`flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-bg-hover transition-colors ${
-                !n.isRead ? "bg-primary/5" : ""
-              }`}
-            >
-              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <FontAwesomeIcon
-                  icon={typeIcons[n.type] ?? faBell}
-                  className="size-3.5 text-primary"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm ${n.isRead ? "text-text-primary" : "font-semibold text-text-primary"}`}>
-                  {n.title}
-                </p>
-                {n.body && (
-                  <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{n.body}</p>
+          {notifications.map((n) => {
+            const href = n.type === "message"
+              ? (session?.user?.role === "TEACHER" ? "/messages" : "/courses/hifdh-ul-quran")
+              : "/courses/hifdh-ul-quran";
+
+            return (
+              <Link
+                key={n.id}
+                href={href}
+                onClick={async (e) => {
+                  if (!n.isRead) {
+                    await fetch("/api/notifications/read", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ ids: [n.id] }),
+                    });
+                    setNotifications((prev) =>
+                      prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)),
+                    );
+                  }
+                  onClose();
+                }}
+                className={`flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-0 hover:bg-bg-hover transition-colors ${
+                  !n.isRead ? "bg-primary/5" : ""
+                }`}
+              >
+                <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <FontAwesomeIcon
+                    icon={typeIcons[n.type] ?? faBell}
+                    className="size-3.5 text-primary"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm ${n.isRead ? "text-text-primary" : "font-semibold text-text-primary"}`}>
+                    {n.title}
+                  </p>
+                  {n.body && (
+                    <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{n.body}</p>
+                  )}
+                  <p className="text-[10px] text-text-muted mt-1">
+                    {new Date(n.createdAt).toLocaleDateString("en-US", {
+                      month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                {!n.isRead && (
+                  <span className="size-2 rounded-full bg-primary shrink-0 mt-2" />
                 )}
-                <p className="text-[10px] text-text-muted mt-1">
-                  {new Date(n.createdAt).toLocaleDateString("en-US", {
-                    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-                  })}
-                </p>
-              </div>
-              {!n.isRead && (
-                <span className="size-2 rounded-full bg-primary shrink-0 mt-2" />
-              )}
-            </div>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

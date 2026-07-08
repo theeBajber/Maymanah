@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
-type NotificationType = "session_reminder" | "message" | "note_added";
+type NotificationType = "session_reminder" | "message" | "note_added" | "session_rescheduled";
 
 export async function createNotification({
   userId,

@@ -290,6 +290,17 @@ export default function SessionPage() {
                   onLeave={() => {
                     mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
                     mediaStreamRef.current = null;
+                    if (joinData && !isTeacher) {
+                      savePlan();
+                    }
+                    if (joinData && isTeacher) {
+                      savePlan();
+                      fetch(`/api/appointments/${joinData.appointment.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "complete" }),
+                      }).catch(() => {});
+                    }
                     router.push("/courses/hifdh-ul-quran");
                   }}
                 />
