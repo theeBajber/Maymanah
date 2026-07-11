@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { prisma, safeQuery } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
-import { Plus, BookOpen, Pencil, Eye, EyeOff } from "lucide-react";
+import { Plus, BookOpen, Pencil, Eye, EyeOff, FileText } from "lucide-react";
+import { PortalHeader } from "@/components/ui/portal";
 import { DeleteCourseButton } from "./DeleteCourseButton";
 
 export default async function AdminCoursesPage() {
@@ -17,25 +18,24 @@ export default async function AdminCoursesPage() {
   );
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Courses</h1>
-          <p className="text-text-secondary mt-1">
-            {courses.length} course{courses.length !== 1 ? "s" : ""} total
-          </p>
-        </div>
-        <Link
-          href="/admin/courses/new"
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-text-inverse rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
-        >
-          <Plus className="size-4" />
-          New Course
-        </Link>
-      </div>
+    <div className="stagger-fade">
+      <PortalHeader
+        title="Courses"
+        subtitle={`${courses.length} course${courses.length !== 1 ? "s" : ""} total`}
+        action={
+          <Link
+            href="/admin/courses/new"
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-text-inverse rounded-[10px] text-sm font-medium transition-all hover:shadow-glow-brass"
+          >
+            <Plus className="size-4" />
+            New Course
+          </Link>
+        }
+      />
 
-      <div className="bg-bg-card border border-border rounded-xl overflow-hidden">
-        <table className="w-full">
+      <div className="mt-8 bg-bg-card border border-border rounded-xl shadow-raise overflow-hidden">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px]">
           <thead>
             <tr className="border-b border-border bg-bg-secondary/50">
               <th className="text-left text-xs font-semibold uppercase tracking-wider text-text-muted px-4 py-3">
@@ -124,7 +124,7 @@ export default async function AdminCoursesPage() {
                       className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
                       title="Manage Lessons"
                     >
-                      <FileTextIcon />
+                      <FileText className="size-4" />
                     </Link>
                     <DeleteCourseButton courseId={course.id} courseTitle={course.title} />
                   </div>
@@ -147,27 +147,8 @@ export default async function AdminCoursesPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
-  );
-}
-
-function FileTextIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-4"
-    >
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <polyline points="14 2 14 8 20 8" />
-    </svg>
   );
 }

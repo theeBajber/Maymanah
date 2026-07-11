@@ -1,211 +1,133 @@
-"use client";
-
-import { useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faPaperPlane,
-  faSpinner,
-  faEnvelope,
-  faMessage,
-  faUser,
-  faTag,
-} from "@fortawesome/free-solid-svg-icons";
-import {
-  faInstagram,
-  faWhatsapp,
-  faYoutube,
-  faXTwitter,
-} from "@fortawesome/free-brands-svg-icons";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { amiri } from "@/components/ui/fonts";
-import { useToast } from "@/components/ui/toast";
+import { ArrowRight, Clock, Mail } from "lucide-react";
+import { elMessiri } from "@/components/ui/fonts";
+import { PageHeader } from "@/components/ui/page-header";
+import { Reveal } from "@/components/ui/reveal";
+import { buttonClasses, ButtonSheen } from "@/components/ui/button";
 
-export default function ContactPage() {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description:
+    "Questions about learning, teaching, or donating? Write to the Maymanah team — a small volunteer team reads every message personally, usually within two days.",
+  alternates: { canonical: "/contact" },
+  openGraph: {
+    title: "Contact Maymanah",
+    description: "Write to the Maymanah team — we reply personally.",
+    url: "/contact",
+  },
+};
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
+const quickPaths = [
+  {
+    title: "Want to teach?",
+    detail: "The application and vetting process, step by step.",
+    href: "/teach",
+    label: "Apply to teach",
+  },
+  {
+    title: "Want to learn?",
+    detail: "Create an account and get matched with a teacher.",
+    href: "/register",
+    label: "Begin your journey",
+  },
+  {
+    title: "Want to help?",
+    detail: "Keep the platform free for every student.",
+    href: "/donate",
+    label: "Donate",
+  },
+];
 
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), subject: subject.trim(), message: message.trim() }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast({ title: data.error || "Something went wrong.", variant: "error" });
-        return;
-      }
-
-      toast({ title: "Message sent successfully!", description: "We'll get back to you as soon as possible.", variant: "success" });
-      setName("");
-      setEmail("");
-      setSubject("");
-      setMessage("");
-    } catch {
-      toast({ title: "Network error. Please try again.", variant: "error" });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const inputBase = "flex items-center gap-3 px-4 w-full border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors";
-  const inputEl = "w-full bg-transparent text-text-primary placeholder:text-text-muted outline-none text-sm";
-  const labelBase = "text-[10px] uppercase tracking-widest font-bold text-text-secondary";
-
+export default function Contact() {
   return (
-    <div className="flex-1">
-      <div className="max-w-5xl mx-auto px-6 py-16 md:py-24">
-        <div className="text-center mb-12">
-          <h1 className={`${amiri.className} text-4xl md:text-5xl font-bold text-text-primary mb-4`}>
-            Get in Touch
-          </h1>
-          <p className="text-text-secondary text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            Have a question, suggestion, or want to collaborate? We&apos;d love to hear from you.
-          </p>
-        </div>
+    <main className="flex w-full flex-col items-center gap-14 pb-24">
+      <PageHeader
+        arabic="تَوَاصَلْ مَعَنَا"
+        title="Write to us"
+        lede="A small volunteer team runs Maymanah, and a person — not a ticket system — reads every message."
+      />
 
-        <div className="grid md:grid-cols-5 gap-8 md:gap-12">
-          <form onSubmit={handleSubmit} className="md:col-span-3 space-y-5">
-            <div>
-              <label htmlFor="name" className={`${labelBase} block mb-2`}>Your Name</label>
-              <div className={`${inputBase} h-12 ${loading ? "opacity-50 pointer-events-none" : ""}`}>
-                <FontAwesomeIcon icon={faUser} className="size-4 text-text-muted shrink-0" />
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Ahmad"
-                  required
-                  minLength={2}
-                  className={inputEl}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className={`${labelBase} block mb-2`}>Email Address</label>
-              <div className={`${inputBase} h-12 ${loading ? "opacity-50 pointer-events-none" : ""}`}>
-                <FontAwesomeIcon icon={faEnvelope} className="size-4 text-text-muted shrink-0" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ahmad@example.com"
-                  required
-                  className={inputEl}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="subject" className={`${labelBase} block mb-2`}>Subject</label>
-              <div className={`${inputBase} h-12 ${loading ? "opacity-50 pointer-events-none" : ""}`}>
-                <FontAwesomeIcon icon={faTag} className="size-4 text-text-muted shrink-0" />
-                <input
-                  id="subject"
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="How can we help?"
-                  required
-                  minLength={2}
-                  className={inputEl}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="message" className={`${labelBase} block mb-2`}>Message</label>
-              <div className={`${inputBase} p-4 ${loading ? "opacity-50 pointer-events-none" : ""}`}>
-                <FontAwesomeIcon icon={faMessage} className="size-4 text-text-muted shrink-0 self-start mt-0.5" />
-                <textarea
-                  id="message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Write your message here..."
-                  required
-                  minLength={10}
-                  rows={5}
-                  className={`${inputEl} resize-none min-h-[120px] leading-relaxed`}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 bg-primary text-text-inverse rounded-xl font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100 transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <FontAwesomeIcon icon={faSpinner} className="size-5 animate-spin" />
-              ) : (
-                <FontAwesomeIcon icon={faPaperPlane} className="size-4" />
-              )}
-              {loading ? "Sending..." : "Send Message"}
-            </button>
-          </form>
-
-          <aside className="md:col-span-2 space-y-8">
-            <div className="rounded-2xl border border-border bg-bg-elevated p-6">
-              <h2 className="font-extrabold text-sm uppercase tracking-widest text-text-secondary mb-4">Contact Info</h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <FontAwesomeIcon icon={faEnvelope} className="size-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-muted font-semibold uppercase tracking-wider">Email</p>
-                    <a href="mailto:support@maymanah.com" className="text-text-primary text-sm hover:text-primary transition-colors">
-                      support@maymanah.com
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-bg-elevated p-6">
-              <h2 className="font-extrabold text-sm uppercase tracking-widest text-text-secondary mb-4">Follow Us</h2>
-              <div className="flex items-center gap-3">
-                <Link href={""} className="size-10 flex rounded-xl border border-primary/30 items-center justify-center hover:bg-primary group transition-colors">
-                  <FontAwesomeIcon icon={faYoutube} className="size-4 text-primary group-hover:text-text-inverse transition-colors" />
-                </Link>
-                <Link href={""} className="size-10 flex rounded-xl border border-primary/30 items-center justify-center hover:bg-primary group transition-colors">
-                  <FontAwesomeIcon icon={faInstagram} className="size-4 text-primary group-hover:text-text-inverse transition-colors" />
-                </Link>
-                <Link href={""} className="size-10 flex rounded-xl border border-primary/30 items-center justify-center hover:bg-primary group transition-colors">
-                  <FontAwesomeIcon icon={faWhatsapp} className="size-4 text-primary group-hover:text-text-inverse transition-colors" />
-                </Link>
-                <Link href={""} className="size-10 flex rounded-xl border border-primary/30 items-center justify-center hover:bg-primary group transition-colors">
-                  <FontAwesomeIcon icon={faXTwitter} className="size-4 text-primary group-hover:text-text-inverse transition-colors" />
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/5 to-bg-elevated p-6">
-              <p className={`${amiri.className} text-lg text-text-primary leading-relaxed`}>
-                &ldquo;Whoever guides someone to goodness will have a reward like the one who acts upon it.&rdquo;
+      <Reveal className="w-full">
+        <section className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-5 px-4 sm:px-6 md:grid-cols-2 md:px-8">
+          <div className="glass-still flex flex-col gap-5 rounded-2xl p-6 md:p-8">
+            <Mail className="size-5 text-brass" />
+            <div className="flex flex-col gap-2">
+              <h2
+                className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+              >
+                Email
+              </h2>
+              <p className="text-[15px] leading-relaxed text-sage">
+                For questions about learning, teaching, donations, or anything
+                else — one address reaches us all.
               </p>
-              <p className="text-xs text-text-muted mt-3">&mdash; Prophet Muhammad ﷺ (Sahih Muslim)</p>
             </div>
-          </aside>
-        </div>
-      </div>
-    </div>
+            <a
+              href="mailto:support@maymanah.com"
+              className={buttonClasses("primary", "md", "w-fit")}
+            >
+              <ButtonSheen />
+              support@maymanah.com
+            </a>
+          </div>
+
+          <div className="glass-still flex flex-col gap-5 rounded-2xl p-6 md:p-8">
+            <Clock className="size-5 text-brass" />
+            <div className="flex flex-col gap-2">
+              <h2
+                className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+              >
+                When we reply
+              </h2>
+              <p className="text-[15px] leading-relaxed text-sage">
+                We answer within two days, in shaa Allah. Session-related
+                questions from enrolled students get priority through the
+                portal&apos;s messaging instead.
+              </p>
+            </div>
+            <Link
+              href="/login"
+              className="flex items-center gap-2 text-sm text-lapis transition-colors hover:text-ivory"
+            >
+              Already enrolled? Message your teacher
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal className="w-full">
+        <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 sm:px-6 md:px-8">
+          <h2 className="text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-brass">
+            Or go straight there
+          </h2>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {quickPaths.map((path) => (
+              <div
+                key={path.title}
+                className="glass-still flex flex-col gap-2.5 rounded-2xl p-6 transition-colors duration-300 hover:border-brass/30"
+              >
+                <h3
+                  className={`${elMessiri.className} text-lg font-semibold text-ivory`}
+                >
+                  {path.title}
+                </h3>
+                <p className="grow text-[13px] leading-relaxed text-sage">
+                  {path.detail}
+                </p>
+                <Link
+                  href={path.href}
+                  className="flex w-fit items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-brass transition-all hover:gap-3.5 hover:text-ivory"
+                >
+                  {path.label}
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      </Reveal>
+    </main>
   );
 }

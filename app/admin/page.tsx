@@ -1,5 +1,6 @@
 import { prisma, safeQuery } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
+import { PortalHeader } from "@/components/ui/portal";
 import { BookOpen, Users, GraduationCap, FileText, UserCheck, DollarSign, Activity, Clock } from "lucide-react";
 import Link from "next/link";
 
@@ -81,11 +82,8 @@ export default async function AdminDashboard() {
   ];
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-primary">Admin Dashboard</h1>
-        <p className="text-text-secondary mt-1">Overview of your platform</p>
-      </div>
+    <div className="stagger-fade space-y-8">
+      <PortalHeader title="Admin Dashboard" subtitle="Overview of your platform" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card) => {

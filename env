@@ -1,0 +1,38 @@
+DATABASE_URL="postgresql://neondb_owner:npg_ocPr8w2Ezvqy@ep-spring-fire-almf4yw1-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DIRECT_URL="postgresql://neondb_owner:npg_ocPr8w2Ezvqy@ep-spring-fire-almf4yw1.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+NEXTAUTH_URL="http://localhost:3000"
+AUTH_SECRET="zWcKruJQq92KU2cuk5AspXep4qNFcm5bRVTKTOiXRCQ="
+
+SEED_ADMIN_PASSWORD="admin123"
+SEED_TEACHER_PASSWORD="teacher123"
+SEED_STUDENT_PASSWORD="student123"
+
+MPESA_CONSUMER_KEY=zh92Z26vj6h38IJBE0cQXC6X30Z3NPP93wqloZ5p01tNtQP6
+MPESA_CONSUMER_SECRET=Z2MwsMFNbM1GuEQYOrBRKsRxR1B43PUKwm58GgT9Lj2aTaz07yWuNErfCdR9RSJe
+MPESA_SHORTCODE=174379
+MPESA_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
+MPESA_CALLBACK_URL=https://maymanah.vercel.app/api/donations/webhook
+MPESA_ENV=sandbox
+
+# Stripe Configuration (Add your keys here)
+STRIPE_SECRET_KEY="sk_test_placeholder"
+STRIPE_WEBHOOK_SECRET="whsec_test_placeholder"
+STRIPE_PUBLIC_KEY="pk_test_placeholder"
+NEXT_PUBLIC_STRIPE_PUBLIC_KEY="pk_test_placeholder"
+
+# Quran AI Recitation (WebSocket for revision mode feedback)
+NEXT_PUBLIC_RECITATION_WS_URL="ws://localhost:3001/ws/recitation"
+
+LIVEKIT_URL=wss://maymanah-ft63my4l.livekit.cloud
+LIVEKIT_API_KEY=APIHaYgWSx7sJUP
+LIVEKIT_API_SECRET=gUpJlceC7vatHzfJIomDir34kSro0DTe9AQOf4siVcQB
+
+AI_API_KEY="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"
+AI_BASE_URL="https://api.groq.com/openai/v1"
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=ajrafsalim@gmail.com
+SMTP_PASS=vbzj gypg lztd spnb
+SMTP_FROM=ajrafsalim@gmail.com

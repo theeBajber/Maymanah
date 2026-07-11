@@ -1,7 +1,10 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import StudentsClient from "./StudentsClient";
+import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight, faNoteSticky } from "@fortawesome/free-solid-svg-icons";
+import { PortalHeader, EmptyState } from "@/components/ui/portal";
 
 export const dynamic = "force-dynamic";
 
@@ -30,16 +33,44 @@ export default async function MyStudents() {
     orderBy: { startedAt: "desc" },
   });
 
-  const students = matches.map((m) => {
-    const progress = m.student.quranProgress?.[0];
-    return {
-      id: m.student.id,
-      name: m.student.name,
-      lastSurah: progress?.lastSurah ?? null,
-      lastVerse: progress?.lastVerse ?? null,
-      openNotesCount: m.student.studentNotes.length,
-    };
-  });
+  return (
+    <div className="stagger-fade p-6 space-y-6 max-w-4xl mx-auto">
+      <PortalHeader
+        title="My Students"
+        subtitle={`${matches.length} active student${matches.length !== 1 ? "s" : ""}`}
+      />
 
-  return <StudentsClient students={students} />;
+      {matches.length === 0 ? (
+        <EmptyState title="No active students assigned yet." />
+      ) : (
+        <div className="space-y-2">
+          {matches.map((m, index) => {
+            const progress = m.student.quranProgress?.[0];
+            return (
+              <Link
+                key={m.student.id}
+                href={`/students/${m.student.id}`}
+                style={{ "--i": index } as React.CSSProperties}
+                className="hover-lift stagger-item rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise hover:border-primary/30 flex items-center justify-between group"
+              >
+                <div>
+                  <p className="font-semibold text-text-primary">
+                    {m.student.name?.split(" ")[0] ?? "Student"}
+                  </p>
+                  <div className="flex items-center gap-4 mt-1 text-sm text-text-secondary">
+                    <span>Surah {progress?.lastSurah ?? "?"}:{progress?.lastVerse ?? "?"}</span>
+                    <span className="flex items-center gap-1">
+                      <FontAwesomeIcon icon={faNoteSticky} className="size-3" />
+                      {m.student.studentNotes.length} open note{m.student.studentNotes.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+                <FontAwesomeIcon icon={faArrowRight} className="text-text-muted group-hover:text-primary transition-colors size-4" />
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }

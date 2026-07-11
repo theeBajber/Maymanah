@@ -7,13 +7,10 @@ import {
   faChevronRight,
   faCircle,
   faFlag,
-  faMicrophone,
   faPen,
-  faPhone,
   faPlus,
   faSpinner,
   faVideo,
-  faVolumeHigh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
@@ -22,6 +19,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { VideoRoom } from "@/components/ui/VideoRoom";
 import { useToast } from "@/components/ui/toast";
+import Mushaf from "@/components/Mushaf";
 
 type ReviewItem = {
   id: number;
@@ -51,14 +49,6 @@ interface JoinData {
   };
   plan: SessionPlan | null;
 }
-
-const ayahLines = [
-  { ref: "78:1", text: "عَمَّ يَتَسَاءَلُونَ" },
-  { ref: "78:2", text: "عَنِ النَّبَإِ الْعَظِيمِ" },
-  { ref: "78:3", text: "الَّذِي هُمْ فِيهِ مُخْتَلِفُونَ" },
-  { ref: "78:4", text: "كَلَّا سَيَعْلَمُونَ" },
-  { ref: "78:5", text: "ثُمَّ كَلَّا سَيَعْلَمُونَ" },
-];
 
 export default function SessionPage() {
   const router = useRouter();
@@ -109,6 +99,7 @@ export default function SessionPage() {
   ]);
   const [passage, setPassage] = useState("");
   const [note, setNote] = useState("");
+  const [trackedVerse, setTrackedVerse] = useState<string | null>(null);
 
   const appointmentId = params.id as string;
   const isTest = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("test");
@@ -251,9 +242,7 @@ export default function SessionPage() {
             {!inCall ? (
               <div className="flex flex-col items-center justify-center bg-bg-secondary p-6 sm:p-8 text-center min-h-[75vh] sm:min-h-0">
                 <div className="size-20 rounded-full bg-primary/10 mx-auto mb-5 flex items-center justify-center">
-                  <span className="text-3xl text-primary">
-                    <FontAwesomeIcon icon={faVideo} />
-                  </span>
+                  <FontAwesomeIcon icon={faVideo} className="size-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold text-text-primary mb-1">
                   {joinData.appointment.title || "Live Session"}
@@ -276,7 +265,7 @@ export default function SessionPage() {
                 </div>
                 <button
                   onClick={handleJoinCall}
-                  className="px-8 py-3 bg-primary text-text-inverse rounded-xl font-bold hover:brightness-110 transition-all active:scale-[0.98] shadow-sm shadow-primary/20"
+                  className="px-8 py-3 bg-primary text-text-inverse rounded-xl font-bold hover:brightness-110 transition-all active:scale-[0.98] hover:shadow-glow-brass"
                 >
                   Join Call
                 </button>
@@ -311,21 +300,28 @@ export default function SessionPage() {
           <aside className="overflow-y-auto grid gap-5 lg:grid-cols-2 xl:grid-cols-1 min-h-0">
             {isTeacher && (
               <div className="rounded-lg border border-border bg-bg-card p-5">
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm uppercase tracking-wider text-text-secondary">Teacher Mushaf</p>
                     <h3 className="font-bold text-text-primary">Follow recitation</h3>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
-                      <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
-                    </button>
-                    <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
-                      <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-                    </button>
+                  <div className="flex items-center gap-2">
+                    {trackedVerse && (
+                      <span className="text-xs font-medium text-primary">
+                        Tracking {trackedVerse}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
+                        <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
+                      </button>
+                      <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
+                        <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3 mb-4">
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <label className="text-xs text-text-secondary">From Surah</label>
                     <label className="text-xs text-text-secondary">From Verse</label>
@@ -366,23 +362,11 @@ export default function SessionPage() {
                     {planSaving ? "Saving..." : "Save Plan"}
                   </button>
                 </div>
-                <div className="rounded-lg border border-border bg-bg-primary p-4">
-                  <div className="mb-3 flex items-center gap-2 text-sm text-text-secondary">
-                    <FontAwesomeIcon icon={faBookOpen} />
-                    Hafs tracking view
-                  </div>
-                  <div className="space-y-4 text-right font-serif text-2xl leading-loose" dir="rtl">
-                    {ayahLines.map((ayah, index) => (
-                      <p
-                        key={ayah.ref}
-                        className={`rounded px-3 py-1 ${index === 1 ? "bg-primary/10 text-primary" : "text-text-primary"}`}
-                      >
-                        {ayah.text}
-                        <span className="mr-3 align-middle text-xs text-text-secondary">{ayah.ref}</span>
-                      </p>
-                    ))}
-                  </div>
-                </div>
+                <Mushaf
+                  mode="session"
+                  activeVerse={trackedVerse ?? undefined}
+                  onVerseSelect={(verseKey) => setTrackedVerse(verseKey)}
+                />
               </div>
             )}
 
@@ -414,7 +398,7 @@ export default function SessionPage() {
                     disabled={!passage.trim() || !note.trim()}
                     className="flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-text-inverse disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <FontAwesomeIcon icon={faPlus} />
+                    <FontAwesomeIcon icon={faPlus} className="size-4" />
                     Add follow-up
                   </button>
                 </div>
@@ -441,7 +425,7 @@ export default function SessionPage() {
                               : "bg-primary/10 text-primary"
                         }`}
                       >
-                        <FontAwesomeIcon icon={item.status === "done" ? faCheck : item.status === "review" ? faPen : faCircle} />
+                        {item.status === "done" ? <FontAwesomeIcon icon={faCheck} className="size-3.5" /> : item.status === "review" ? <FontAwesomeIcon icon={faPen} className="size-3.5" /> : <FontAwesomeIcon icon={faCircle} className="size-3.5" />}
                       </span>
                     </div>
                     <p className="text-xs uppercase tracking-wider text-text-secondary">

@@ -7,8 +7,9 @@ import { TopNavProvider } from "@/lib/TopNavContext";
 import TeacherChat from "@/components/TeacherChat";
 
 export const metadata: Metadata = {
-  title: "Maymanah - Portal",
+  title: "Portal",
   description: "Quran learning platform",
+  robots: { index: false, follow: false },
 };
 
 export default async function PortalLayout({

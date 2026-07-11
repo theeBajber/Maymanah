@@ -205,7 +205,7 @@ export function SetAvailabilityForPairing() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-elevated p-6">
+    <div className="rounded-2xl border border-border bg-bg-elevated shadow-raise p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <FontAwesomeIcon icon={faClock} className="text-primary size-4" />
@@ -294,10 +294,7 @@ export function SetAvailabilityForPairing() {
         >
           {saving ? (
             <>
-              <FontAwesomeIcon
-                icon={faSpinner}
-                className="size-3.5 animate-spin"
-              />
+              <FontAwesomeIcon icon={faSpinner} className="size-3.5 animate-spin" />
               Finding a teacher...
             </>
           ) : (

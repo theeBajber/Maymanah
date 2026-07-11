@@ -1,7 +1,6 @@
 "use client";
 
-import { faMicrophone, faMicrophoneSlash, faVideo, faVideoSlash, faPhoneSlash, faExpand, faCompress } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Maximize, Minimize } from "lucide-react";
 import {
   LiveKitRoom,
   useTracks,
@@ -59,7 +58,7 @@ function FocusedParticipant() {
       )}
 
       {localTrack && (
-        <div className="absolute bottom-28 right-4 w-44 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-white/20 z-10">
+        <div className="absolute bottom-28 right-4 w-44 h-32 rounded-xl overflow-hidden shadow-float border-2 border-white/20 z-10">
           <VideoTrack trackRef={localTrack} className="w-full h-full object-cover" />
         </div>
       )}
@@ -95,8 +94,8 @@ function ConnectionBadge() {
         isBad
           ? "bg-danger/20 text-danger"
           : state === LKConnectionState.Connected
-            ? "bg-emerald-500/20 text-emerald-400"
-            : "bg-amber-500/20 text-amber-400"
+            ? "bg-success/15 text-success"
+            : "bg-warning/15 text-warning"
       }`}
     >
       {connectionLabels[state]}
@@ -225,20 +224,20 @@ function CallControlsBar({
   const buttonBase = "flex items-center justify-center transition-all active:scale-90 rounded-full";
   const bgMuted = "bg-zinc-700 hover:bg-zinc-600 text-white";
   const bgDanger = "bg-danger hover:bg-danger/80";
-  const bgAmber = "bg-amber-500/20 text-amber-400";
+  const bgAmber = "bg-warning/15 text-warning";
 
   return (
     <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none">
       {(camError || micError) && (
-        <div className="px-3 py-2 bg-amber-500/15 border-b border-amber-500/20 text-center">
-          <p className="text-xs text-amber-300 font-medium">
+        <div className="px-3 py-2 bg-warning/15 border-b border-warning/20 text-center">
+          <p className="text-xs text-warning font-medium">
             {camError && micError
               ? `Camera: ${camError}  ·  Mic: ${micError}`
               : camError
                 ? `Camera: ${camError}`
                 : `Mic: ${micError}`}
           </p>
-          <p className="text-[10px] text-amber-400/60 mt-0.5">Check browser permissions (lock icon in address bar)</p>
+          <p className="text-[10px] text-warning/60 mt-0.5">Check browser permissions (lock icon in address bar)</p>
         </div>
       )}
       <div
@@ -251,7 +250,7 @@ function CallControlsBar({
           className={`size-14 md:size-12 ${buttonBase} ${micError ? bgAmber : micOn ? bgMuted : "bg-danger/20 text-danger"}`}
           title={micError ? "Microphone unavailable" : micOn ? "Mute microphone" : "Unmute microphone"}
         >
-          <FontAwesomeIcon icon={micError ? faMicrophoneSlash : (micOn ? faMicrophone : faMicrophoneSlash)} className="size-5 md:size-4" />
+          {micError || !micOn ? <MicOff className="size-5 md:size-4" /> : <Mic className="size-5 md:size-4" />}
         </button>
 
         <button
@@ -260,7 +259,7 @@ function CallControlsBar({
           className={`size-14 md:size-12 ${buttonBase} ${camError ? bgAmber : camOn ? bgMuted : "bg-danger/20 text-danger"}`}
           title={camError ? "Camera unavailable" : camOn ? "Turn off camera" : "Turn on camera"}
         >
-          <FontAwesomeIcon icon={camError ? faVideoSlash : (camOn ? faVideo : faVideoSlash)} className="size-5 md:size-4" />
+          {camError || !camOn ? <VideoOff className="size-5 md:size-4" /> : <Video className="size-5 md:size-4" />}
         </button>
 
         <button
@@ -269,7 +268,7 @@ function CallControlsBar({
           className="size-14 md:size-12 flex items-center justify-center transition-all active:scale-90 rounded-full bg-danger hover:bg-danger/80 text-white"
           title="Leave session"
         >
-          <FontAwesomeIcon icon={faPhoneSlash} className="size-5 md:size-4" />
+          <PhoneOff className="size-5 md:size-4" />
         </button>
 
         <button
@@ -278,7 +277,7 @@ function CallControlsBar({
           className={`size-14 md:size-12 ${buttonBase} ${bgMuted}`}
           title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
-          <FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} className="size-5 md:size-4" />
+          {fullscreen ? <Minimize className="size-5 md:size-4" /> : <Maximize className="size-5 md:size-4" />}
         </button>
       </div>
     </div>

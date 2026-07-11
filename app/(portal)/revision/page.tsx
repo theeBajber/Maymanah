@@ -5,19 +5,17 @@ import Mushaf from '@/components/Mushaf';
 import useSWR from 'swr';
 import { useToast } from '@/components/ui/toast';
 import { useTopNavContent } from "@/lib/TopNavContext";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBookQuran,
-  faArrowsLeftRightToLine,
-  faBullseye,
-  faClock,
-  faCircleCheck,
-  faListCheck,
-  faRotate,
-  faChevronDown,
-  faChevronUp,
-} from '@fortawesome/free-solid-svg-icons';
-import { amiri } from '@/components/ui/fonts';
+  BookMarked,
+  ArrowLeftRight,
+  Clock,
+  CheckCircle2,
+  ListChecks,
+  RotateCw,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
+import { PortalHeader } from '@/components/ui/portal';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -156,26 +154,26 @@ export default function RevisionPage() {
     : 0;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-text-primary tracking-tight">Quran Revision</h1>
-          <p className="text-sm text-text-secondary mt-1">
-            {journalEntries.length > 0
-              ? `${filteredEntries.length} session${filteredEntries.length !== 1 ? 's' : ''} completed${surahFilter ? ` (Surah ${surahFilter})` : ''}`
-              : 'Practice your memorization with AI-powered revision'}
-          </p>
-        </div>
-        {journalEntries.length > 0 && (
-          <div className="hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-bg-elevated border border-border">
-            <AccuracyRing pct={avgAccuracy} size={24} />
-            <div>
-              <p className="text-sm font-bold text-text-primary leading-none">{avgAccuracy}%</p>
-              <p className="text-[10px] text-text-muted uppercase tracking-[0.08em] font-semibold">Avg Accuracy</p>
+    <div className="stagger-fade p-6 max-w-5xl mx-auto space-y-6">
+      <PortalHeader
+        title="Quran Revision"
+        subtitle={
+          journalEntries.length > 0
+            ? `${filteredEntries.length} session${filteredEntries.length !== 1 ? 's' : ''} completed${surahFilter ? ` (Surah ${surahFilter})` : ''}`
+            : 'Practice your memorization with AI-powered revision'
+        }
+        action={
+          journalEntries.length > 0 ? (
+            <div className="hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-bg-elevated border border-border shadow-raise">
+              <AccuracyRing pct={avgAccuracy} size={24} />
+              <div>
+                <p className="text-sm font-bold text-text-primary leading-none">{avgAccuracy}%</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-[0.08em] font-semibold">Avg Accuracy</p>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          ) : undefined
+        }
+      />
 
       <Mushaf
         mode="revision"
@@ -184,11 +182,11 @@ export default function RevisionPage() {
       />
 
       {sessionSummary && (
-        <div className="rounded-2xl border border-border bg-bg-elevated overflow-hidden">
+        <div className="rounded-2xl border border-border bg-bg-elevated shadow-raise overflow-hidden">
           <div className="bg-gradient-to-r from-success/10 to-success/5 px-6 py-4 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-success/10 flex items-center justify-center">
-                <FontAwesomeIcon icon={faCircleCheck} className="text-success size-5" />
+                <CheckCircle2 className="text-success size-5" />
               </div>
               <div>
                 <h2 className="font-bold text-text-primary text-lg">Session Complete</h2>
@@ -202,7 +200,7 @@ export default function RevisionPage() {
           <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-bg-hover">
               <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <FontAwesomeIcon icon={faBookQuran} className="text-primary size-4" />
+                <BookMarked className="text-primary size-4" />
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-text-primary">Surah {sessionSummary.surahNumber}</p>
@@ -212,7 +210,7 @@ export default function RevisionPage() {
 
             <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-bg-hover">
               <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <FontAwesomeIcon icon={faArrowsLeftRightToLine} className="text-primary size-4" />
+                <ArrowLeftRight className="text-primary size-4" />
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-text-primary">{sessionSummary.fromVerse}&ndash;{sessionSummary.toVerse}</p>
@@ -232,7 +230,7 @@ export default function RevisionPage() {
 
             <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-bg-hover">
               <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <FontAwesomeIcon icon={faClock} className="text-primary size-4" />
+                <Clock className="text-primary size-4" />
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-text-primary">
@@ -247,7 +245,7 @@ export default function RevisionPage() {
             <div className="px-6 pb-6">
               <div className="rounded-xl border border-danger/20 bg-danger/5 p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <FontAwesomeIcon icon={faListCheck} className="text-danger size-4" />
+                  <ListChecks className="text-danger size-4" />
                   <h3 className="font-semibold text-danger text-sm">Focus Areas ({sessionSummary.errors.length})</h3>
                 </div>
                 <ul className="space-y-1.5">
@@ -266,9 +264,9 @@ export default function RevisionPage() {
             <button
               onClick={() => setSessionSummary(null)}
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-xl py-2.5 px-5 bg-success text-text-inverse font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-success/20"
+              className="inline-flex items-center gap-2 rounded-xl py-2.5 px-5 bg-success text-text-inverse font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] hover:shadow-glow-brass"
             >
-              <FontAwesomeIcon icon={faRotate} className="size-3.5" />
+              <RotateCw className="size-3.5" />
               {isSubmitting ? 'Saving...' : 'Start New Session'}
             </button>
           </div>
@@ -276,24 +274,25 @@ export default function RevisionPage() {
       )}
 
       {filteredEntries.length > 0 && (
-        <div className="rounded-2xl border border-border bg-bg-elevated overflow-hidden">
+        <div className="rounded-2xl border border-border bg-bg-elevated shadow-raise overflow-hidden">
           <button
             onClick={() => setShowHistory(!showHistory)}
             className="w-full flex items-center justify-between px-6 py-4 hover:bg-bg-hover transition-colors"
           >
             <div className="flex items-center gap-3">
               <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FontAwesomeIcon icon={faClock} className="text-primary size-4" />
+                <Clock className="text-primary size-4" />
               </div>
               <div className="text-left">
                 <h3 className="font-semibold text-text-primary text-sm">Revision History</h3>
                 <p className="text-xs text-text-secondary">{filteredEntries.length} past session{filteredEntries.length !== 1 ? "s" : ""}</p>
               </div>
             </div>
-            <FontAwesomeIcon
-              icon={showHistory ? faChevronUp : faChevronDown}
-              className="size-4 text-text-muted transition-transform"
-            />
+            {showHistory ? (
+              <ChevronUp className="size-4 text-text-muted transition-transform" />
+            ) : (
+              <ChevronDown className="size-4 text-text-muted transition-transform" />
+            )}
           </button>
 
           {showHistory && (

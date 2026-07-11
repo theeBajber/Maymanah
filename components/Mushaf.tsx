@@ -112,7 +112,7 @@ function CustomSelect({
         />
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border bg-bg-elevated shadow-lg animate-in">
+        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border bg-bg-elevated shadow-float animate-in">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -594,7 +594,7 @@ export default function Mushaf({
         }}
         className={`group relative p-6 rounded-2xl cursor-pointer transition-all duration-300 border ${
           isActive
-            ? "border-primary bg-primary-muted shadow-md scale-[1.01]"
+            ? "border-primary bg-primary-muted shadow-raise scale-[1.01]"
             : "border-transparent bg-transparent hover:bg-bg-hover hover:border-border"
         }`}
         dir="rtl"
@@ -657,14 +657,14 @@ export default function Mushaf({
             </>
           )}
         </div>
-        <p
+        <div
           className="text-3xl leading-[2.5] font-serif tracking-wide"
           style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
         >
           {mode === "revision" && isMicActive && verseNum === currentVerse
             ? renderVerseWithFeedback(verse)
             : verse.text_uthmani}
-        </p>
+        </div>
       </div>
     );
   };
@@ -725,7 +725,7 @@ export default function Mushaf({
                         onClick={() => setPlaybackSpeed(speed)}
                         className={`flex-1 px-3 py-1.5 text-sm rounded-lg font-medium transition-all ${
                           playbackSpeed === speed
-                            ? "bg-primary text-text-inverse shadow-sm"
+                            ? "bg-primary text-text-inverse"
                             : "bg-bg-secondary text-text-secondary border border-border hover:bg-bg-hover"
                         }`}
                       >
@@ -810,7 +810,7 @@ export default function Mushaf({
                 <button
                   onClick={togglePlayPause}
                   disabled={!audioFiles.size}
-                  className="p-3 rounded-full bg-primary text-text-inverse hover:opacity-90 transition-all disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-primary/20"
+                  className="p-3 rounded-full bg-primary text-text-inverse hover:opacity-90 transition-all disabled:opacity-50 disabled:pointer-events-none hover:shadow-glow-brass"
                 >
                   {isLoading ? (
                     <Loader2 size={20} className="animate-spin" />
@@ -849,13 +849,13 @@ export default function Mushaf({
   if (mode === "revision") {
     return (
       <div className="w-full max-w-2xl mx-auto p-4 space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-bold text-text-primary">
             Revision: {currentSurahName}
           </h2>
           <button
             onClick={() => setIsMicActive(!isMicActive)}
-            className={`flex gap-2 items-center px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+            className={`flex shrink-0 gap-2 items-center px-4 py-2 rounded-xl font-medium text-sm transition-all ${
               isMicActive
                 ? "bg-danger text-text-inverse"
                 : "bg-secondary text-text-inverse"
@@ -899,7 +899,7 @@ export default function Mushaf({
   return (
     <div className="w-full space-y-4">
       <div className="bg-bg-elevated rounded-2xl p-4 border border-border">
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
           <h3 className="font-semibold text-text-primary">
             {currentSurahName} : {selectedVerse}
           </h3>

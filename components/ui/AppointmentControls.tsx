@@ -86,6 +86,8 @@ export function UpcomingAppointmentCard({
       });
       if (res.ok) {
         router.refresh();
+      } else {
+        toast({ variant: "error", title: "Failed to cancel session" });
       }
     } catch {
       toast({ title: "Failed to cancel session", variant: "error" });

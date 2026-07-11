@@ -25,10 +25,9 @@ export default function TeacherChat() {
 
   const isHifdhPage = pathname.startsWith("/courses/hifdh-ul-quran") || pathname.startsWith("/session/");
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[] | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [teacherName, setTeacherName] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
@@ -54,12 +53,10 @@ export default function TeacherChat() {
 
   useEffect(() => {
     if (!open || !teacherId) return;
-    setLoading(true);
     fetch(`/api/messages?userId=${teacherId}`)
       .then((r) => r.json())
       .then((data) => setMessages(data.messages ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => setMessages([]));
   }, [open, teacherId]);
 
   useEffect(() => {
@@ -69,11 +66,12 @@ export default function TeacherChat() {
         .then((r) => r.json())
         .then((data) => {
           setMessages((prev) => {
-            const existing = new Set(prev.map((m) => m.id));
+            const arr = prev ?? [];
+            const existing = new Set(arr.map((m) => m.id));
             const newMsgs = (data.messages ?? []).filter(
               (m: Message) => !existing.has(m.id),
             );
-            return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev;
+            return newMsgs.length > 0 ? [...arr, ...newMsgs] : arr;
           });
         })
         .catch(() => {});
@@ -82,7 +80,7 @@ export default function TeacherChat() {
   }, [open, teacherId]);
 
   useEffect(() => {
-    if (!open && messages.length > 0 && teacherId) {
+    if (!open && messages && messages.length > 0 && teacherId) {
       const last = messages[messages.length - 1];
       if (last && last.sender.id === teacherId) {
         setUnreadCount((prev) => prev + 1);
@@ -106,7 +104,7 @@ export default function TeacherChat() {
       });
       if (res.ok) {
         const data = await res.json();
-        setMessages((prev) => [...prev, data.message]);
+        setMessages((prev) => [...(prev ?? []), data.message]);
         setNewMessage("");
       } else {
         const err = await res.json();
@@ -154,7 +152,7 @@ export default function TeacherChat() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {loading ? (
+              {messages === null ? (
                 <div className="text-center text-sm text-text-muted py-8">Loading...</div>
               ) : messages.length === 0 ? (
                 <div className="text-center text-sm text-text-muted py-8">

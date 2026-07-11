@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  faCircleCheck,
-  faCircleExclamation,
-  faCircleInfo,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
 import {
   createContext,
   useCallback,
@@ -47,10 +41,10 @@ const variantStyles: Record<ToastVariant, string> = {
 };
 
 const variantIcons = {
-  success: faCircleCheck,
-  error: faCircleExclamation,
-  warning: faCircleExclamation,
-  info: faCircleInfo,
+  success: CircleCheck,
+  error: CircleAlert,
+  warning: CircleAlert,
+  info: Info,
 } as const;
 
 function createToastId() {
@@ -139,13 +133,13 @@ function ToastViewport({
         <div
           key={item.id}
           role="status"
-          className={`pointer-events-auto rounded-xl border p-4 shadow-lg backdrop-blur-sm transition-all duration-300 ${variantStyles[item.variant]}`}
+          className={`pointer-events-auto rounded-xl border p-4 shadow-float transition-all duration-300 ${variantStyles[item.variant]}`}
         >
           <div className="flex items-start gap-3">
-            <FontAwesomeIcon
-              icon={variantIcons[item.variant]}
-              className="mt-0.5 shrink-0"
-            />
+            {(() => {
+              const Icon = variantIcons[item.variant];
+              return <Icon className="mt-0.5 size-4 shrink-0" />;
+            })()}
             <div className="min-w-0 flex-1">
               <p className="font-bold leading-snug">{item.title}</p>
               {item.description ? (
@@ -158,7 +152,7 @@ function ToastViewport({
               className="shrink-0 opacity-70 transition-opacity hover:opacity-100"
               aria-label="Dismiss notification"
             >
-              <FontAwesomeIcon icon={faXmark} />
+              <X className="size-4" />
             </button>
           </div>
         </div>

@@ -1,9 +1,9 @@
 "use client";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import {
-  faArrowsToDot,
   faBell,
   faBookOpen,
+  faBrain,
   faChalkboardUser,
   faCommentDots,
   faGear,
@@ -20,6 +20,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
+import useSWR from "swr";
+import { elMessiri } from "@/components/ui/fonts";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTopNavContent } from "@/lib/TopNavContext";
 
@@ -88,15 +90,6 @@ function ProfileDropdown({
   );
 }
 
-interface NotificationItem {
-  id: string;
-  type: string;
-  title: string;
-  body: string | null;
-  isRead: boolean;
-  createdAt: string;
-}
-
 function NotificationDropdown({
   open,
   onClose,
@@ -106,10 +99,10 @@ function NotificationDropdown({
   onClose: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const router = useRouter();
   const { data: session } = useSession();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[] | null>(
+    null,
+  );
 
   const typeIcons: Record<string, IconProp> = {
     session_reminder: faVideo,
@@ -119,14 +112,12 @@ function NotificationDropdown({
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
     fetch("/api/notifications")
       .then((r) => r.json())
       .then((data) => {
         setNotifications(data.notifications ?? []);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => setNotifications([]));
   }, [open]);
 
   async function markAllRead() {
@@ -135,7 +126,9 @@ function NotificationDropdown({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ all: true }),
     });
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNotifications((prev) =>
+      (prev ?? []).map((n) => ({ ...n, isRead: true })),
+    );
   }
 
   if (!open) return null;
@@ -148,7 +141,7 @@ function NotificationDropdown({
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
         <div className="flex items-center gap-2">
-          {notifications.some((n) => !n.isRead) && (
+          {notifications?.some((n) => !n.isRead) && (
             <button
               onClick={markAllRead}
               className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
@@ -164,8 +157,10 @@ function NotificationDropdown({
           </button>
         </div>
       </div>
-      {loading ? (
-        <div className="p-8 text-center text-sm text-text-muted">Loading...</div>
+      {notifications === null ? (
+        <div className="p-8 text-center text-sm text-text-muted">
+          Loading...
+        </div>
       ) : notifications.length === 0 ? (
         <div className="p-8 flex flex-col items-center justify-center gap-2 text-center">
           <div className="size-12 rounded-full bg-bg-hover flex items-center justify-center">
@@ -174,16 +169,19 @@ function NotificationDropdown({
           <p className="text-sm font-medium text-text-primary">
             No notifications yet
           </p>
-          <p className="text-xs text-text-muted max-w-[200px]">
+          <p className="text-xs text-text-muted max-w-50">
             We&apos;ll let you know when something new arrives.
           </p>
         </div>
       ) : (
         <div className="max-h-80 overflow-y-auto">
           {notifications.map((n) => {
-            const href = n.type === "message"
-              ? (session?.user?.role === "TEACHER" ? "/messages" : "/courses/hifdh-ul-quran")
-              : "/courses/hifdh-ul-quran";
+            const href =
+              n.type === "message"
+                ? session?.user?.role === "TEACHER"
+                  ? "/messages"
+                  : "/courses/hifdh-ul-quran"
+                : "/courses/hifdh-ul-quran";
 
             return (
               <Link
@@ -197,7 +195,9 @@ function NotificationDropdown({
                       body: JSON.stringify({ ids: [n.id] }),
                     });
                     setNotifications((prev) =>
-                      prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)),
+                      (prev ?? []).map((x) =>
+                        x.id === n.id ? { ...x, isRead: true } : x,
+                      ),
                     );
                   }
                   onClose();
@@ -213,15 +213,22 @@ function NotificationDropdown({
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${n.isRead ? "text-text-primary" : "font-semibold text-text-primary"}`}>
+                  <p
+                    className={`text-sm ${n.isRead ? "text-text-primary" : "font-semibold text-text-primary"}`}
+                  >
                     {n.title}
                   </p>
                   {n.body && (
-                    <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{n.body}</p>
+                    <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">
+                      {n.body}
+                    </p>
                   )}
                   <p className="text-[10px] text-text-muted mt-1">
                     {new Date(n.createdAt).toLocaleDateString("en-US", {
-                      month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
                     })}
                   </p>
                 </div>
@@ -231,6 +238,153 @@ function NotificationDropdown({
               </Link>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  isRead: boolean;
+  createdAt: string;
+  metadata: { link?: string } | null;
+};
+
+function timeAgo(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function NotificationBell() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { data, mutate } = useSWR<{
+    notifications: NotificationItem[];
+    unreadCount: number;
+  }>("/api/user/notifications", fetcher, { refreshInterval: 60000 });
+
+  const notifications = data?.notifications ?? [];
+  const unreadCount = data?.unreadCount ?? 0;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
+  async function markAllRead() {
+    await fetch("/api/user/notifications", { method: "PATCH" });
+    mutate();
+  }
+
+  async function handleNotificationClick(item: NotificationItem) {
+    if (!item.isRead) {
+      await fetch(`/api/user/notifications/${item.id}`, { method: "PATCH" });
+      mutate();
+    }
+    setOpen(false);
+    if (item.metadata?.link) {
+      router.push(item.metadata.link);
+    }
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        className="relative flex size-9 items-center justify-center rounded-[10px] text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
+        aria-label={
+          unreadCount > 0
+            ? `Notifications, ${unreadCount} unread`
+            : "Notifications"
+        }
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {unreadCount > 0 && (
+          <span className="absolute right-1 top-1 flex size-2.5 items-center justify-center rounded-full bg-danger text-[8px] font-bold text-text-inverse" />
+        )}
+        <FontAwesomeIcon icon={faBell} className="size-4" />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="glass-pane animate-slide-in absolute right-0 top-12 z-50 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl"
+        >
+          <div className="flex items-center justify-between border-b border-ivory/8 px-4 py-3">
+            <p className="text-sm font-semibold text-text-primary">
+              Notifications
+            </p>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllRead}
+                className="text-xs font-medium text-primary transition-colors hover:text-primary-light"
+              >
+                Mark all as read
+              </button>
+            )}
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-text-secondary">
+                No notifications yet.
+              </p>
+            ) : (
+              notifications.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleNotificationClick(item)}
+                  className={`flex w-full flex-col gap-0.5 border-b border-ivory/5 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-bg-hover ${
+                    item.isRead ? "" : "bg-primary/5"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {!item.isRead && (
+                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                    )}
+                    <span
+                      className={`flex-1 text-sm ${item.isRead ? "text-text-secondary" : "font-medium text-text-primary"}`}
+                    >
+                      {item.title}
+                    </span>
+                  </div>
+                  {item.body && (
+                    <p className="pl-3.5 text-xs text-text-secondary line-clamp-2">
+                      {item.body}
+                    </p>
+                  )}
+                  <p className="pl-3.5 text-[11px] text-text-muted">
+                    {timeAgo(item.createdAt)}
+                  </p>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -282,15 +436,10 @@ export function TopNav() {
     }
   }, [profileOpen, notifOpen]);
 
-  const closeAll = () => {
-    setProfileOpen(false);
-    setNotifOpen(false);
-  };
-
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 z-50 bg-bg-primary/80 backdrop-blur-md border-b border-border">
-      <div className="h-full px-4 flex items-center justify-between gap-4">
-        <Link href={"/"} className="flex items-center gap-2.5 shrink-0">
+    <header className="glass-veil fixed left-0 right-0 top-0 z-50 h-16">
+      <div className="flex h-full items-center justify-between gap-4 px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Image
             src="/logo.png"
             alt="Maymanah"
@@ -298,15 +447,15 @@ export function TopNav() {
             width={439}
             height={339}
           />
-          <span className="hidden sm:inline text-2xl font-extrabold tracking-tight">
+          <span
+            className={`${elMessiri.className} hidden text-lg font-semibold text-text-primary sm:inline`}
+          >
             Maymanah
           </span>
         </Link>
 
         {content && (
-          <div className="flex-1 flex justify-center px-4">
-            {content}
-          </div>
+          <div className="flex-1 flex justify-center px-4">{content}</div>
         )}
 
         <div className="flex items-center gap-1.5 md:gap-2">
@@ -383,12 +532,12 @@ export function SideNav() {
         { name: "Dashboard", href: "/dashboard", icon: faHome },
         { name: "Courses", href: "/courses", icon: faChalkboardUser },
         { name: "Mushaf", href: "/mushaf", icon: faBookOpen },
-        { name: "AI Revision", href: "/revision", icon: faArrowsToDot },
+        { name: "AI Revision", href: "/revision", icon: faBrain },
       ];
 
   return (
     <>
-      <aside className="fixed left-0 top-16 bottom-0 w-16 border-r border-border bg-bg-primary/80 backdrop-blur-md hidden md:flex flex-col py-3 px-2 gap-1 z-40 group hover:w-52 transition-[width] duration-200 ease-out">
+      <aside className="group fixed bottom-0 left-0 top-16 z-40 hidden w-16 flex-col gap-1 border-r border-border bg-bg-primary/95 px-2 py-3 transition-[width] duration-200 ease-out hover:w-52 md:flex">
         {links.map((link) => {
           const isActive =
             pathname === link.href ||
@@ -397,28 +546,28 @@ export function SideNav() {
             <Link
               href={link.href}
               key={link.name}
-              className={`relative flex items-center gap-3 h-11 rounded-lg overflow-hidden whitespace-nowrap ${
+              className={`relative flex h-11 items-center gap-3 overflow-hidden whitespace-nowrap rounded-[10px] ${
                 isActive
                   ? "bg-primary/10 text-primary"
-                  : "text-text-secondary hover:text-text-primary hover:bg-bg-hover"
+                  : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
               }`}
               title={link.name}
             >
-              <span className="flex items-center justify-center size-11 shrink-0">
-                <FontAwesomeIcon icon={link.icon} className="size-5" />
+              <span className="flex size-11 shrink-0 items-center justify-center">
+                <FontAwesomeIcon icon={link.icon} className="size-4.5" />
               </span>
-              <span className="text-xs tracking-widest font-semibold uppercase opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-100">
+              <span className="text-xs font-semibold uppercase tracking-widest opacity-0 transition-opacity delay-100 duration-150 group-hover:opacity-100">
                 {link.name}
               </span>
               {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-primary" />
+                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
               )}
             </Link>
           );
         })}
       </aside>
 
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-bg-primary/90 backdrop-blur-md border-t border-border md:hidden z-40 flex items-center justify-around px-2 safe-area-bottom">
+      <nav className="safe-area-bottom fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border bg-bg-primary/95 px-2 md:hidden">
         {links.map((link) => {
           const isActive =
             pathname === link.href ||
@@ -427,14 +576,12 @@ export function SideNav() {
             <Link
               href={link.href}
               key={link.name}
-              className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-0 ${
-                isActive
-                  ? "text-primary"
-                  : "text-text-secondary hover:text-text-primary"
+              className={`flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-[10px] px-2 py-1.5 transition-colors ${
+                isActive ? "text-primary" : "text-text-secondary"
               }`}
             >
-              <FontAwesomeIcon icon={link.icon} className="size-5" />
-              <span className="text-[10px] font-medium leading-tight truncate max-w-full">
+              <FontAwesomeIcon icon={link.icon} className="size-4.5" />
+              <span className="max-w-full truncate text-[10px] font-medium leading-tight">
                 {link.name}
               </span>
             </Link>

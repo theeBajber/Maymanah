@@ -266,7 +266,7 @@ export function ImportBookClient({
 
       {status === "preview" && lessons.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-text-primary">
                 Review & Confirm — {lessons.length} Lesson
@@ -277,7 +277,7 @@ export function ImportBookClient({
                 expand and preview its content.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={reset}
                 className="px-4 py-2.5 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"

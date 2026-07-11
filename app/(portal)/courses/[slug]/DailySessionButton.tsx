@@ -12,9 +12,9 @@ export function DailySessionButton({
   endTime: string;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const { toast } = useToast();
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1_000);
@@ -67,7 +67,7 @@ export function DailySessionButton({
     <button
       onClick={handleStart}
       disabled={loading || !canJoin}
-      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse rounded-xl font-semibold text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] shadow-sm shadow-primary/20"
+      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse rounded-xl font-semibold text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] hover:shadow-glow-brass"
     >
       {loading ? "Starting..." : canJoin ? "Start Session" : "Session ended"}
     </button>

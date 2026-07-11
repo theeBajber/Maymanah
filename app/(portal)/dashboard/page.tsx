@@ -1,31 +1,37 @@
 import { CourseCard, LeaderBoardCard } from "@/components/ui/cards";
-import { amiri, inter } from "@/components/ui/fonts";
+import { elMessiri } from "@/components/ui/fonts";
+import { PortalHeader, StatTile, EmptyState } from "@/components/ui/portal";
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
 import { DashboardAchievement, getDashboardData } from "@/lib/dashboard";
 import type { Session } from "next-auth";
 import {
-  faAlarmClock,
-  faArrowRight,
-  faBookOpen,
-  faCheckSquare,
-  faFireAlt,
-  faMedal,
-  faMusic,
-  faPlay,
-  faSun,
-  faUserGroup,
-  faCheckCircle,
-  faCalendarDay,
-  faClipboardCheck,
-  faAward,
-  faGraduationCap,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+  Award,
+  BookOpen,
+  CalendarDays,
+  CheckCircle,
+  CheckSquare,
+  ClipboardCheck,
+  Flame,
+  GraduationCap,
+  Medal,
+  Play,
+  Sun,
+  Users,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UpcomingAppointmentCard } from "@/components/ui/AppointmentControls";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faArrowRight,
+  faMusic,
+  faBookOpen,
+  faAward,
+  faClipboardCheck,
+  faGraduationCap,
+} from "@fortawesome/free-solid-svg-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -59,28 +65,28 @@ function getAchievementPresentation(kind: DashboardAchievement["kind"]) {
   switch (kind) {
     case "streak":
       return {
-        icon: faFireAlt,
+        icon: Flame,
         className: "bg-secondary/10 text-secondary border-secondary/20",
       };
     case "assessment":
       return {
-        icon: faMedal,
+        icon: Medal,
         className: "bg-primary/10 text-primary border-primary/20",
       };
     case "bookmark":
       return {
-        icon: faBookOpen,
+        icon: BookOpen,
         className: "bg-primary/10 text-primary border-primary/20",
       };
     case "session":
       return {
-        icon: faCheckSquare,
+        icon: CheckSquare,
         className: "bg-secondary/10 text-secondary border-secondary/20",
       };
     case "course":
     default:
       return {
-        icon: faSun,
+        icon: Sun,
         className: "bg-primary/10 text-primary border-primary/20",
       };
   }
@@ -129,7 +135,9 @@ export default async function Dash(props: {
     prisma.ijazah.findMany({
       where: { userId: session.user.id },
       include: {
-        course: { select: { title: true, slug: true, image: true, category: true } },
+        course: {
+          select: { title: true, slug: true, image: true, category: true },
+        },
       },
       orderBy: { issuedAt: "desc" },
       take: 3,
@@ -146,26 +154,26 @@ export default async function Dash(props: {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-elevated to-bg-secondary border border-border p-6 md:p-8 flex items-center gap-6 justify-between">
-        <div className="flex flex-col max-w-2xl gap-2">
+    <div className="stagger-fade p-6 space-y-6 max-w-7xl mx-auto">
+      <section className="relative flex items-center justify-between gap-6 overflow-hidden rounded-2xl border border-border bg-linear-to-br from-bg-elevated to-bg-secondary p-6 shadow-raise md:p-8">
+        <div className="flex max-w-2xl flex-col gap-2">
           <h1
-            className={`text-text-primary text-3xl md:text-4xl font-bold tracking-tight`}
+            className={`${elMessiri.className} text-3xl font-semibold tracking-tight text-text-primary md:text-4xl`}
           >
             Hey, {userName}
           </h1>
-          <p className="text-text-secondary text-sm md:text-base">{heroCopy}</p>
-          <div className="flex items-center gap-3 mt-3">
+          <p className="text-sm text-text-secondary md:text-base">{heroCopy}</p>
+          <div className="mt-3 flex items-center gap-3">
             <Link
               href={resumeHref}
-              className="inline-flex items-center gap-2 rounded-xl py-2 px-5 bg-primary text-text-inverse font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-primary/20"
+              className="inline-flex items-center gap-2 rounded-[10px] bg-primary px-5 py-2 text-sm font-semibold text-text-inverse transition-all hover:shadow-glow-brass active:scale-[0.97]"
             >
-              <FontAwesomeIcon icon={faPlay} className="text-xs" />
+              <Play className="size-3.5" />
               {nextCourse ? "Resume Learning" : "Browse Courses"}
             </Link>
             <Link
               href="/courses"
-              className="inline-flex items-center gap-2 rounded-xl py-2 px-5 border border-border text-text-secondary font-medium text-sm hover:bg-bg-hover hover:text-text-primary transition-all"
+              className="inline-flex items-center gap-2 rounded-[10px] border border-border px-5 py-2 text-sm font-medium text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary"
             >
               View Study Plan
             </Link>
@@ -206,12 +214,12 @@ export default async function Dash(props: {
         </div>
       </section>
 
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-bg-elevated border border-border w-fit">
+      <div className="flex w-fit items-center gap-1 rounded-xl border border-border bg-bg-elevated p-1">
         <Link
           href="/dashboard"
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             tab === "overview"
-              ? "bg-primary text-text-inverse shadow-sm"
+              ? "bg-primary text-text-inverse"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
@@ -219,9 +227,9 @@ export default async function Dash(props: {
         </Link>
         <Link
           href="/dashboard?tab=analytics"
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             tab === "analytics"
-              ? "bg-primary text-text-inverse shadow-sm"
+              ? "bg-primary text-text-inverse"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
@@ -245,7 +253,7 @@ export default async function Dash(props: {
               </div>
               <Link
                 href="/courses"
-                className="text-sm font-medium text-primary hover:text-primary-light transition-colors flex items-center gap-1.5"
+                className="flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary-light"
               >
                 View All{" "}
                 <FontAwesomeIcon icon={faArrowRight} className="size-3" />
@@ -253,10 +261,11 @@ export default async function Dash(props: {
             </div>
 
             {enrollments.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {enrollments.map((course) => (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {enrollments.map((course, index) => (
                   <CourseCard
                     key={course.id}
+                    index={index}
                     image={course.image}
                     title={course.title}
                     progress={course.progress}
@@ -266,28 +275,22 @@ export default async function Dash(props: {
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-bg-elevated/50 p-10 text-center">
-                <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <FontAwesomeIcon
-                    icon={faBookOpen}
-                    className="text-primary text-lg"
-                  />
-                </div>
-                <p className="text-text-secondary text-sm">
-                  No active courses yet. Browse our catalog to get started.
-                </p>
-                <Link
-                  href="/courses"
-                  className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-primary hover:underline"
-                >
-                  Browse courses{" "}
-                  <FontAwesomeIcon icon={faArrowRight} className="size-3" />
-                </Link>
-              </div>
+              <EmptyState
+                title="No active courses yet. Browse our catalog to get started."
+                action={
+                  <Link
+                    href="/courses"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  >
+                    Browse courses{" "}
+                    <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                  </Link>
+                }
+              />
             )}
 
-            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
-              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
+              <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
                 Leaderboard
               </h4>
               <div className="space-y-1">
@@ -295,6 +298,7 @@ export default async function Dash(props: {
                   dashboardData.leaderboard.map((user, idx) => (
                     <LeaderBoardCard
                       key={user.id}
+                      index={idx}
                       currentUser={user.id === dashboardData.user.id}
                       rank={user.rank}
                       name={user.name}
@@ -312,7 +316,7 @@ export default async function Dash(props: {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
               <h4 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
                 Learning Streak
               </h4>
@@ -321,15 +325,14 @@ export default async function Dash(props: {
                   {dashboardData.streak}
                 </span>
                 <span className="text-sm text-text-secondary">day streak</span>
-                <FontAwesomeIcon
-                  icon={faFireAlt}
-                  className={
+                <Flame
+                  className={`size-4 ${
                     dashboardData.streak >= 7
-                      ? "text-orange-500"
+                      ? "text-warning"
                       : dashboardData.streak > 0
                         ? "text-primary"
                         : "text-text-muted"
-                  }
+                  }`}
                 />
               </div>
               <div className="flex items-center gap-1.5">
@@ -358,7 +361,7 @@ export default async function Dash(props: {
             </div>
 
             {dashboardData.weeklySchedule.length > 0 ? (
-              <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+              <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
                 <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
                   Weekly Schedule
                 </h3>
@@ -410,13 +413,13 @@ export default async function Dash(props: {
                 </div>
                 <Link
                   href="/courses/hifdh-ul-quran"
-                  className="mt-4 block w-full text-center bg-primary text-text-inverse py-3 rounded-xl font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-primary/20"
+                  className="mt-4 block w-full text-center bg-primary text-text-inverse py-3 rounded-xl font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] hover:shadow-glow-brass"
                 >
                   Go to Course
                 </Link>
               </div>
             ) : (
-              <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+              <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
                 <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
                   Weekly Schedule
                 </h3>
@@ -426,28 +429,26 @@ export default async function Dash(props: {
               </div>
             )}
 
-            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
               <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
                 Recent Achievements
               </h3>
               {dashboardData.achievements.length > 0 ? (
                 <div className="grid grid-cols-3 gap-3">
-                  {dashboardData.achievements.map((achievement) => {
+                  {dashboardData.achievements.map((achievement, index) => {
                     const presentation = getAchievementPresentation(
                       achievement.kind,
                     );
                     return (
                       <div
                         key={achievement.id}
-                        className="flex flex-col items-center text-center gap-1.5 group"
+                        style={{ "--i": index } as React.CSSProperties}
+                        className="stagger-item flex flex-col items-center text-center gap-1.5 group"
                       >
                         <div
                           className={`size-12 rounded-full flex items-center justify-center border-2 transition-transform group-hover:scale-110 ${presentation.className}`}
                         >
-                          <FontAwesomeIcon
-                            icon={presentation.icon}
-                            className="size-4"
-                          />
+                          <presentation.icon className="size-4" />
                         </div>
                         <p className="text-[11px] font-semibold text-text-primary leading-tight">
                           {achievement.title}
@@ -464,7 +465,7 @@ export default async function Dash(props: {
             </div>
 
             {certificates.length > 0 && (
-              <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+              <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
                 <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
                   My Certificates
                 </h3>
@@ -476,7 +477,10 @@ export default async function Dash(props: {
                       className="flex items-center gap-3 p-3 rounded-xl bg-bg-hover hover:bg-primary/5 transition-colors group"
                     >
                       <div className="size-10 rounded-lg bg-success-muted flex items-center justify-center shrink-0">
-                        <FontAwesomeIcon icon={faAward} className="size-4 text-success" />
+                        <FontAwesomeIcon
+                          icon={faAward}
+                          className="size-4 text-success"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-text-primary truncate">
@@ -490,7 +494,10 @@ export default async function Dash(props: {
                           })}
                         </p>
                       </div>
-                      <FontAwesomeIcon icon={faArrowRight} className="size-3 text-text-muted group-hover:text-primary transition-colors" />
+                      <FontAwesomeIcon
+                        icon={faArrowRight}
+                        className="size-3 text-text-muted group-hover:text-primary transition-colors"
+                      />
                     </Link>
                   ))}
                 </div>
@@ -503,7 +510,7 @@ export default async function Dash(props: {
               </div>
             )}
 
-            <div className="rounded-2xl border border-border bg-bg-elevated p-5 space-y-2">
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise space-y-2">
               <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
                 Quick Resources
               </h3>
@@ -648,7 +655,7 @@ function AnalyticsContent({
               <p className="text-2xl font-bold text-text-primary">
                 {submissions.length}
               </p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+              <p className="text-[11px] text-text-muted uppercase tracking-widest font-semibold">
                 Quizzes Taken
               </p>
             </div>
@@ -663,7 +670,7 @@ function AnalyticsContent({
               <p className="text-2xl font-bold text-text-primary">
                 {avgScore.toFixed(0)}%
               </p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+              <p className="text-[11px] text-text-muted uppercase tracking-widest font-semibold">
                 Avg Score
               </p>
             </div>
@@ -681,7 +688,7 @@ function AnalyticsContent({
               <p className="text-2xl font-bold text-text-primary">
                 {completedLessons.length}
               </p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+              <p className="text-[11px] text-text-muted uppercase tracking-widest font-semibold">
                 Modules Done
               </p>
             </div>
@@ -699,7 +706,7 @@ function AnalyticsContent({
               <p className="text-2xl font-bold text-text-primary">
                 {passCount}/{submissions.length}
               </p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
+              <p className="text-[11px] text-text-muted uppercase tracking-widest font-semibold">
                 Passed
               </p>
             </div>
@@ -708,7 +715,7 @@ function AnalyticsContent({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
           <h2 className="font-bold text-text-primary mb-4">Quiz Results</h2>
           {submissions.length === 0 ? (
             <p className="text-sm text-text-secondary">No quizzes taken yet.</p>
@@ -747,7 +754,7 @@ function AnalyticsContent({
           )}
         </div>
 
-        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
           <h2 className="font-bold text-text-primary mb-4">
             Modules Completed
           </h2>
@@ -781,6 +788,23 @@ function AnalyticsContent({
           )}
         </div>
       </div>
+
+      {enrollments.length > 0 && (
+        <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
+          <h2 className="font-bold text-text-primary mb-4">Active Courses</h2>
+          <div className="flex flex-wrap gap-2">
+            {enrollments.map((e) => (
+              <Link
+                key={e.courseId}
+                href={`/courses/${e.course.slug}`}
+                className="px-4 py-2 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
+              >
+                {e.course.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -908,71 +932,31 @@ async function UstadhDashboard({ session }: { session: Session }) {
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-6xl mx-auto">
-      <section>
-        <h1 className={`text-3xl font-bold text-text-primary tracking-tight`}>
-          Hello, {title} {firstName}
-        </h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Here&apos;s your overview for today.
-        </p>
-      </section>
+    <div className="stagger-fade p-6 space-y-8 max-w-6xl mx-auto">
+      <PortalHeader
+        title={`Hello, ${title} ${firstName}`}
+        subtitle="Here's your overview for today."
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FontAwesomeIcon
-                icon={faUserGroup}
-                className="text-primary size-4"
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text-primary">
-                {activeMatches.length}
-              </p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
-                Active Students
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-success/10 flex items-center justify-center">
-              <FontAwesomeIcon
-                icon={faCheckCircle}
-                className="text-success size-4"
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text-primary">
-                {completedThisMonth}
-              </p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
-                Sessions This Month
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-border bg-bg-elevated p-5">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-info/10 flex items-center justify-center">
-              <FontAwesomeIcon
-                icon={faCalendarDay}
-                className="text-info size-4"
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text-primary">
-                {todaySessions.length || todayRecurringCount}
-              </p>
-              <p className="text-[11px] text-text-muted uppercase tracking-[0.1em] font-semibold">
-                Today&apos;s Sessions
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatTile
+          icon={Users}
+          value={activeMatches.length}
+          label="Active Students"
+          tone="brass"
+        />
+        <StatTile
+          icon={CheckCircle}
+          value={completedThisMonth}
+          label="Sessions This Month"
+          tone="success"
+        />
+        <StatTile
+          icon={CalendarDays}
+          value={todaySessions.length || todayRecurringCount}
+          label="Today's Sessions"
+          tone="info"
+        />
       </div>
 
       <section>
@@ -1042,48 +1026,50 @@ async function UstadhDashboard({ session }: { session: Session }) {
         {weekSessions.length === 0 && weeklySlots.length === 0 ? (
           <p className="text-sm text-text-secondary">No sessions this week.</p>
         ) : (
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 7 }, (_, i) => {
-              const daySlots = weeklySlots.filter((s) => s.dayOfWeek === i);
-              const dayAppointments = weekGrouped[i] ?? [];
-              return (
-                <div
-                  key={i}
-                  className="rounded-xl border border-border bg-bg-elevated p-3"
-                >
-                  <p className="text-[11px] font-semibold text-text-muted uppercase mb-2">
-                    {getDayName(i)}
-                  </p>
-                  <div className="space-y-1.5">
-                    {dayAppointments.map((s) => (
-                      <div
-                        key={s.id}
-                        className="text-xs bg-primary/5 rounded-lg px-2.5 py-1.5"
-                      >
-                        <p className="font-medium text-text-primary">
-                          {s.mentorship.student.name?.split(" ")[0] ?? "S"}
-                        </p>
-                        <p className="text-text-muted">
-                          {formatTime(s.startTime)}
-                        </p>
-                      </div>
-                    ))}
-                    {dayAppointments.length === 0 &&
-                      daySlots.map((s) => (
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-7 gap-2 min-w-160 sm:min-w-0">
+              {Array.from({ length: 7 }, (_, i) => {
+                const daySlots = weeklySlots.filter((s) => s.dayOfWeek === i);
+                const dayAppointments = weekGrouped[i] ?? [];
+                return (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border bg-bg-elevated p-3"
+                  >
+                    <p className="text-[11px] font-semibold text-text-muted uppercase mb-2">
+                      {getDayName(i)}
+                    </p>
+                    <div className="space-y-1.5">
+                      {dayAppointments.map((s) => (
                         <div
                           key={s.id}
-                          className="text-xs bg-bg-hover rounded-lg px-2.5 py-1.5 border border-dashed border-border"
+                          className="text-xs bg-primary/5 rounded-lg px-2.5 py-1.5"
                         >
                           <p className="font-medium text-text-primary">
                             {s.mentorship.student.name?.split(" ")[0] ?? "S"}
                           </p>
-                          <p className="text-text-muted">{s.startTime}</p>
+                          <p className="text-text-muted">
+                            {formatTime(s.startTime)}
+                          </p>
                         </div>
                       ))}
+                      {dayAppointments.length === 0 &&
+                        daySlots.map((s) => (
+                          <div
+                            key={s.id}
+                            className="text-xs bg-bg-hover rounded-lg px-2.5 py-1.5 border border-dashed border-border"
+                          >
+                            <p className="font-medium text-text-primary">
+                              {s.mentorship.student.name?.split(" ")[0] ?? "S"}
+                            </p>
+                            <p className="text-text-muted">{s.startTime}</p>
+                          </div>
+                        ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </section>
@@ -1104,13 +1090,14 @@ async function UstadhDashboard({ session }: { session: Session }) {
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeMatches.map((m) => {
+            {activeMatches.map((m, index) => {
               const progress = m.student.quranProgress?.[0];
               return (
                 <Link
                   key={m.student.id}
                   href={`/students/${m.student.id}`}
-                  className="rounded-2xl border border-border bg-bg-elevated p-5 hover:border-primary/30 hover:shadow-sm transition-all"
+                  style={{ "--i": index } as React.CSSProperties}
+                  className="hover-lift stagger-item rounded-2xl border border-border bg-bg-elevated p-5 hover:border-primary/30"
                 >
                   <p className="font-semibold text-text-primary">
                     {m.student.name?.split(" ")[0] ?? "Student"}

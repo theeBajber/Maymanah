@@ -1,94 +1,120 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faBars,
-  faBookOpen,
-  faChalkboardUser,
-  faCircleInfo,
-  faHandHoldingHeart,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
-import { useState } from "react";
+  BookOpen,
+  HandHeart,
+  Home,
+  Info,
+  Menu,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { elMessiri } from "@/components/ui/fonts";
+import { buttonClasses, ButtonSheen } from "@/components/ui/button";
+import { GirihField } from "@/components/ui/girih";
+import { useDrawerBehavior } from "@/lib/useDrawer";
 
 const links = [
-  { name: "Home", path: "/", icon: faChalkboardUser },
-  { name: "Curriculum", path: "/curriculum", icon: faBookOpen },
-  { name: "About", path: "/about", icon: faCircleInfo },
-  { name: "Donate", path: "/donate", icon: faHandHoldingHeart },
+  { name: "Home", path: "/", icon: Home },
+  { name: "Curriculum", path: "/curriculum", icon: BookOpen },
+  { name: "About", path: "/about", icon: Info },
+  { name: "Donate", path: "/donate", icon: HandHeart },
 ];
-export function TopNav({ className }: { className?: string }) {
+
+export function TopNav({ className = "" }: { className?: string }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <header
-      className={`${className} w-full h-16 border-b sticky top-0 z-20 bg-bg-primary border-bg-elevated lg:px-16 px-4 flex justify-between items-center`}
+      className={`${className} sticky top-0 z-40 flex h-16 w-full items-center justify-between px-4 transition-[background-color,border-color,box-shadow] duration-300 lg:px-16 ${
+        scrolled ? "glass-veil" : "border-b border-transparent bg-transparent"
+      }`}
     >
-      <div className="flex items-center gap-2">
+      <Link href="/" className="flex items-center gap-2.5">
         <Image
           src="/logo.png"
-          alt="Maymanah"
-          className="h-10 w-auto"
+          alt=""
+          className="h-9 w-auto"
           width={439}
           height={339}
         />
-        <h1 className={`font-extrabold text-2xl`}>Maymanah</h1>
-      </div>
-      <nav className="md:flex items-center hidden gap-6">
-        {links.map((link, index) => (
-          <Link
-            key={index}
-            href={link.path}
-            className="hover:text-primary font-semibold text-text-primary/80"
-          >
-            {link.name}
-          </Link>
-        ))}
+        <span
+          className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+        >
+          Maymanah
+        </span>
+      </Link>
+
+      <nav className="hidden items-center gap-8 md:flex">
+        {links.map((link) => {
+          const active = pathname === link.path;
+          return (
+            <Link
+              key={link.path}
+              href={link.path}
+              className={`relative text-sm font-medium transition-colors ${
+                active ? "text-brass" : "text-sage hover:text-ivory"
+              }`}
+            >
+              {link.name}
+              {active && (
+                <span
+                  aria-hidden
+                  className="absolute -bottom-1.5 left-1/2 h-px w-4 -translate-x-1/2 bg-brass"
+                />
+              )}
+            </Link>
+          );
+        })}
       </nav>
-      <div className="md:flex hidden items-center gap-4">
+
+      <div className="hidden items-center gap-3 md:flex">
         {isLoggedIn ? (
           <>
-            <Link
-              href="/dashboard"
-              className="w-24 h-9 flex items-center justify-center bg-primary hover:bg-primary-dark rounded-2xl text-text-inverse font-semibold gap-2"
-            >
+            <Link href="/dashboard" className={buttonClasses("primary", "sm")}>
+              <ButtonSheen />
               Portal
             </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="w-24 h-9 flex items-center justify-center hover:bg-secondary-subtle/20 border border-primary-dark/70 rounded-2xl font-semibold gap-2"
+              className={buttonClasses("ghost", "sm")}
             >
-              Log Out
+              Log out
             </button>
           </>
         ) : (
           <>
-            <Link
-              href="/register"
-              className="w-23 h-9 flex items-center justify-center bg-primary hover:bg-primary-dark rounded-2xl text-text-inverse font-semibold"
-            >
+            <Link href="/register" className={buttonClasses("primary", "sm")}>
+              <ButtonSheen />
               Enroll
             </Link>
-            <Link
-              href="/login"
-              className="w-23 h-9 flex items-center justify-center hover:bg-secondary-subtle/20 border border-primary-dark/70 rounded-2xl font-semibold"
-            >
-              Log In
+            <Link href="/login" className={buttonClasses("ghost", "sm")}>
+              Log in
             </Link>
           </>
         )}
       </div>
+
       <button
-        className="md:hidden p-1"
+        className="rounded p-1.5 text-ivory md:hidden"
+        aria-label="Open menu"
         onClick={() => setIsMobileMenuOpen(true)}
       >
-        <FontAwesomeIcon
-          icon={faBars}
-          style={{ width: "24px", height: "24px" }}
-        />
+        <Menu className="size-6" />
       </button>
       {isMobileMenuOpen && (
         <MobileNav
@@ -107,65 +133,77 @@ export function MobileNav({
   onCloseAction: () => void;
   isLoggedIn: boolean;
 }) {
-  const handleAsideClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+  useDrawerBehavior(true, onCloseAction);
+
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-30 md:hidden"
+      className="fixed inset-0 z-50 bg-layl-deep/70 md:hidden"
       onClick={onCloseAction}
       aria-hidden="true"
     >
       <aside
-        onClick={handleAsideClick}
-        className="h-dvh w-[85%] p-6 bg-bg-primary border-l border-border md:hidden flex flex-col gap-6 fixed bottom-0 right-0 max-w-100 z-40 animate-slide-in"
+        onClick={(e) => e.stopPropagation()}
+        className="glass-pane animate-slide-in fixed bottom-0 right-0 z-50 flex h-dvh w-[85%] max-w-100 flex-col gap-6 overflow-hidden rounded-l-2xl p-6"
       >
-        <div className="w-full flex justify-between items-center">
-          <div className={`flex items-center gap-2 text-2xl font-extrabold`}>
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-20">
+          <GirihField
+            className="absolute inset-0"
+            opacity={0.08}
+            tile={56}
+            fade="bottom"
+          />
+        </div>
+        <div className="relative flex w-full items-center justify-between">
+          <div className="flex items-center gap-2.5">
             <Image
               src="/logo.png"
-              alt="Maymanah"
-              className="h-10 w-auto"
+              alt=""
+              className="h-9 w-auto"
               width={439}
               height={339}
             />
-            Maymanah
+            <span
+              className={`${elMessiri.className} text-xl font-semibold text-ivory`}
+            >
+              Maymanah
+            </span>
           </div>
-          <button onClick={onCloseAction} className="p-1">
-            <FontAwesomeIcon
-              icon={faXmark}
-              style={{ width: "24px", height: "24px" }}
-            />
+          <button
+            onClick={onCloseAction}
+            aria-label="Close menu"
+            className="rounded p-1.5 text-sage hover:text-ivory"
+          >
+            <X className="size-6" />
           </button>
         </div>
-        <nav className="w-full flex flex-col gap-2 p-2">
-          {links.map((link, index) => (
+        <nav className="relative flex w-full flex-col gap-1">
+          {links.map((link) => (
             <Link
-              key={index}
+              key={link.path}
               href={link.path}
               onClick={onCloseAction}
-              className="w-full h-14 rounded-4xl text-sm px-6 bg-bg-card text-text-secondary flex items-center gap-4 font-bold uppercase tracking-widest hover:text-primary hover:translate-x-1.5 transition-all"
+              className="flex h-13 w-full items-center gap-4 rounded-xl px-4 text-sm font-medium text-sage transition-colors hover:bg-ivory/5 hover:text-ivory"
             >
-              <FontAwesomeIcon icon={link.icon} className="size-5" />
+              <link.icon className="size-4.5 text-brass/70" />
               {link.name}
             </Link>
           ))}
         </nav>
-        <div className="mt-auto flex flex-col gap-2">
+        <div className="mt-auto flex flex-col gap-2.5">
           {isLoggedIn ? (
             <>
               <Link
                 href="/dashboard"
                 onClick={onCloseAction}
-                className="w-full h-12 flex items-center justify-center gap-2 bg-primary hover:bg-primary-light transition-colors rounded-full text-text-inverse font-bold"
+                className={buttonClasses("primary", "lg", "w-full")}
               >
                 Portal
               </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="w-full h-12 flex items-center justify-center gap-2 hover:bg-bg-hover transition-colors border border-primary-dark/70 rounded-full font-bold text-text-primary"
+                className={buttonClasses("ghost", "lg", "w-full")}
               >
-                Log Out
+                Log out
               </button>
             </>
           ) : (
@@ -173,16 +211,16 @@ export function MobileNav({
               <Link
                 href="/register"
                 onClick={onCloseAction}
-                className="w-full h-12 flex items-center justify-center bg-primary hover:bg-primary-light transition-colors rounded-full text-text-inverse font-bold"
+                className={buttonClasses("primary", "lg", "w-full")}
               >
-                Enroll Now
+                Enroll now
               </Link>
               <Link
                 href="/login"
                 onClick={onCloseAction}
-                className="w-full h-12 flex items-center justify-center hover:bg-bg-hover transition-colors border border-primary-dark/70 rounded-full font-bold text-text-primary"
+                className={buttonClasses("ghost", "lg", "w-full")}
               >
-                Log In
+                Log in
               </Link>
             </>
           )}
