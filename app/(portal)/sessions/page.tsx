@@ -90,7 +90,6 @@ export default async function SessionsPage() {
     );
   }
 
-  // Student view
   const mentorship = await prisma.mentorship.findFirst({
     where: { studentId: session.user.id, status: "ACTIVE" },
     include: {

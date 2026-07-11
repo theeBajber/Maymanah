@@ -32,7 +32,7 @@ export function DeleteLessonButton({
       if (!res.ok) throw new Error("Failed to delete");
       router.refresh();
     } catch {
-      toast({ variant: "error", title: "Failed to delete lesson" });
+      toast({ title: "Failed to delete lesson", variant: "error" });
     } finally {
       setDeleting(false);
       setConfirming(false);

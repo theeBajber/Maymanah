@@ -7,24 +7,34 @@ import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowRight,
   Award,
   Bolt,
-  Calendar,
-  CheckCircle,
-  ClipboardList,
-  Clock,
   Download,
-  GraduationCap,
   Lock,
-  Play,
-  Star,
   Sun,
-  Video,
 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faPlay,
+  faLock,
+  faCheckCircle,
+  faClipboardList,
+  faClock,
+  faGraduationCap,
+  faArrowRight,
+  faVideo,
+  faBolt,
+  faStar,
+  faSun,
+  faCertificate,
+  faAward,
+} from "@fortawesome/free-solid-svg-icons";
 import EnrollButton from "./EnrollButton";
 import { DailySessionButton } from "./DailySessionButton";
 import { SetAvailabilityForPairing } from "./SetAvailabilityForPairing";
+import ReviewSection from "./ReviewSection";
+import { RescheduleSlotButton } from "./RescheduleSlotButton";
+import { ScheduleSectionClient } from "./ScheduleSectionClient";
 
 export const dynamic = "force-dynamic";
 
@@ -43,47 +53,157 @@ export default async function CourseDetailPage({
   if (session?.user?.role === "TEACHER") redirect("/dashboard");
   const { slug } = await params;
   const course = await getCourse(slug);
-  const isEnrolled = course.enrollmentStatus === "ACTIVE" || course.enrollmentStatus === "COMPLETED";
+  const isEnrolled =
+    course.enrollmentStatus === "ACTIVE" ||
+    course.enrollmentStatus === "COMPLETED";
   const userId = session?.user?.id;
 
-  const lessonProgress: Record<string, { completed: boolean; score: number | null }> = {};
-  const lessonExams: Record<string, { id: string }> = {};
+  const lessonProgress: Record<
+    string,
+    { completed: boolean; score: number | null }
+  > = {};
+  const lessonExams: Record<string, { id: string; totalMarks: number }> = {};
+  let finalExam: {
+    id: string;
+    title: string;
+    totalMarks: number;
+    passMark: number;
+    _count: { questions: number };
+  } | null = null;
+  let finalExamSubmission: {
+    status: string;
+    totalScore: number | null;
+    attemptNumber: number;
+  } | null = null;
+  let certificate: { id: string } | null = null;
 
-  if (isEnrolled && userId && course.slug !== "hifdh-ul-quran") {
-    const [progress, exams] = await Promise.all([
+  if (isEnrolled && userId) {
+    const [progress, exams, fexam, ijazah] = await Promise.all([
       safeQuery(() =>
         prisma.lessonProgress.findMany({
           where: { studentId: userId, lesson: { courseId: course.id } },
           select: { lessonId: true, completed: true, score: true },
         }),
-      ).catch(() => [] as Array<{ lessonId: string; completed: boolean; score: number | null }>),
+      ).catch(
+        () =>
+          [] as Array<{
+            lessonId: string;
+            completed: boolean;
+            score: number | null;
+          }>,
+      ),
       safeQuery(() =>
         prisma.exam.findMany({
-          where: { courseId: course.id, isPublished: true, lessonId: { not: null } },
-          select: { id: true, lessonId: true },
+          where: {
+            courseId: course.id,
+            isPublished: true,
+            lessonId: { not: null },
+          },
+          select: { id: true, lessonId: true, totalMarks: true },
         }),
-      ).catch(() => [] as Array<{ id: string; lessonId: string | null }>),
+      ).catch(
+        () =>
+          [] as Array<{
+            id: string;
+            lessonId: string | null;
+            totalMarks: number;
+          }>,
+      ),
+      safeQuery(() =>
+        prisma.exam.findFirst({
+          where: { courseId: course.id, examType: "FINAL", isPublished: true },
+          select: {
+            id: true,
+            title: true,
+            totalMarks: true,
+            passMark: true,
+            _count: { select: { questions: true } },
+          },
+        }),
+      ).catch(() => null),
+      safeQuery(() =>
+        prisma.ijazah.findUnique({
+          where: { userId_courseId: { userId, courseId: course.id } },
+          select: { id: true },
+        }),
+      ).catch(() => null),
     ]);
 
     for (const p of progress) {
       lessonProgress[p.lessonId] = { completed: p.completed, score: p.score };
     }
     for (const e of exams) {
-      if (e.lessonId) lessonExams[e.lessonId] = { id: e.id };
+      if (e.lessonId)
+        lessonExams[e.lessonId] = { id: e.id, totalMarks: e.totalMarks };
     }
+    finalExam = fexam;
+
+    if (fexam) {
+      const sub = await safeQuery(() =>
+        prisma.submission.findFirst({
+          where: { examId: fexam.id, studentId: userId },
+          orderBy: { attemptNumber: "desc" },
+          select: { status: true, totalScore: true, attemptNumber: true },
+        }),
+      ).catch(() => null);
+      finalExamSubmission = sub;
+    }
+
+    certificate = ijazah;
   }
 
   let firstUnlocked = 0;
-  if (isEnrolled && course.slug !== "hifdh-ul-quran") {
+  if (isEnrolled) {
     for (let i = 0; i < course.lessons.length; i++) {
       if (i > 0 && !lessonProgress[course.lessons[i - 1].id]?.completed) break;
       firstUnlocked = i;
     }
   }
 
-  const completedCount = Object.values(lessonProgress).filter((p) => p.completed).length;
+  const completedCount = Object.values(lessonProgress).filter(
+    (p) => p.completed,
+  ).length;
 
-  let dailySlot: { startTime: Date; endTime: Date; duration: number } | null = null;
+  let userReview: { rating: number; comment: string | null } | null = null;
+  let allReviews: {
+    id: string;
+    rating: number;
+    comment: string | null;
+    user: { name: string | null; image: string | null };
+    createdAt: Date;
+  }[] = [];
+  let averageRating: number | null = null;
+
+  if (certificate && userId) {
+    const [review, reviews] = await Promise.all([
+      safeQuery(() =>
+        prisma.courseReview.findUnique({
+          where: { userId_courseId: { userId, courseId: course.id } },
+          select: { rating: true, comment: true },
+        }),
+      ).catch(() => null),
+      safeQuery(() =>
+        prisma.courseReview.findMany({
+          where: { courseId: course.id },
+          include: { user: { select: { name: true, image: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        }),
+      ).catch(() => [] as typeof allReviews),
+    ]);
+    userReview = review;
+    allReviews = reviews ?? [];
+    averageRating =
+      allReviews.length > 0
+        ? Math.round(
+            (allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length) *
+              10,
+          ) / 10
+        : null;
+  }
+
+  let dailySlot: { startTime: Date; endTime: Date; duration: number } | null =
+    null;
   let allAppointments: {
     id: string;
     title: string | null;
@@ -91,22 +211,42 @@ export default async function CourseDetailPage({
     endTime: Date | null;
     status: string;
     sessionType: string;
+    joinedAt: Date | null;
+    missed: boolean;
     teacher: { id: string; name: string | null; image: string | null } | null;
   }[] = [];
-  let upcomingMuraja: typeof allAppointments = [];
   let pastSessions: typeof allAppointments = [];
 
-  let recurringSlots: { type: string; dayOfWeek: number; startTime: string; duration: number }[] = [];
+  let recurringSlots: {
+    type: string;
+    dayOfWeek: number;
+    startTime: string;
+    duration: number;
+  }[] = [];
   let teacherName: string | null = null;
+  let teacherId: string | null = null;
+  let mentorshipId: string | null = null;
+  let teacherAvail: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
+  let mismatchNotifications: {
+    id: string;
+    body: string | null;
+    metadata: any;
+  }[] = [];
 
   if (course.slug === "hifdh-ul-quran" && userId) {
     const mentorship = await safeQuery(() =>
       prisma.mentorship.findFirst({
         where: { studentId: userId, status: "ACTIVE" },
         include: {
-          teacher: { select: { name: true } },
+          teacher: { select: { id: true, name: true } },
           recurringSlots: {
-            select: { type: true, dayOfWeek: true, startTime: true, duration: true },
+            orderBy: { dayOfWeek: "asc" },
+            select: {
+              type: true,
+              dayOfWeek: true,
+              startTime: true,
+              duration: true,
+            },
           },
         },
       }),
@@ -114,39 +254,83 @@ export default async function CourseDetailPage({
 
     if (mentorship) {
       teacherName = mentorship.teacher.name;
+      teacherId = mentorship.teacher.id;
+      mentorshipId = mentorship.id;
       recurringSlots = mentorship.recurringSlots;
+
+      teacherAvail = (await safeQuery(() =>
+        prisma.availability.findMany({
+          where: { userId: teacherId!, isRecurring: true },
+          select: { dayOfWeek: true, startTime: true, endTime: true },
+          orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+        }),
+      ).catch(() => [])) ?? [];
+
+      mismatchNotifications =
+        (await safeQuery(() =>
+          prisma.notification.findMany({
+            where: {
+              userId,
+              type: "session_rescheduled",
+              isRead: false,
+            },
+            select: { id: true, body: true, metadata: true },
+            orderBy: { createdAt: "desc" },
+          }),
+        ).catch(() => [])) ?? [];
 
       const today = new Date();
       const dayOfWeek = today.getDay();
-      const daily = recurringSlots.find((s) => s.type === "DAILY_HIFDH" && s.dayOfWeek === dayOfWeek);
+      const daily = recurringSlots.find(
+        (s) => s.type === "DAILY_HIFDH" && s.dayOfWeek === dayOfWeek,
+      );
 
       if (daily) {
         const [h, m] = daily.startTime.split(":").map(Number);
         const start = new Date(today);
         start.setHours(h, m, 0, 0);
         const end = new Date(start.getTime() + daily.duration * 60000);
-        dailySlot = { startTime: start, endTime: end, duration: daily.duration };
+        dailySlot = {
+          startTime: start,
+          endTime: end,
+          duration: daily.duration,
+        };
       }
 
-      allAppointments = (await safeQuery(() =>
-        prisma.appointment.findMany({
-          where: { mentorshipId: mentorship.id },
-          include: { teacher: { select: { id: true, name: true, image: true } } },
-          orderBy: { startTime: "desc" },
-        }),
-      ).catch(() => [])) ?? [];
+      allAppointments =
+        (await safeQuery(() =>
+          prisma.appointment.findMany({
+            where: { mentorshipId: mentorship.id },
+            include: {
+              teacher: { select: { id: true, name: true, image: true } },
+            },
+            orderBy: { startTime: "desc" },
+          }),
+        ).catch(() => [])) ?? [];
 
-      upcomingMuraja = allAppointments.filter(
-        (a) =>
-          a.sessionType !== "DAILY_HIFDH" &&
-          a.status === "SCHEDULED" &&
-          new Date(a.startTime) > new Date(),
-      );
+      if (daily && dailySlot) {
+        const todaysAppt = allAppointments.find(
+          (a) =>
+            a.sessionType === "DAILY_HIFDH" &&
+            a.startTime.toDateString() === today.toDateString() &&
+            Math.abs(a.startTime.getTime() - dailySlot!.startTime.getTime()) > 60000,
+        );
+        if (todaysAppt) {
+          dailySlot = {
+            startTime: todaysAppt.startTime,
+            endTime: todaysAppt.endTime ?? dailySlot.endTime,
+            duration: dailySlot.duration,
+          };
+        }
+      }
+
       pastSessions = allAppointments.filter(
         (a) => a.status === "COMPLETED" || new Date(a.startTime) <= new Date(),
       );
     }
   }
+
+  const now = new Date();
 
   function formatSessionDate(startTime: Date) {
     const date = new Date(startTime);
@@ -155,10 +339,30 @@ export default async function CourseDetailPage({
     tomorrow.setDate(tomorrow.getDate() + 1);
     const isToday = date.toDateString() === today.toDateString();
     const isTomorrow = date.toDateString() === tomorrow.toDateString();
-    const time = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const time = date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     if (isToday) return `Today at ${time}`;
     if (isTomorrow) return `Tomorrow at ${time}`;
     return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${time}`;
+  }
+
+  function canJoinSession(startTime: Date, endTime: Date | null) {
+    return now >= startTime && (!endTime || now <= endTime);
+  }
+
+  function getNextOccurrence(slot: { dayOfWeek: number; startTime: string }): Date | null {
+    const today = new Date();
+    const todayDay = today.getDay();
+    const daysUntil = (slot.dayOfWeek - todayDay + 7) % 7;
+    if (daysUntil > 6 - todayDay) return null;
+    const next = new Date(today);
+    next.setDate(today.getDate() + daysUntil);
+    const [h, m] = slot.startTime.split(":").map(Number);
+    next.setHours(h, m, 0, 0);
+    if (daysUntil === 0 && next.getTime() - today.getTime() < 2 * 60 * 60 * 1000) return null;
+    return next;
   }
 
   return (
@@ -180,38 +384,51 @@ export default async function CourseDetailPage({
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
                 {course.category}
               </span>
-              {course.slug === "hifdh-ul-quran" ? (
-                allAppointments.length > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
-                    <Video className="size-3" />
-                    {allAppointments.length} sessions
-                  </span>
-                )
-              ) : (
-                course.lessons.length > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
-                    <Clock className="size-3" />
-                    {course.lessons.length} modules
-                  </span>
-                )
-              )}
+              {course.slug === "hifdh-ul-quran"
+                ? allAppointments.length > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
+                      <FontAwesomeIcon icon={faVideo} className="size-3" />
+                      {allAppointments.length} sessions
+                    </span>
+                  )
+                : course.lessons.length > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
+                      <FontAwesomeIcon icon={faClock} className="size-3" />
+                      {course.lessons.length} modules
+                    </span>
+                  )}
             </div>
-            <h1 className={`${amiri.className} text-3xl md:text-4xl font-bold text-text-primary tracking-tight leading-snug`}>
+            <h1
+              className={`${amiri.className} text-3xl md:text-4xl font-bold text-text-primary tracking-tight leading-snug`}
+            >
               {course.title}
             </h1>
             <p className="text-text-secondary text-sm md:text-base mt-3 max-w-2xl leading-relaxed">
-              {course.description || "No description available for this course."}
+              {course.description ||
+                "No description available for this course."}
             </p>
-              <div className="flex flex-wrap items-center gap-4 mt-6" id="enroll">
+            <div className="flex flex-wrap items-center gap-4 mt-6" id="enroll">
               <EnrollButton courseSlug={course.slug} isEnrolled={isEnrolled} />
               {isEnrolled && course.progress !== null && (
                 <div className="flex items-center gap-3">
                   <div className="relative size-10">
                     <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                      <circle cx="18" cy="18" r="15.5" fill="none" className="stroke-bg-hover" strokeWidth="2.5" />
                       <circle
-                        cx="18" cy="18" r="15.5" fill="none"
-                        className="stroke-primary" strokeWidth="2.5" strokeLinecap="round"
+                        cx="18"
+                        cy="18"
+                        r="15.5"
+                        fill="none"
+                        className="stroke-bg-hover"
+                        strokeWidth="2.5"
+                      />
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.5"
+                        fill="none"
+                        className="stroke-primary"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
                         strokeDasharray={`${course.progress}, ${100 - course.progress}`}
                         pathLength="100"
                       />
@@ -222,9 +439,13 @@ export default async function CourseDetailPage({
                   </div>
                   <div className="text-xs">
                     {course.slug === "hifdh-ul-quran" ? (
-                      <p className="font-semibold text-text-primary">{allAppointments.length} sessions</p>
+                      <p className="font-semibold text-text-primary">
+                        {allAppointments.length} sessions
+                      </p>
                     ) : (
-                      <p className="font-semibold text-text-primary">{completedCount}/{course.lessons.length} modules</p>
+                      <p className="font-semibold text-text-primary">
+                        {completedCount}/{course.lessons.length} modules
+                      </p>
                     )}
                     <p className="text-text-muted">completed</p>
                   </div>
@@ -249,7 +470,10 @@ export default async function CourseDetailPage({
                     Today&apos;s Daily Session
                   </div>
                   <p className="text-2xl font-bold text-text-primary">
-                    {dailySlot.startTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                    {dailySlot.startTime.toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                   <p className="text-sm text-text-secondary mt-1">
                     {dailySlot.duration} min session
@@ -270,14 +494,25 @@ export default async function CourseDetailPage({
               </h3>
               <div className="space-y-3">
                 {recurringSlots.map((s) => {
-                  const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][s.dayOfWeek];
-                  const time = new Date(`2000-01-01T${s.startTime}`).toLocaleTimeString("en-US", {
+                  const dayName = [
+                    "Sun",
+                    "Mon",
+                    "Tue",
+                    "Wed",
+                    "Thu",
+                    "Fri",
+                    "Sat",
+                  ][s.dayOfWeek];
+                  const time = new Date(
+                    `2000-01-01T${s.startTime}`,
+                  ).toLocaleTimeString("en-US", {
                     hour: "2-digit",
                     minute: "2-digit",
                   });
                   const SlotIcon = s.type === "DAILY_HIFDH" ? Sun : Bolt;
+                  const nextOccurrence = getNextOccurrence(s);
                   return (
-                    <div key={s.type}>
+                    <div key={`${s.type}-${s.dayOfWeek}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <span className="flex size-9 items-center justify-center rounded-[10px] border border-primary/25 text-primary">
@@ -285,13 +520,23 @@ export default async function CourseDetailPage({
                           </span>
                           <div>
                             <p className="font-medium text-sm text-text-primary">
-                              {s.type === "DAILY_HIFDH" ? "Daily Hifdh" : "Muraja'ah"}
+                              {s.type === "DAILY_HIFDH"
+                                ? "Daily Hifdh"
+                                : "Muraja'ah"}
                             </p>
                             <p className="text-xs text-text-secondary">
                               {dayName}s at {time} &middot; {s.duration} min
                             </p>
                           </div>
                         </div>
+                        {nextOccurrence && mentorshipId && teacherId && (
+                          <RescheduleSlotButton
+                            mentorshipId={mentorshipId}
+                            teacherId={teacherId}
+                            sessionType={s.type}
+                            nextOccurrence={nextOccurrence.toISOString()}
+                          />
+                        )}
                       </div>
                     </div>
                   );
@@ -302,50 +547,14 @@ export default async function CourseDetailPage({
                   Teacher: {teacherName}
                 </p>
               )}
-            </div>
-          )}
-
-          {upcomingMuraja.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Star className="size-3.5 text-primary" />
-                Upcoming Sessions
-              </h3>
-              <div className="space-y-2.5">
-                {upcomingMuraja.map((a, index) => (
-                  <Link
-                    key={a.id}
-                    href={isEnrolled ? `/session/${a.id}` : "#enroll"}
-                    style={{ "--i": index } as React.CSSProperties}
-                    className="hover-lift stagger-item group flex items-center gap-4 p-4 rounded-xl border border-border bg-bg-elevated hover:border-primary/30 hover:bg-bg-hover"
-                  >
-                    <span className="relative shrink-0 flex size-11 items-center justify-center rounded-[10px] border border-primary/25 text-primary group-hover:bg-primary/5 transition-colors">
-                      {a.sessionType === "MURAJA" ? <Bolt className="size-4" /> : <Video className="size-4" />}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate text-text-primary">
-                        {a.title || (a.sessionType === "MURAJA" ? "Muraja'ah Session" : "Extra Session")}
-                      </h3>
-                      <div className="flex items-center gap-3 text-xs text-text-secondary mt-1">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="size-3" />
-                          {formatSessionDate(a.startTime)}
-                        </span>
-                        {a.teacher && (
-                          <span>with {a.teacher.name || "Teacher"}</span>
-                        )}
-                        <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">
-                          {a.sessionType === "MURAJA" ? "Muraja'ah" : "Extra"}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-primary text-text-inverse font-semibold text-sm transition-all shrink-0 active:scale-[0.97] group-hover:shadow-glow-brass">
-                      Join
-                      <ArrowRight className="size-3" />
-                    </span>
-                  </Link>
-                ))}
-              </div>
+              {mentorshipId && teacherId && (
+                <ScheduleSectionClient
+                  mentorshipId={mentorshipId}
+                  teacherId={teacherId}
+                  teacherAvail={teacherAvail}
+                  mismatchNotifications={mismatchNotifications}
+                />
+              )}
             </div>
           )}
 
@@ -361,9 +570,12 @@ export default async function CourseDetailPage({
                     key={a.id}
                     className="flex items-center gap-4 p-4 rounded-xl border border-border bg-bg-elevated/50 opacity-70"
                   >
-                    <span className="relative shrink-0 flex size-11 items-center justify-center rounded-[10px] bg-bg-hover text-text-muted">
-                      <Video className="size-4" />
-                    </span>
+                    <div className="relative shrink-0 size-11 rounded-xl bg-bg-hover flex items-center justify-center">
+                      <FontAwesomeIcon
+                        icon={faVideo}
+                        className="text-text-muted size-4"
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate text-text-primary text-sm">
                         {a.title || "Session"}
@@ -382,7 +594,7 @@ export default async function CourseDetailPage({
             </div>
           )}
 
-          {!dailySlot && upcomingMuraja.length === 0 && pastSessions.length === 0 && !(isEnrolled && recurringSlots.length === 0) && (
+          {!dailySlot && pastSessions.length === 0 && !(isEnrolled && recurringSlots.length === 0) && (
             <EmptyState title="Sessions will appear here once your teacher schedules them." />
           )}
         </section>
@@ -416,9 +628,12 @@ export default async function CourseDetailPage({
 
         <section>
           <div className="flex items-center gap-3 mb-5">
-            <span className="flex size-8 items-center justify-center rounded-[8px] border border-primary/25 text-primary">
-              <GraduationCap className="size-4" />
-            </span>
+            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FontAwesomeIcon
+                icon={faGraduationCap}
+                className="text-primary size-4"
+              />
+            </div>
             <div>
               <h2
                 className={`${elMessiri.className} text-lg font-semibold text-text-primary`}
@@ -426,12 +641,12 @@ export default async function CourseDetailPage({
                 Modules
               </h2>
               {isEnrolled && (
-                <p className="text-xs text-text-secondary">{completedCount} of {course.lessons.length} completed</p>
+                <p className="text-xs text-text-secondary">
+                  {completedCount} of {course.lessons.length} completed
+                </p>
               )}
             </div>
-            {isEnrolled && (
-              <div className="flex-1" />
-            )}
+            {isEnrolled && <div className="flex-1" />}
           </div>
 
           {course.lessons.length > 0 ? (
@@ -469,7 +684,10 @@ export default async function CourseDetailPage({
                       }`}
                     >
                       {isCompleted ? (
-                        <CheckCircle className="size-5" />
+                        <FontAwesomeIcon
+                          icon={faCheckCircle}
+                          className="size-5"
+                        />
                       ) : isLocked ? (
                         <Lock className="size-4" />
                       ) : (
@@ -478,27 +696,48 @@ export default async function CourseDetailPage({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 className={`font-semibold truncate ${
-                        isCompleted ? "text-text-primary" : isLocked ? "text-text-muted" : "text-text-primary"
-                      }`}>
+                      <h3
+                        className={`font-semibold truncate ${
+                          isCompleted
+                            ? "text-text-primary"
+                            : isLocked
+                              ? "text-text-muted"
+                              : "text-text-primary"
+                        }`}
+                      >
                         {lesson.title}
                       </h3>
                       <div className="flex items-center gap-3 text-xs text-text-secondary mt-1">
                         {lesson.duration && (
                           <span className="flex items-center gap-1">
-                            <Clock className="size-3" />
+                            <FontAwesomeIcon
+                              icon={faClock}
+                              className="size-3"
+                            />
                             {lesson.duration} min
                           </span>
                         )}
                         {hasQuiz && (
                           <span className="flex items-center gap-1">
-                            <ClipboardList className="size-3" />
+                            <FontAwesomeIcon
+                              icon={faClipboardList}
+                              className="size-3"
+                            />
                             Quiz
                           </span>
                         )}
                         {isCompleted && prog?.score != null && (
                           <span className="text-success font-medium">
-                            Score: {prog.score}%
+                            {(() => {
+                              const examData = lessonExams[lesson.id];
+                              if (examData && examData.totalMarks > 0) {
+                                const pct = Math.round(
+                                  (prog.score! / examData.totalMarks) * 100,
+                                );
+                                return `Score: ${pct}%`;
+                              }
+                              return `Score: ${prog.score}`;
+                            })()}
                           </span>
                         )}
                       </div>
@@ -507,7 +746,10 @@ export default async function CourseDetailPage({
                     <div className="shrink-0">
                       {isCompleted ? (
                         <span className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success/10 text-success font-semibold text-sm">
-                          <CheckCircle className="size-3.5" />
+                          <FontAwesomeIcon
+                            icon={faCheckCircle}
+                            className="size-3.5"
+                          />
                           Done
                         </span>
                       ) : isLocked ? (
@@ -523,11 +765,17 @@ export default async function CourseDetailPage({
                           {isEnrolled ? (
                             <>
                               Start
-                              <ArrowRight className="size-3" />
+                              <FontAwesomeIcon
+                                icon={faArrowRight}
+                                className="size-3"
+                              />
                             </>
                           ) : (
                             <>
-                              <Play className="size-3" />
+                              <FontAwesomeIcon
+                                icon={faPlay}
+                                className="size-3"
+                              />
                               Enroll to access
                             </>
                           )}
@@ -540,6 +788,151 @@ export default async function CourseDetailPage({
             </div>
           ) : (
             <EmptyState title="Content for this course is being prepared." />
+          )}
+
+          {isEnrolled && finalExam && (
+            <div className="mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="size-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <FontAwesomeIcon
+                    icon={faCertificate}
+                    className="text-amber-500 size-4"
+                  />
+                </div>
+                <h2 className="text-lg font-bold text-text-primary">
+                  Final Exam
+                </h2>
+              </div>
+
+              {certificate ? (
+                <Link
+                  href={`/certificates/${certificate.id}`}
+                  className="group flex items-center gap-4 p-4 rounded-xl border border-success/30 bg-success/5 hover:border-success/50 hover:bg-success/10 transition-all"
+                >
+                  <div className="size-11 rounded-xl bg-success flex items-center justify-center shrink-0">
+                    <FontAwesomeIcon
+                      icon={faAward}
+                      className="size-5 text-text-inverse"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-text-primary">
+                      Certificate Earned
+                    </h3>
+                    <p className="text-xs text-text-secondary mt-1">
+                      View and download your course certificate
+                    </p>
+                  </div>
+                  <span className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success text-text-inverse font-semibold text-sm group-hover:brightness-110 transition-all">
+                    View Certificate
+                    <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                  </span>
+                </Link>
+              ) : (
+                <Link
+                  href={`/courses/${slug}/exam`}
+                  className={`group flex items-center gap-4 p-4 rounded-xl border transition-all ${
+                    completedCount >= course.lessons.length
+                      ? finalExamSubmission?.status === "GRADED"
+                        ? "border-success/20 bg-success/5 hover:border-success/40"
+                        : "border-amber-500/20 bg-amber-500/5 hover:border-amber-500/40 hover:bg-amber-500/10"
+                      : "border-border/60 bg-bg-elevated/50 opacity-60 cursor-default"
+                  }`}
+                >
+                  <div
+                    className={`size-11 rounded-xl flex items-center justify-center shrink-0 ${
+                      completedCount >= course.lessons.length
+                        ? "bg-amber-500/10 text-amber-500"
+                        : "bg-bg-hover text-text-muted"
+                    }`}
+                  >
+                    <FontAwesomeIcon icon={faCertificate} className="size-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3
+                      className={`font-semibold truncate ${
+                        completedCount >= course.lessons.length
+                          ? "text-text-primary"
+                          : "text-text-muted"
+                      }`}
+                    >
+                      {finalExam.title}
+                    </h3>
+                    <div className="flex items-center gap-3 text-xs mt-1">
+                      {completedCount < course.lessons.length ? (
+                        <span className="text-text-muted">
+                          Complete all modules first
+                        </span>
+                      ) : finalExamSubmission?.status === "GRADED" ? (
+                        <span
+                          className={`font-medium ${
+                            ((finalExamSubmission.totalScore ?? 0) * 100) /
+                              (finalExam.totalMarks || 1) >=
+                            finalExam.passMark
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                          Score: {finalExamSubmission.totalScore}/
+                          {finalExam.totalMarks}
+                          {finalExamSubmission.attemptNumber < 2 &&
+                            " — Retry available"}
+                        </span>
+                      ) : (
+                        <span className="text-text-secondary">
+                          {finalExam._count.questions} questions
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    {completedCount >= course.lessons.length && (
+                      <span
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                          finalExamSubmission?.status === "GRADED"
+                            ? "bg-success/10 text-success"
+                            : "bg-amber-500 text-text-inverse group-hover:brightness-110"
+                        }`}
+                      >
+                        {finalExamSubmission?.status === "GRADED"
+                          ? ((finalExamSubmission.totalScore ?? 0) * 100) /
+                              (finalExam.totalMarks || 1) >=
+                            finalExam.passMark
+                            ? "Passed"
+                            : "Retake"
+                          : "Start Exam"}
+                        <FontAwesomeIcon
+                          icon={faArrowRight}
+                          className="size-3"
+                        />
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
+
+          {certificate && (
+            <div className="mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="size-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <FontAwesomeIcon
+                    icon={faStar}
+                    className="text-amber-500 size-4"
+                  />
+                </div>
+                <h2 className="text-lg font-bold text-text-primary">
+                  Rate This Course
+                </h2>
+              </div>
+              <ReviewSection
+                slug={course.slug}
+                userReview={userReview}
+                allReviews={allReviews}
+                averageRating={averageRating}
+              />
+            </div>
           )}
         </section>
         </>

@@ -2,16 +2,17 @@ import { auth } from "@/lib/auth";
 import { CourseCard } from "@/components/ui/cards";
 import { amiri, elMessiri } from "@/components/ui/fonts";
 import { PortalHeader, EmptyState } from "@/components/ui/portal";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  BookMarked,
-  BookOpen,
-  Clock,
-  GraduationCap,
-  History,
-  Languages,
-  Scale,
-  ArrowRight,
-} from "lucide-react";
+  faArrowRight,
+  faBookOpen,
+  faBookQuran,
+  faClock,
+  faGraduationCap,
+  faHistory,
+  faLanguage,
+  faScaleBalanced,
+} from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
 import Link from "next/link";
 import { getCoursesData } from "@/lib/courses";
@@ -20,30 +21,30 @@ import { CourseCategory } from "@prisma/client";
 
 const categoryMeta: Record<
   CourseCategory,
-  { icon: typeof BookOpen; label: string; className: string }
+  { icon: typeof faBookOpen; label: string; className: string }
 > = {
   Quran: {
-    icon: BookMarked,
+    icon: faBookQuran,
     label: "Quran",
     className: "bg-primary/10 text-primary border-primary/20",
   },
   Fiqh: {
-    icon: Scale,
+    icon: faScaleBalanced,
     label: "Fiqh",
     className: "bg-secondary/10 text-secondary border-secondary/20",
   },
   History: {
-    icon: History,
+    icon: faHistory,
     label: "History",
     className: "bg-warning/10 text-warning border-warning/20",
   },
   Arabic: {
-    icon: Languages,
+    icon: faLanguage,
     label: "Arabic",
     className: "bg-info/10 text-info border-info/20",
   },
   Aqeedah: {
-    icon: GraduationCap,
+    icon: faGraduationCap,
     label: "Aqeedah",
     className: "bg-success/10 text-success border-success/20",
   },
@@ -71,7 +72,7 @@ export default async function Courses() {
           enrolledCourses.length > 0 ? (
             <div className="hidden items-center gap-2.5 rounded-xl border border-border bg-bg-elevated px-4 py-2.5 shadow-raise sm:flex">
               <span className="flex size-9 items-center justify-center rounded-[10px] border border-primary/25 text-primary">
-                <GraduationCap className="size-4" />
+                <FontAwesomeIcon icon={faGraduationCap} className="size-4" />
               </span>
               <div>
                 <p className="text-xl font-bold leading-none text-text-primary">{completedCount}</p>
@@ -154,7 +155,7 @@ export default async function Courses() {
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold ${catMeta.className}`}
                         >
-                          <catMeta.icon className="size-3" />
+                          <FontAwesomeIcon icon={catMeta.icon} className="size-3" />
                           {catMeta.label}
                         </span>
                       </div>
@@ -166,12 +167,12 @@ export default async function Courses() {
                       {course.title}
                     </h4>
                     <div className="flex items-center text-xs text-text-secondary">
-                      <Clock className="size-3 text-primary/60 mr-2" />
+                      <FontAwesomeIcon icon={faClock} className="size-3 text-primary/60 mr-2" />
                       <span className="font-medium">{course.lessons} lessons</span>
                     </div>
                     <span className="inline-flex items-center justify-center gap-2 rounded-[10px] py-2.5 px-4 bg-primary text-text-inverse font-semibold text-sm transition-all active:scale-[0.97] hover:shadow-glow-brass mt-1">
                       Enroll Now
-                      <ArrowRight className="size-3.5" />
+                      <FontAwesomeIcon icon={faArrowRight} className="size-3.5" />
                     </span>
                   </div>
                 </Link>

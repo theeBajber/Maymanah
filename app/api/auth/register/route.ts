@@ -1,9 +1,11 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
+import crypto from "crypto";
+import { sendVerificationEmail } from "@/lib/email";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name is too short"),
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, email, password, role } = registerSchema.parse(body);
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await safeQuery(() => prisma.user.findUnique({ where: { email } }));
     if (existing) {
       return NextResponse.json(
         { error: "Email already registered" },
@@ -39,16 +41,31 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    await prisma.user.create({
+    const user = await safeQuery(() => prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         role,
+        xp: 1,
+        emailVerified: null,
         profile: { create: { timezone: "Africa/Nairobi" } },
       },
-      select: { id: true },
-    });
+      select: { id: true, email: true },
+    }));
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await safeQuery(() => prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token,
+        expires,
+      },
+    }));
+
+    await sendVerificationEmail(email, token);
 
     await logAuditEvent({
       action: "REGISTERED",
@@ -57,7 +74,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { message: "Account created successfully" },
+      { message: "Account created successfully. Please check your email to verify your account." },
       { status: 201 },
     );
   } catch (error) {

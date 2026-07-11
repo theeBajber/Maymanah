@@ -17,7 +17,7 @@ export function DailySessionButton({
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000);
+    const id = setInterval(() => setNow(new Date()), 1_000);
     return () => clearInterval(id);
   }, []);
 
@@ -37,21 +37,28 @@ export function DailySessionButton({
         router.push(`/session/${data.id}${isTest ? "?test=1" : ""}`);
       } else {
         const err = await res.json();
-        toast({ variant: "error", title: err.error || "Failed to start session" });
+        toast({ title: err.error || "Failed to start session", variant: "error" });
       }
     } catch {
-      toast({ variant: "error", title: "Something went wrong" });
+      toast({ title: "Something went wrong", variant: "error" });
     } finally {
       setLoading(false);
     }
   }
 
   if (isBefore) {
-    const minsUntil = Math.round((start.getTime() - now.getTime()) / 60000);
+    const diff = start.getTime() - now.getTime();
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    let label: string;
+    if (h > 0) label = `${h}h ${m}m`;
+    else if (m > 0) label = `${m}m ${s}s`;
+    else label = `${s}s`;
     return (
       <div className="flex items-center gap-3 text-sm text-text-secondary">
-        <span className="size-2 rounded-full bg-warning animate-pulse" />
-        Coming up in {minsUntil} min
+        <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
+        Coming up in {label}
       </div>
     );
   }

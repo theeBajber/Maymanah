@@ -2,7 +2,13 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Check, Loader2, CircleAlert } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faClock,
+  faCheck,
+  faSpinner,
+} from "@fortawesome/free-solid-svg-icons";
+import { useToast } from "@/components/ui/toast";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6);
@@ -21,9 +27,9 @@ function parseSlotKey(key: SlotKey) {
 
 export function SetAvailabilityForPairing() {
   const router = useRouter();
+  const { toast } = useToast();
   const [selected, setSelected] = useState<Set<SlotKey>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const dragActionRef = useRef<"add" | "remove" | null>(null);
@@ -138,12 +144,11 @@ export function SetAvailabilityForPairing() {
 
   async function handleSaveAndPair() {
     if (selected.size === 0) {
-      setError("Select at least one time slot.");
+      toast({ title: "Select at least one time slot.", variant: "warning" });
       return;
     }
 
     setSaving(true);
-    setError(null);
 
     const slots = Array.from(selected).map((key) => {
       const { day, start, end } = parseSlotKey(key);
@@ -158,7 +163,7 @@ export function SetAvailabilityForPairing() {
       });
 
       if (!availRes.ok) {
-        setError("Failed to save availability. Try again.");
+        toast({ title: "Failed to save availability. Try again.", variant: "error" });
         setSaving(false);
         return;
       }
@@ -167,9 +172,10 @@ export function SetAvailabilityForPairing() {
 
       if (!pairRes.ok) {
         const data = await pairRes.json();
-        setError(
-          data.error || "Could not find a teacher. Try different times.",
-        );
+        toast({
+          title: data.error || "Could not find a teacher. Try different times.",
+          variant: "error",
+        });
         setSaving(false);
         return;
       }
@@ -177,7 +183,7 @@ export function SetAvailabilityForPairing() {
       setSuccess(true);
       setTimeout(() => router.refresh(), 1500);
     } catch {
-      setError("Something went wrong. Try again.");
+      toast({ title: "Something went wrong. Try again.", variant: "error" });
       setSaving(false);
     }
   }
@@ -186,7 +192,7 @@ export function SetAvailabilityForPairing() {
     return (
       <div className="rounded-2xl border border-success/30 bg-success/5 p-8 text-center">
         <div className="size-14 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
-          <Check className="text-success text-xl" />
+          <FontAwesomeIcon icon={faCheck} className="text-success text-xl" />
         </div>
         <h3 className="font-semibold text-text-primary text-lg mb-1">
           You&apos;re all set!
@@ -202,7 +208,7 @@ export function SetAvailabilityForPairing() {
     <div className="rounded-2xl border border-border bg-bg-elevated shadow-raise p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Clock className="text-primary size-4" />
+          <FontAwesomeIcon icon={faClock} className="text-primary size-4" />
         </div>
         <div>
           <h3 className="font-semibold text-text-primary">
@@ -277,13 +283,6 @@ export function SetAvailabilityForPairing() {
         Click and drag to select multiple slots. Selected = available, blank = unavailable.
       </p>
 
-      {error && (
-        <div className="flex items-center gap-2 mt-4 text-sm text-danger">
-          <CircleAlert className="size-3.5" />
-          {error}
-        </div>
-      )}
-
       <div className="flex items-center justify-end gap-3 mt-5">
         <p className="text-[11px] text-text-muted">
           {selected.size} slot{selected.size !== 1 ? "s" : ""} selected
@@ -295,7 +294,7 @@ export function SetAvailabilityForPairing() {
         >
           {saving ? (
             <>
-              <Loader2 className="size-3.5 animate-spin" />
+              <FontAwesomeIcon icon={faSpinner} className="size-3.5 animate-spin" />
               Finding a teacher...
             </>
           ) : (

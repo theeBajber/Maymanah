@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
-import { renderCertificatePdf } from "@/lib/certificate";
+import { renderCertificatePdf } from "@/lib/certificate-pdf";
 
 // react-pdf reads font files from disk and uses Node.js Buffer APIs —
 // this must run on the Node.js runtime, not edge.

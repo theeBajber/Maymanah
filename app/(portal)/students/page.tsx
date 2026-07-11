@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, BookOpen, StickyNote } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight, faNoteSticky } from "@fortawesome/free-solid-svg-icons";
 import { PortalHeader, EmptyState } from "@/components/ui/portal";
 
 export const dynamic = "force-dynamic";
@@ -59,12 +60,12 @@ export default async function MyStudents() {
                   <div className="flex items-center gap-4 mt-1 text-sm text-text-secondary">
                     <span>Surah {progress?.lastSurah ?? "?"}:{progress?.lastVerse ?? "?"}</span>
                     <span className="flex items-center gap-1">
-                      <StickyNote className="size-3" />
+                      <FontAwesomeIcon icon={faNoteSticky} className="size-3" />
                       {m.student.studentNotes.length} open note{m.student.studentNotes.length !== 1 ? "s" : ""}
                     </span>
                   </div>
                 </div>
-                <ArrowRight className="text-text-muted group-hover:text-primary transition-colors size-4" />
+                <FontAwesomeIcon icon={faArrowRight} className="text-text-muted group-hover:text-primary transition-colors size-4" />
               </Link>
             );
           })}

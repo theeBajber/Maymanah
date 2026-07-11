@@ -53,7 +53,8 @@ model User {
   password              String?   // Only for credentials login; null for OAuth users
   gender                String?
   role                  UserRole  @default(STUDENT)
-  // twoFactorEnabled and twoFactorSecret removed (unimplemented)
+  twoFactorEnabled      Boolean   @default(false)
+  xp                    Int       @default(0)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -81,28 +82,11 @@ model User {
   lessonProgress        LessonProgress[]
   submissions           Submission[]
   userAnalytics         UserAnalytics[]
+  twoFactorOTPs         TwoFactorOTP[]
   notifications         Notification[]
+  courseReviews         CourseReview[]
 
   @@index([role])
-}
-
-// ─── Notifications ───
-// Matches an existing table already live in the database (predates this
-// schema — a prior messaging feature wrote to it; kept its exact shape
-// rather than forcing a conflicting migration over real rows).
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String
-  title     String
-  body      String?
-  metadata  Json?    @default("{}")
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([userId, isRead])
 }
 
 model Profile {
@@ -130,7 +114,7 @@ model UstadhProfile {
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   isApproved        Boolean  @default(false)
-  reliabilityScore  Float?   // admin-only, never exposed to ustadh
+  reliabilityScore  Float?   // computed from session join rate
   bio               String?
   qualifications    String?
   ijazah            String?   // Ijazah certification details
@@ -158,6 +142,19 @@ model LoginSession {
   @@index([isActive])
 }
 
+// ─── Two-Factor Authentication ───
+model TwoFactorOTP {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([userId])
+}
+
 // ─── Curriculum ───
 model Course {
   id            String         @id @default(cuid())
@@ -177,6 +174,7 @@ model Course {
   exams          Exam[]
   ijazahs        Ijazah[]
   userAnalytics  UserAnalytics[]
+  reviews        CourseReview[]
 }
 
 model Lesson {
@@ -224,6 +222,7 @@ model Enrollment {
   status      EnrollmentStatus  @default(ACTIVE)
   progress    Int               @default(0) // 0-100
   enrolledAt  DateTime          @default(now())
+  passedAt    DateTime?
   completedAt DateTime?
 
   @@unique([userId, courseId])
@@ -269,6 +268,9 @@ model Appointment {
   surahNumber  Int?
   verseNumber  Int?
   notes        StudentNote[]
+  sessionPlan  SessionPlan?
+  joinedAt     DateTime?
+  missed       Boolean                @default(false)
   createdAt    DateTime               @default(now())
 
   @@index([mentorshipId])
@@ -395,21 +397,22 @@ model Question {
 }
 
 model Submission {
-  id          String           @id @default(cuid())
-  examId      String
-  exam        Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  status      SubmissionStatus @default(IN_PROGRESS)
-  totalScore  Float?
-  startedAt   DateTime         @default(now())
-  submittedAt DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id             String           @id @default(cuid())
+  examId         String
+  exam           Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status         SubmissionStatus @default(IN_PROGRESS)
+  totalScore     Float?
+  attemptNumber  Int              @default(1)
+  startedAt      DateTime         @default(now())
+  submittedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   answers Answer[]
 
-  @@unique([examId, studentId])
+  @@index([examId, studentId])
   @@index([examId])
   @@index([studentId])
 }
@@ -450,15 +453,18 @@ model UserAnalytics {
 
 // ─── Ijazah & Progress ───
 model Ijazah {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId       String
-  course         Course   @relation(fields: [courseId], references: [id])
-  issuedAt       DateTime @default(now())
-  issuedBy       String?  // Admin name or "SYSTEM"
-  certificateUrl String?
-  isVerified     Boolean  @default(false)
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId         String
+  course           Course   @relation(fields: [courseId], references: [id])
+  issuedAt         DateTime @default(now())
+  issuedBy         String?  // Admin name or "SYSTEM"
+  certificateUrl   String?
+  certificatePdfUrl String?
+  verificationCode String? @unique
+  expiresAt        DateTime?
+  isVerified       Boolean  @default(false)
 
   @@unique([userId, courseId])
   @@index([userId])
@@ -491,6 +497,52 @@ model Assessment {
   createdAt  DateTime       @default(now())
 
   @@index([studentId])
+}
+
+// ─── Session Plan (mentor sets surah/ayah range for a session) ───
+model SessionPlan {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  fromSurah     Int
+  fromVerse     Int
+  toSurah       Int
+  toVerse       Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([appointmentId])
+}
+
+// ─── Course Reviews (upon completion) ───
+model CourseReview {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+// ─── Notifications ───
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "session_reminder", "message", "note_added"
+  title     String
+  body      String?
+  metadata  Json?    @default("{}")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 // ─── Donations ───

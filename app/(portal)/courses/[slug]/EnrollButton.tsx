@@ -35,10 +35,10 @@ export default function EnrollButton({
         router.refresh();
       } else {
         const data = await res.json();
-        toast({ variant: "error", title: data.error || "Something went wrong" });
+        toast({ title: data.error || "Something went wrong", variant: "error" });
       }
     } catch {
-      toast({ variant: "error", title: "Network error. Please try again." });
+      toast({ title: "Network error. Please try again.", variant: "error" });
     } finally {
       setLoading(false);
     }

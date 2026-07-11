@@ -5,9 +5,12 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "@/components/ui/button";
 import { Field, Input, PasswordInput } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented";
+import { useToast } from "@/components/ui/toast";
 import { AuthPanel } from "../AuthPanel";
 
 type Strength = {
@@ -18,7 +21,7 @@ type Strength = {
 };
 
 export default function Register() {
-  const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
   const [email, setEmail] = useState("");
@@ -28,8 +31,9 @@ export default function Register() {
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [resending, setResending] = useState(false);
 
-  // Arriving from /teach preselects the teacher role (?role=teacher)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("role")?.toUpperCase() === "TEACHER") setRole("TEACHER");
@@ -87,7 +91,6 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
 
     if (password !== confirmPassword) {
       failSubmit("The passwords don't match — retype both fields.");
@@ -125,17 +128,64 @@ export default function Register() {
         return;
       }
 
-      await signIn("credentials", {
-        email: email.trim().toLowerCase(),
-        password,
-        redirect: false,
-      });
-      router.push("/onboarding");
+      setRegisteredEmail(email.trim().toLowerCase());
     } catch {
       setLoading(false);
       failSubmit("Something went wrong on our side. Please try again.");
     }
   };
+
+  if (registeredEmail) {
+    return (
+      <AuthPanel heading="Check your email" wide>
+        <div className="flex flex-col items-center gap-6 py-4 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-brass/10">
+            <FontAwesomeIcon icon={faEnvelope} className="size-7 text-brass" />
+          </div>
+          <p className="text-sm text-sage leading-relaxed max-w-sm">
+            We sent a verification link to{" "}
+            <strong className="text-ivory">{registeredEmail}</strong>.
+            Click the link to activate your account.
+          </p>
+          <p className="text-xs text-sage/60">
+            Didn't get the email? Check your spam folder or{" "}
+            <button
+              type="button"
+              disabled={resending}
+              onClick={async () => {
+                setResending(true);
+                try {
+                  const res = await fetch("/api/auth/resend-verification", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: registeredEmail }),
+                  });
+                  if (res.ok) {
+                    toast({ title: "Verification email resent!", variant: "success" });
+                  } else {
+                    toast({ title: "Failed to resend. Try again later.", variant: "error" });
+                  }
+                } catch {
+                  toast({ title: "Failed to resend. Try again later.", variant: "error" });
+                } finally {
+                  setResending(false);
+                }
+              }}
+              className="font-medium text-lapis transition-colors hover:text-ivory disabled:opacity-50"
+            >
+              {resending ? "Sending..." : "resend"}
+            </button>
+          </p>
+          <Link
+            href="/login"
+            className="mt-2 inline-flex h-11 items-center justify-center rounded-[10px] bg-brass px-6 text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+          >
+            Go to Login
+          </Link>
+        </div>
+      </AuthPanel>
+    );
+  }
 
   return (
     <AuthPanel heading="Begin your journey" wide>
@@ -147,7 +197,7 @@ export default function Register() {
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="stagger-fade flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <SegmentedControl
           label="Join as"
           value={role}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { QuizEditor } from "@/components/ui/QuizEditor";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { useToast } from "@/components/ui/toast";
 
 type Option = { text: string; isCorrect: boolean };
 type Question = {
@@ -44,8 +45,8 @@ export function LessonForm({
   courseTitle: string;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const [form, setForm] = useState<LessonData>(
     lesson || {
       courseId,
@@ -66,7 +67,6 @@ export function LessonForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setError("");
 
     try {
       const url = isEditing
@@ -88,7 +88,7 @@ export function LessonForm({
       router.push(`/admin/courses/${courseId}/lessons`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      toast({ title: err instanceof Error ? err.message : "Something went wrong", variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -115,12 +115,6 @@ export function LessonForm({
         onSubmit={handleSubmit}
         className="max-w-3xl space-y-6 bg-bg-card border border-border rounded-xl p-6"
       >
-        {error && (
-          <div className="p-3 rounded-lg bg-danger-muted text-danger text-sm">
-            {error}
-          </div>
-        )}
-
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1.5">

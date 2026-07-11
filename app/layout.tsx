@@ -108,7 +108,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>{children}</Providers>
-      </body>
+</body>
     </html>
   );
 }

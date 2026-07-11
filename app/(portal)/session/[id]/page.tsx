@@ -1,18 +1,24 @@
 "use client";
 
 import {
-  Check,
-  Circle,
-  Pen,
-  Plus,
-  Loader2,
-  Video,
-  TriangleAlert,
-} from "lucide-react";
+  faBookOpen,
+  faCheck,
+  faChevronLeft,
+  faChevronRight,
+  faCircle,
+  faFlag,
+  faPen,
+  faPlus,
+  faSpinner,
+  faVideo,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { VideoRoom } from "@/components/ui/VideoRoom";
+import { useToast } from "@/components/ui/toast";
 import Mushaf from "@/components/Mushaf";
 
 type ReviewItem = {
@@ -22,10 +28,18 @@ type ReviewItem = {
   status: "new" | "review" | "done";
 };
 
+interface SessionPlan {
+  fromSurah: number;
+  fromVerse: number;
+  toSurah: number;
+  toVerse: number;
+}
+
 interface JoinData {
   token: string;
   roomName: string;
   liveKitUrl: string;
+  otherUserId: string;
   appointment: {
     id: string;
     title: string | null;
@@ -33,18 +47,50 @@ interface JoinData {
     status: string;
     isTeacher: boolean;
   };
+  plan: SessionPlan | null;
 }
 
 export default function SessionPage() {
   const router = useRouter();
   const params = useParams();
   const { status: authStatus } = useSession();
+  const { toast } = useToast();
   const [joinData, setJoinData] = useState<JoinData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [inCall, setInCall] = useState(false);
-  const [permError, setPermError] = useState("");
   const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  const [sessionPlan, setSessionPlan] = useState<SessionPlan>({
+    fromSurah: 1, fromVerse: 1, toSurah: 1, toVerse: 1,
+  });
+  const [planSaving, setPlanSaving] = useState(false);
+
+  useEffect(() => {
+    if (joinData?.plan) setSessionPlan(joinData.plan);
+  }, [joinData]);
+
+  async function savePlan() {
+    if (!joinData) return;
+    setPlanSaving(true);
+    try {
+      const res = await fetch(`/api/appointments/${joinData.appointment.id}/plan`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sessionPlan),
+      });
+      if (res.ok) {
+        toast({ title: "Session plan saved", variant: "success" });
+      } else {
+        const err = await res.json();
+        toast({ title: err.error || "Failed to save plan", variant: "error" });
+      }
+    } catch {
+      toast({ title: "Something went wrong", variant: "error" });
+    } finally {
+      setPlanSaving(false);
+    }
+  }
 
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([
     { id: 1, passage: "An-Naba 1-5", note: "Hold ghunnah evenly in verses 1 and 2.", status: "review" },
@@ -112,9 +158,8 @@ export default function SessionPage() {
   }
 
   const handleJoinCall = useCallback(async () => {
-    setPermError("");
     if (!navigator.mediaDevices?.getUserMedia) {
-      setPermError("Camera/mic not available (insecure context or no permission)");
+      toast({ title: "Camera/mic not available", description: "Insecure context or no permission", variant: "error" });
       return;
     }
     try {
@@ -123,20 +168,20 @@ export default function SessionPage() {
       setInCall(true);
     } catch (e: any) {
       if (e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError") {
-        setPermError("Camera and microphone access was denied. Please allow permissions in your browser settings.");
+        toast({ title: "Camera and microphone access denied", description: "Please allow permissions in your browser settings.", variant: "error" });
       } else if (e?.name === "NotFoundError") {
-        setPermError("No camera or microphone found on this device.");
+        toast({ title: "No camera or microphone found", variant: "error" });
       } else {
-        setPermError(e?.message || "Could not access camera/microphone.");
+        toast({ title: e?.message || "Could not access camera/microphone", variant: "error" });
       }
     }
-  }, []);
+  }, [toast]);
 
   if (loading || authStatus === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-bg-primary">
         <div className="text-center">
-          <Loader2 className="size-8 text-primary animate-spin mb-4" />
+          <FontAwesomeIcon icon={faSpinner} className="size-8 text-primary animate-spin mb-4" />
           <p className="text-text-secondary text-sm">Connecting to session...</p>
         </div>
       </div>
@@ -180,6 +225,13 @@ export default function SessionPage() {
               {isTeacher ? "Teaching" : "Student"}
             </span>
             <span className="rounded-full bg-bg-card border border-border px-3 py-1">{activeItems} follow-ups</span>
+            <Link
+              href={`/portal/report?userId=${joinData.otherUserId}`}
+              className="rounded-full bg-danger/10 px-3 py-1 text-danger font-medium hover:bg-danger/20 transition-colors flex items-center gap-1.5 text-xs"
+            >
+              <FontAwesomeIcon icon={faFlag} className="size-3" />
+              Report
+            </Link>
           </div>
         </div>
       </div>
@@ -190,7 +242,7 @@ export default function SessionPage() {
             {!inCall ? (
               <div className="flex flex-col items-center justify-center bg-bg-secondary p-6 sm:p-8 text-center min-h-[75vh] sm:min-h-0">
                 <div className="size-20 rounded-full bg-primary/10 mx-auto mb-5 flex items-center justify-center">
-                  <Video className="size-8 text-primary" />
+                  <FontAwesomeIcon icon={faVideo} className="size-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold text-text-primary mb-1">
                   {joinData.appointment.title || "Live Session"}
@@ -198,12 +250,7 @@ export default function SessionPage() {
                 <p className="text-sm text-text-secondary mb-6">
                   {isTeacher ? "You are the teacher" : "You are joining as a student"}
                 </p>
-                {permError && (
-                  <div className="mb-4 w-full max-w-sm rounded-lg bg-warning/10 border border-warning/20 p-3 text-center">
-                    <TriangleAlert className="size-4 text-warning mr-2 inline" />
-                    <span className="text-sm text-warning">{permError}</span>
-                  </div>
-                )}
+
                 <div className="space-y-2 mb-6 w-full max-w-sm text-left">
                   <div className="flex items-center justify-between p-3 rounded-xl bg-bg-hover">
                     <span className="text-sm text-text-secondary">Room</span>
@@ -232,6 +279,17 @@ export default function SessionPage() {
                   onLeave={() => {
                     mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
                     mediaStreamRef.current = null;
+                    if (joinData && !isTeacher) {
+                      savePlan();
+                    }
+                    if (joinData && isTeacher) {
+                      savePlan();
+                      fetch(`/api/appointments/${joinData.appointment.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "complete" }),
+                      }).catch(() => {});
+                    }
                     router.push("/courses/hifdh-ul-quran");
                   }}
                 />
@@ -247,11 +305,62 @@ export default function SessionPage() {
                     <p className="text-sm uppercase tracking-wider text-text-secondary">Teacher Mushaf</p>
                     <h3 className="font-bold text-text-primary">Follow recitation</h3>
                   </div>
-                  {trackedVerse && (
-                    <span className="text-xs font-medium text-primary">
-                      Tracking {trackedVerse}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {trackedVerse && (
+                      <span className="text-xs font-medium text-primary">
+                        Tracking {trackedVerse}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
+                        <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
+                      </button>
+                      <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
+                        <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-4">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <label className="text-xs text-text-secondary">From Surah</label>
+                    <label className="text-xs text-text-secondary">From Verse</label>
+                    <input
+                      type="number" min={1} max={114}
+                      value={sessionPlan.fromSurah}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, fromSurah: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                    <input
+                      type="number" min={1}
+                      value={sessionPlan.fromVerse}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, fromVerse: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <label className="text-xs text-text-secondary">To Surah</label>
+                    <label className="text-xs text-text-secondary">To Verse</label>
+                    <input
+                      type="number" min={1} max={114}
+                      value={sessionPlan.toSurah}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, toSurah: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                    <input
+                      type="number" min={1}
+                      value={sessionPlan.toVerse}
+                      onChange={(e) => setSessionPlan({ ...sessionPlan, toVerse: parseInt(e.target.value) || 1 })}
+                      className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary w-full"
+                    />
+                  </div>
+                  <button
+                    onClick={savePlan}
+                    disabled={planSaving}
+                    className="w-full rounded bg-primary px-4 py-2 text-sm font-semibold text-text-inverse disabled:opacity-50 hover:brightness-110 transition-all"
+                  >
+                    {planSaving ? "Saving..." : "Save Plan"}
+                  </button>
                 </div>
                 <Mushaf
                   mode="session"
@@ -289,7 +398,7 @@ export default function SessionPage() {
                     disabled={!passage.trim() || !note.trim()}
                     className="flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-text-inverse disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Plus className="size-4" />
+                    <FontAwesomeIcon icon={faPlus} className="size-4" />
                     Add follow-up
                   </button>
                 </div>
@@ -316,7 +425,7 @@ export default function SessionPage() {
                               : "bg-primary/10 text-primary"
                         }`}
                       >
-                        {item.status === "done" ? <Check className="size-3.5" /> : item.status === "review" ? <Pen className="size-3.5" /> : <Circle className="size-3.5" />}
+                        {item.status === "done" ? <FontAwesomeIcon icon={faCheck} className="size-3.5" /> : item.status === "review" ? <FontAwesomeIcon icon={faPen} className="size-3.5" /> : <FontAwesomeIcon icon={faCircle} className="size-3.5" />}
                       </span>
                     </div>
                     <p className="text-xs uppercase tracking-wider text-text-secondary">

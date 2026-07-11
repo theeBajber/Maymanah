@@ -63,6 +63,7 @@ const courseDetailSelect = {
   category: true,
   description: true,
   lessons: {
+    where: { isPublished: true },
     select: {
       id: true,
       title: true,
@@ -203,6 +204,13 @@ export async function enrollCourse(slug: string): Promise<CourseDetail | null> {
       update: {
         status: "ACTIVE",
       },
+    }),
+  );
+
+  await safeQuery(() =>
+    prisma.user.update({
+      where: { id: user.id },
+      data: { xp: { increment: 5 } },
     }),
   );
 

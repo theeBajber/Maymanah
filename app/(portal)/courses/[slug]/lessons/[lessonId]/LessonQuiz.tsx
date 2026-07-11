@@ -76,7 +76,10 @@ export function LessonQuiz({
   });
   const [currentIdx, setCurrentIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(submission?.status === "GRADED" || submission?.status === "SUBMITTED");
+  const [submitted, setSubmitted] = useState(
+    submission?.status === "GRADED" || submission?.status === "SUBMITTED",
+  );
+  const [retaking, setRetaking] = useState(false);
   const [result, setResult] = useState<{
     totalScore: number;
     totalMarks: number;
@@ -84,12 +87,17 @@ export function LessonQuiz({
     answers: ResultAnswer[];
   } | null>(
     submission?.status === "GRADED"
-      ? {
-          totalScore: submission.totalScore ?? 0,
-          totalMarks: questions.reduce((s, q) => s + q.marks, 0),
-          passed: (submission.totalScore ?? 0) >= exam.passMark,
-          answers: submission.answers,
-        }
+      ? (() => {
+          const tm = questions.reduce((s, q) => s + q.marks, 0);
+          const sc = submission.totalScore ?? 0;
+          const pct = tm > 0 ? (sc / tm) * 100 : 0;
+          return {
+            totalScore: sc,
+            totalMarks: tm,
+            passed: pct >= exam.passMark,
+            answers: submission.answers,
+          };
+        })()
       : null,
   );
 
@@ -139,10 +147,12 @@ export function LessonQuiz({
       if (res.ok) {
         const data = await res.json();
         const totalMarks = questions.reduce((s, q) => s + q.marks, 0);
+        const sc = data.totalScore ?? 0;
+        const pct = totalMarks > 0 ? (sc / totalMarks) * 100 : 0;
         setResult({
-          totalScore: data.totalScore ?? 0,
+          totalScore: sc,
           totalMarks,
-          passed: (data.totalScore ?? 0) >= exam.passMark,
+          passed: pct >= exam.passMark,
           answers: data.answers,
         });
         setSubmitted(true);
@@ -203,6 +213,32 @@ export function LessonQuiz({
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={async () => {
+              setRetaking(true);
+              try {
+                const res = await fetch(`/api/exams/${exam.id}/submissions`, { method: "POST" });
+                if (res.ok) {
+                  const data = await res.json();
+                  setSubmissionId(data.id);
+                  setStarted(true);
+                }
+              } catch {}
+              setSubmitted(false);
+              setResult(null);
+              setAnswers({});
+              setCurrentIdx(0);
+              setRetaking(false);
+              router.refresh();
+            }}
+            disabled={retaking}
+            className="px-6 py-2.5 rounded-xl bg-primary text-text-inverse font-bold hover:bg-primary-dark transition-all active:scale-95 disabled:opacity-50"
+          >
+            {retaking ? "Starting..." : "Retake Quiz"}
+          </button>
         </div>
       </div>
     );
