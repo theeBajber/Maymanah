@@ -2,13 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faClock,
-  faCheck,
-  faSpinner,
-  faExclamationCircle,
-} from "@fortawesome/free-solid-svg-icons";
+import { Clock, Check, Loader2, CircleAlert } from "lucide-react";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6);
@@ -192,7 +186,7 @@ export function SetAvailabilityForPairing() {
     return (
       <div className="rounded-2xl border border-success/30 bg-success/5 p-8 text-center">
         <div className="size-14 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
-          <FontAwesomeIcon icon={faCheck} className="text-success text-xl" />
+          <Check className="text-success text-xl" />
         </div>
         <h3 className="font-semibold text-text-primary text-lg mb-1">
           You&apos;re all set!
@@ -205,10 +199,10 @@ export function SetAvailabilityForPairing() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-elevated p-6">
+    <div className="rounded-2xl border border-border bg-bg-elevated shadow-raise p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <FontAwesomeIcon icon={faClock} className="text-primary size-4" />
+          <Clock className="text-primary size-4" />
         </div>
         <div>
           <h3 className="font-semibold text-text-primary">
@@ -285,7 +279,7 @@ export function SetAvailabilityForPairing() {
 
       {error && (
         <div className="flex items-center gap-2 mt-4 text-sm text-danger">
-          <FontAwesomeIcon icon={faExclamationCircle} className="size-3.5" />
+          <CircleAlert className="size-3.5" />
           {error}
         </div>
       )}
@@ -301,10 +295,7 @@ export function SetAvailabilityForPairing() {
         >
           {saving ? (
             <>
-              <FontAwesomeIcon
-                icon={faSpinner}
-                className="size-3.5 animate-spin"
-              />
+              <Loader2 className="size-3.5 animate-spin" />
               Finding a teacher...
             </>
           ) : (

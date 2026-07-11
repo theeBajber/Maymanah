@@ -1,25 +1,19 @@
 "use client";
 
 import {
-  faBookOpen,
-  faCheck,
-  faChevronLeft,
-  faChevronRight,
-  faCircle,
-  faMicrophone,
-  faPen,
-  faPhone,
-  faPlus,
-  faSpinner,
-  faVideo,
-  faVolumeHigh,
-  faExclamationTriangle,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+  Check,
+  Circle,
+  Pen,
+  Plus,
+  Loader2,
+  Video,
+  TriangleAlert,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { VideoRoom } from "@/components/ui/VideoRoom";
+import Mushaf from "@/components/Mushaf";
 
 type ReviewItem = {
   id: number;
@@ -41,14 +35,6 @@ interface JoinData {
   };
 }
 
-const ayahLines = [
-  { ref: "78:1", text: "عَمَّ يَتَسَاءَلُونَ" },
-  { ref: "78:2", text: "عَنِ النَّبَإِ الْعَظِيمِ" },
-  { ref: "78:3", text: "الَّذِي هُمْ فِيهِ مُخْتَلِفُونَ" },
-  { ref: "78:4", text: "كَلَّا سَيَعْلَمُونَ" },
-  { ref: "78:5", text: "ثُمَّ كَلَّا سَيَعْلَمُونَ" },
-];
-
 export default function SessionPage() {
   const router = useRouter();
   const params = useParams();
@@ -67,6 +53,7 @@ export default function SessionPage() {
   ]);
   const [passage, setPassage] = useState("");
   const [note, setNote] = useState("");
+  const [trackedVerse, setTrackedVerse] = useState<string | null>(null);
 
   const appointmentId = params.id as string;
   const isTest = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("test");
@@ -149,7 +136,7 @@ export default function SessionPage() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-bg-primary">
         <div className="text-center">
-          <FontAwesomeIcon icon={faSpinner} className="size-8 text-primary animate-spin mb-4" />
+          <Loader2 className="size-8 text-primary animate-spin mb-4" />
           <p className="text-text-secondary text-sm">Connecting to session...</p>
         </div>
       </div>
@@ -203,9 +190,7 @@ export default function SessionPage() {
             {!inCall ? (
               <div className="flex flex-col items-center justify-center bg-bg-secondary p-6 sm:p-8 text-center min-h-[75vh] sm:min-h-0">
                 <div className="size-20 rounded-full bg-primary/10 mx-auto mb-5 flex items-center justify-center">
-                  <span className="text-3xl text-primary">
-                    <FontAwesomeIcon icon={faVideo} />
-                  </span>
+                  <Video className="size-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold text-text-primary mb-1">
                   {joinData.appointment.title || "Live Session"}
@@ -214,9 +199,9 @@ export default function SessionPage() {
                   {isTeacher ? "You are the teacher" : "You are joining as a student"}
                 </p>
                 {permError && (
-                  <div className="mb-4 w-full max-w-sm rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-center">
-                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-400 mr-2" />
-                    <span className="text-sm text-amber-300">{permError}</span>
+                  <div className="mb-4 w-full max-w-sm rounded-lg bg-warning/10 border border-warning/20 p-3 text-center">
+                    <TriangleAlert className="size-4 text-warning mr-2 inline" />
+                    <span className="text-sm text-warning">{permError}</span>
                   </div>
                 )}
                 <div className="space-y-2 mb-6 w-full max-w-sm text-left">
@@ -233,7 +218,7 @@ export default function SessionPage() {
                 </div>
                 <button
                   onClick={handleJoinCall}
-                  className="px-8 py-3 bg-primary text-text-inverse rounded-xl font-bold hover:brightness-110 transition-all active:scale-[0.98] shadow-sm shadow-primary/20"
+                  className="px-8 py-3 bg-primary text-text-inverse rounded-xl font-bold hover:brightness-110 transition-all active:scale-[0.98] hover:shadow-glow-brass"
                 >
                   Join Call
                 </button>
@@ -257,49 +242,22 @@ export default function SessionPage() {
           <aside className="overflow-y-auto grid gap-5 lg:grid-cols-2 xl:grid-cols-1 min-h-0">
             {isTeacher && (
               <div className="rounded-lg border border-border bg-bg-card p-5">
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm uppercase tracking-wider text-text-secondary">Teacher Mushaf</p>
                     <h3 className="font-bold text-text-primary">Follow recitation</h3>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
-                      <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
-                    </button>
-                    <button className="flex size-8 items-center justify-center rounded border border-border bg-bg-primary text-text-secondary">
-                      <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-                    </button>
-                  </div>
+                  {trackedVerse && (
+                    <span className="text-xs font-medium text-primary">
+                      Tracking {trackedVerse}
+                    </span>
+                  )}
                 </div>
-                <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-                  <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
-                    <option>Surah An-Naba</option>
-                    <option>Surah Al-Mulk</option>
-                    <option>Surah Al-Qalam</option>
-                  </select>
-                  <select className="rounded border border-border bg-bg-primary px-3 py-2 outline-none text-text-primary">
-                    <option>Ayat 1-10</option>
-                    <option>Ayat 11-20</option>
-                    <option>Ayat 21-30</option>
-                  </select>
-                </div>
-                <div className="rounded-lg border border-border bg-bg-primary p-4">
-                  <div className="mb-3 flex items-center gap-2 text-sm text-text-secondary">
-                    <FontAwesomeIcon icon={faBookOpen} />
-                    Hafs tracking view
-                  </div>
-                  <div className="space-y-4 text-right font-serif text-2xl leading-loose" dir="rtl">
-                    {ayahLines.map((ayah, index) => (
-                      <p
-                        key={ayah.ref}
-                        className={`rounded px-3 py-1 ${index === 1 ? "bg-primary/10 text-primary" : "text-text-primary"}`}
-                      >
-                        {ayah.text}
-                        <span className="mr-3 align-middle text-xs text-text-secondary">{ayah.ref}</span>
-                      </p>
-                    ))}
-                  </div>
-                </div>
+                <Mushaf
+                  mode="session"
+                  activeVerse={trackedVerse ?? undefined}
+                  onVerseSelect={(verseKey) => setTrackedVerse(verseKey)}
+                />
               </div>
             )}
 
@@ -331,7 +289,7 @@ export default function SessionPage() {
                     disabled={!passage.trim() || !note.trim()}
                     className="flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-text-inverse disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <FontAwesomeIcon icon={faPlus} />
+                    <Plus className="size-4" />
                     Add follow-up
                   </button>
                 </div>
@@ -358,7 +316,7 @@ export default function SessionPage() {
                               : "bg-primary/10 text-primary"
                         }`}
                       >
-                        <FontAwesomeIcon icon={item.status === "done" ? faCheck : item.status === "review" ? faPen : faCircle} />
+                        {item.status === "done" ? <Check className="size-3.5" /> : item.status === "review" ? <Pen className="size-3.5" /> : <Circle className="size-3.5" />}
                       </span>
                     </div>
                     <p className="text-xs uppercase tracking-wider text-text-secondary">

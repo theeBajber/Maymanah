@@ -17,7 +17,7 @@ export function AdminSidebar() {
 
   return (
     <>
-      <aside className="fixed left-0 top-16 bottom-0 w-60 border-r border-border bg-bg-primary/80 backdrop-blur-md hidden md:flex flex-col py-4 px-3 gap-1 z-40">
+      <aside className="border-r border-border bg-bg-primary/95 fixed left-0 top-16 bottom-0 w-60 hidden md:flex flex-col py-4 px-3 gap-1 z-40">
         <div className="px-3 pb-3 mb-2 border-b border-border">
           <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
             Management
@@ -59,7 +59,7 @@ export function AdminSidebar() {
         </div>
       </aside>
 
-      <nav className="fixed bottom-0 left-0 right-0 h-14 bg-bg-primary/90 backdrop-blur-md border-t border-border md:hidden z-40 flex items-center justify-around px-2 safe-area-bottom">
+      <nav className="border-t border-border bg-bg-primary/95 fixed bottom-0 left-0 right-0 h-14 md:hidden z-40 flex items-center justify-around px-2 safe-area-bottom">
         {links.map((link) => {
           const isActive =
             link.href === "/admin"

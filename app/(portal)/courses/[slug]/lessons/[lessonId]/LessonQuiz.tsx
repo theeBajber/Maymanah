@@ -2,8 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faTrophy } from "@fortawesome/free-solid-svg-icons";
+import { Trophy, XCircle } from "lucide-react";
 
 type QuizOption = { text: string; isCorrect?: boolean };
 
@@ -162,7 +161,7 @@ export function LessonQuiz({
       <div className="rounded-xl border border-border bg-bg-card p-6">
         <div className="text-center mb-6">
           <div className={`inline-flex items-center justify-center size-16 rounded-full mb-3 ${result.passed ? "bg-success-muted" : "bg-danger-muted"}`}>
-            <FontAwesomeIcon icon={result.passed ? faTrophy : faTimesCircle} className={`size-6 ${result.passed ? "text-success" : "text-danger"}`} />
+            {result.passed ? <Trophy className={`size-6 text-success`} /> : <XCircle className={`size-6 text-danger`} />}
           </div>
           <h3 className="text-xl font-bold mb-1">{result.passed ? "Passed!" : "Not Quite"}</h3>
           <p className="text-3xl font-bold">
@@ -214,7 +213,7 @@ export function LessonQuiz({
     return (
       <div className="rounded-xl border border-border bg-bg-card p-8 text-center">
         <div className="size-16 rounded-full bg-primary-muted flex items-center justify-center mx-auto mb-4">
-          <FontAwesomeIcon icon={faTrophy} className="size-6 text-primary" />
+          <Trophy className="size-6 text-primary" />
         </div>
         <h3 className="text-lg font-bold mb-2">{exam.title || "Module Quiz"}</h3>
         <p className="text-sm text-text-secondary mb-4">{questions.length} questions &middot; {exam.totalMarks} marks</p>

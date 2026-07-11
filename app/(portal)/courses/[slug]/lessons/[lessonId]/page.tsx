@@ -3,16 +3,15 @@ import { prisma, safeQuery } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faArrowLeft,
-  faCheckCircle,
-  faChevronLeft,
-  faChevronRight,
-  faGraduationCap,
-  faListCheck,
-  faLock,
-} from "@fortawesome/free-solid-svg-icons";
+  ArrowLeft,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  GraduationCap,
+  ListChecks,
+  Lock,
+} from "lucide-react";
 import { MediaPlayer } from "@/components/ui/MediaPlayer";
 import { LessonQuiz } from "./LessonQuiz";
 
@@ -107,11 +106,11 @@ export default async function LessonPage({
         href={`/courses/${slug}`}
         className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-primary transition-colors"
       >
-        <FontAwesomeIcon icon={faArrowLeft} className="size-3" />
+        <ArrowLeft className="size-3" />
         Back to {lesson.course.title}
       </Link>
 
-      <section className="rounded-2xl border border-border bg-bg-elevated overflow-hidden">
+      <section className="rounded-2xl border border-border bg-bg-elevated shadow-raise overflow-hidden">
         <div className={`px-6 py-4 border-b border-border flex items-center justify-between ${
           isCompleted ? "bg-success/5" : "bg-gradient-to-r from-primary/5 to-transparent"
         }`}>
@@ -120,7 +119,7 @@ export default async function LessonPage({
               isCompleted ? "bg-success/10" : "bg-primary/10"
             }`}>
               {isCompleted ? (
-                <FontAwesomeIcon icon={faCheckCircle} className="text-success size-5" />
+                <CheckCircle className="text-success size-5" />
               ) : (
                 <span className="text-primary font-bold text-sm">{lesson.order}</span>
               )}
@@ -136,7 +135,7 @@ export default async function LessonPage({
           </div>
           {isCompleted && (
             <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/10 text-success text-sm font-semibold">
-              <FontAwesomeIcon icon={faCheckCircle} className="size-4" />
+              <CheckCircle className="size-4" />
               Completed
             </span>
           )}
@@ -166,7 +165,7 @@ export default async function LessonPage({
         ) : !lesson.videoUrl ? (
           <div className="p-12 text-center">
             <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <FontAwesomeIcon icon={faGraduationCap} className="text-primary text-xl" />
+              <GraduationCap className="text-primary text-xl" />
             </div>
             <p className="text-text-secondary text-sm">Content for this module is being prepared.</p>
           </div>
@@ -174,10 +173,10 @@ export default async function LessonPage({
       </section>
 
       {lesson.exam && lesson.exam.questions.length > 0 && (
-        <section className="rounded-2xl border border-border bg-bg-elevated overflow-hidden">
+        <section className="rounded-2xl border border-border bg-bg-elevated shadow-raise overflow-hidden">
           <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
             <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <FontAwesomeIcon icon={faListCheck} className="text-primary size-4" />
+              <ListChecks className="text-primary size-4" />
             </div>
             <div>
               <h2 className="font-bold text-text-primary">Module Quiz</h2>
@@ -217,7 +216,7 @@ export default async function LessonPage({
             className="flex items-center gap-3 px-5 py-3 rounded-xl border border-border bg-bg-elevated hover:border-primary/30 hover:bg-bg-hover transition-all group flex-1 max-w-xs"
           >
             <div className="size-8 rounded-lg bg-bg-hover flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-              <FontAwesomeIcon icon={faChevronLeft} className="size-3.5 text-text-secondary group-hover:text-primary" />
+              <ChevronLeft className="size-3.5 text-text-secondary group-hover:text-primary" />
             </div>
             <div className="text-left min-w-0">
               <p className="text-[10px] text-text-secondary uppercase tracking-wider font-medium">Previous</p>
@@ -242,7 +241,7 @@ export default async function LessonPage({
               </p>
             </div>
             <div className="size-8 rounded-lg bg-bg-hover flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-              <FontAwesomeIcon icon={faChevronRight} className="size-3.5 text-text-secondary group-hover:text-primary" />
+              <ChevronRight className="size-3.5 text-text-secondary group-hover:text-primary" />
             </div>
           </Link>
         ) : (
@@ -252,7 +251,7 @@ export default async function LessonPage({
               <p className="font-semibold text-sm text-text-muted truncate">{nextLesson.title}</p>
             </div>
             <div className="size-8 rounded-lg bg-bg-hover flex items-center justify-center">
-              <FontAwesomeIcon icon={faLock} className="size-3.5 text-text-muted" />
+              <Lock className="size-3.5 text-text-muted" />
             </div>
           </span>
         ))}

@@ -1,21 +1,22 @@
 "use client";
-import { faArrowRight, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { ArrowRight, Lock, Mail } from "lucide-react";
 import { signIn } from "next-auth/react";
-import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Field, Input, PasswordInput } from "@/components/ui/input";
+import { AuthPanel } from "../AuthPanel";
 
 export default function LogIn() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setpassword] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const handleSubmit = async (e: React.SubmitEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -26,8 +27,10 @@ export default function LogIn() {
     });
     setLoading(false);
     if (result?.error) {
-      setError("Invalid email or password");
-      setpassword("");
+      setError(
+        "That email and password don't match. Check for typos, or reset your password below.",
+      );
+      setPassword("");
       setShake(true);
       setTimeout(() => setShake(false), 400);
       return;
@@ -38,117 +41,72 @@ export default function LogIn() {
   };
 
   return (
-    <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-10 md:p-14 relative overflow-hidden w-full max-w-xl">
-      <div className="flex flex-col items-center gap-2 mb-10">
-        <h1 className="text-4xl md:text-5xl font-black flex items-center uppercase tracking-wider gap-4">
-          <Image
-            className="h-12 w-auto"
-            src={"/logo.png"}
-            height={339}
-            width={439}
-            alt=""
-          />
-          Maymanah
-        </h1>
-        <div className="flex items-center justify-center">
-          <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
-          <div className="mx-4 text-[10px] uppercase tracking-[0.3em] text-primary font-bold">
-            Your journey continues!
-          </div>
-          <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
-        </div>
-      </div>
+    <AuthPanel heading="Continue your journey">
       {error && (
         <div
-          className={`mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium ${shake ? "shake" : ""}`}
+          role="alert"
+          className={`mb-5 rounded-[10px] border border-night-danger/40 bg-night-danger/10 px-4 py-3 text-center text-sm text-night-danger ${shake ? "shake" : ""}`}
         >
           {error}
         </div>
       )}
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div className="flex flex-col gap-2">
-          <label
-            className="text-[10px] uppercase tracking-widest font-bold px-1"
-            htmlFor="email"
-          >
-            Email Address
-          </label>
-          <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-            <Mail className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
-            <input
-              className="w-full placeholder:text-primary/30 focus:outline-none"
-              id="email"
-              placeholder="scholar@Maymanah.com"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-        </div>
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center px-1">
-            <label
-              className="text-[10px] uppercase tracking-widest font-bold"
-              htmlFor="password"
-            >
-              Password
-            </label>
-            <a
-              className="text-[10px] uppercase tracking-widest text-primary font-bold hover:text-primary-dark transition-colors"
-              href="#"
-            >
-              Forgot Password?
-            </a>
-          </div>
-          <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-            <Lock className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
-            <input
-              className="w-full placeholder:text-primary/30 focus:outline-none"
-              id="password"
-              placeholder="•••••••••••"
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setpassword(e.target.value)}
-              required
-            />
-            <button
-              type="button"
-              tabIndex={-1}
-              className="text-primary hover:text-primary-dark transition-colors"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="size-4!" />
-              ) : (
-                <Eye className="size-4!" />
-              )}
-            </button>
-          </div>
-        </div>
-        <button
-          disabled={loading || !email || !password}
-          className="w-full h-14 bg-primary text-text-inverse rounded-xl font-black text-lg tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 group disabled:hover:shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed! disabled:hover:translate-y-0"
-          type="submit"
-        >
-          {loading ? "Signing In" : "Sign In"}
-          <FontAwesomeIcon
-            icon={loading ? faSpinner : faArrowRight}
-            className={`size-4! transition-transform ${loading ? "animate-spin" : ""} ${!loading && email && password ? "group-hover:translate-x-1" : ""}`}
+      <form onSubmit={handleSubmit} className="stagger-fade flex flex-col gap-5">
+        <Field label="Email address" htmlFor="email">
+          <Input
+            id="email"
+            type="email"
+            icon={<Mail />}
+            placeholder="you@example.com"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
-        </button>
-        <div className="flex justify-between w-full items-center px-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold">
-            New Here?
-          </span>
-          <a
-            className="text-[10px] uppercase tracking-widest text-primary font-bold hover:text-primary-dark transition-colors"
+        </Field>
+        <Field
+          label="Password"
+          htmlFor="password"
+          trailing={
+            <Link
+              href="/contact"
+              className="text-[11px] font-semibold uppercase tracking-[0.18em] text-lapis transition-colors hover:text-ivory"
+            >
+              Forgot password?
+            </Link>
+          }
+        >
+          <PasswordInput
+            id="password"
+            icon={<Lock />}
+            placeholder="Your password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </Field>
+        <Button
+          type="submit"
+          size="lg"
+          loading={loading}
+          disabled={!email || !password}
+          className="mt-1 w-full"
+        >
+          {loading ? "Signing in" : "Sign in"}
+          {!loading && (
+            <ArrowRight className="size-4 transition-transform motion-safe:group-hover:translate-x-1" />
+          )}
+        </Button>
+        <p className="text-center text-sm text-sage">
+          New here?{" "}
+          <Link
             href="/register"
+            className="font-medium text-lapis transition-colors hover:text-ivory"
           >
-            Create Account
-          </a>
-        </div>
+            Create an account
+          </Link>
+        </p>
       </form>
-    </main>
+    </AuthPanel>
   );
 }

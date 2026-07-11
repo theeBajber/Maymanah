@@ -1,64 +1,108 @@
 "use client";
 
-import { faArrowRight, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, Lock, Mail, User } from "lucide-react";
 import { signIn } from "next-auth/react";
-import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Field, Input, PasswordInput } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented";
+import { AuthPanel } from "../AuthPanel";
+
+type Strength = {
+  label: string;
+  bar: string;
+  text: string;
+  width: string;
+};
 
 export default function Register() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [shake, setShake] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"STUDENT" | "TEACHER">("STUDENT");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const getPasswordStrength = (pwd: string) => {
+  // Arriving from /teach preselects the teacher role (?role=teacher)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("role")?.toUpperCase() === "TEACHER") setRole("TEACHER");
+  }, []);
+
+  const getPasswordStrength = (pwd: string): Strength | null => {
     if (pwd.length === 0) return null;
     if (pwd.length < 6)
-      return { label: "Too short", color: "bg-danger", width: "w-1/4" };
+      return {
+        label: "Too short — use at least 8 characters",
+        bar: "bg-night-danger",
+        text: "text-night-danger",
+        width: "w-1/4",
+      };
     if (pwd.length < 8)
-      return { label: "Weak", color: "bg-warning", width: "w-2/4" };
+      return {
+        label: "Weak — add a few more characters",
+        bar: "bg-night-warning",
+        text: "text-night-warning",
+        width: "w-2/4",
+      };
     if (!/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd))
-      return { label: "Fair", color: "bg-yellow-400", width: "w-3/4" };
-    return { label: "Strong", color: "bg-success", width: "w-full" };
+      return {
+        label: "Fair — add an uppercase letter and a number",
+        bar: "bg-lapis",
+        text: "text-lapis",
+        width: "w-3/4",
+      };
+    return {
+      label: "Strong password",
+      bar: "bg-night-success",
+      text: "text-night-success",
+      width: "w-full",
+    };
   };
+
   const isValidName = (n: string) =>
     /^[a-zA-Z]+([\s'-][a-zA-Z]+)+$/.test(n.trim());
 
   const strength = getPasswordStrength(password);
+  const nameError =
+    nameTouched && name && !isValidName(name)
+      ? "Enter your first and last name — letters, spaces, and hyphens only."
+      : undefined;
+  const confirmError =
+    confirmPassword && password !== confirmPassword
+      ? "These don't match yet — retype your password."
+      : undefined;
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
+  const failSubmit = (message: string) => {
+    setError(message);
+    setShake(true);
+    setTimeout(() => setShake(false), 400);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      failSubmit("The passwords don't match — retype both fields.");
       return;
     }
-
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      failSubmit("Your password needs at least 8 characters.");
       return;
     }
     if (!isValidName(name)) {
-      setError("Please enter a valid name!");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      failSubmit("Enter your full name — first and last.");
       return;
     }
 
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -75,11 +119,9 @@ export default function Register() {
       setLoading(false);
 
       if (!res.ok) {
-        setError(
+        failSubmit(
           data.error?.[0]?.message || data.error || "Registration failed",
         );
-        setShake(true);
-        setTimeout(() => setShake(false), 400);
         return;
       }
 
@@ -91,209 +133,115 @@ export default function Register() {
       router.push("/onboarding");
     } catch {
       setLoading(false);
-      setError("Something went wrong. Please try again.");
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
+      failSubmit("Something went wrong on our side. Please try again.");
     }
   };
 
   return (
-    <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-8 md:p-14 relative overflow-hidden w-full max-w-xl">
-      <div className="flex flex-col items-center gap-2 mb-6">
-        <h1 className="text-4xl md:text-5xl font-black flex items-center gap-4 uppercase tracking-wider">
-          <Image
-            className="h-12 w-auto"
-            src={"/logo.png"}
-            height={339}
-            width={439}
-            alt=""
+    <AuthPanel heading="Begin your journey" wide>
+      {error && (
+        <div
+          role="alert"
+          className={`mb-5 rounded-[10px] border border-night-danger/40 bg-night-danger/10 px-4 py-3 text-center text-sm text-night-danger ${shake ? "shake" : ""}`}
+        >
+          {error}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="stagger-fade flex flex-col gap-5">
+        <SegmentedControl
+          label="Join as"
+          value={role}
+          onChange={setRole}
+          options={[
+            { value: "STUDENT", label: "Learner" },
+            { value: "TEACHER", label: "Teacher" },
+          ]}
+        />
+
+        <Field label="Full name" htmlFor="name" error={nameError}>
+          <Input
+            id="name"
+            type="text"
+            icon={<User />}
+            placeholder="Umar Farouq"
+            autoComplete="name"
+            value={name}
+            invalid={!!nameError}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => setNameTouched(true)}
+            required
           />
-          Maymanah
-        </h1>
-        <div className="flex items-center justify-center">
-          <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
-          <div className="mx-4 text-[10px] uppercase tracking-[0.3em] text-primary font-bold text-center">
-            Begin your Quran Journey!
-          </div>
-          <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
-        </div>
-      </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="w-full justify-center flex items-center">
-          <div className="bg-bg-primary p-1.5 rounded-xl flex gap-1 border border-primary/10 w-fit">
-            <button
-              type="button"
-              onClick={() => setRole("STUDENT")}
-              className={`px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
-                role === "STUDENT"
-                  ? "bg-primary text-text-inverse shadow-lg shadow-primary/20"
-                  : "hover:text-text-secondary"
-              }`}
-            >
-              Learner
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("TEACHER")}
-              className={`px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
-                role === "TEACHER"
-                  ? "bg-primary text-text-inverse shadow-lg shadow-primary/20"
-                  : "hover:text-text-secondary"
-              }`}
-            >
-              Teacher
-            </button>
-          </div>
-        </div>
+        </Field>
 
-        {error && (
-          <div
-            className={`mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm text-center font-medium ${shake ? "shake" : ""}`}
-          >
-            {error}
-          </div>
-        )}
-        <div className="flex flex-col gap-2">
-          <label
-            className="text-[10px] uppercase tracking-widest font-bold px-1"
-            htmlFor="name"
-          >
-            Full Name
-          </label>
-          <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-            <User className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
-            <input
-              className="w-full placeholder:text-primary/30 focus:outline-none bg-transparent"
-              id="name"
-              placeholder="Umar Farouq"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+        <Field label="Email address" htmlFor="email">
+          <Input
+            id="email"
+            type="email"
+            icon={<Mail />}
+            placeholder="you@example.com"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </Field>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label="Password" htmlFor="password">
+            <PasswordInput
+              id="password"
+              icon={<Lock />}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label
-            className="text-[10px] uppercase tracking-widest font-bold px-1"
-            htmlFor="email"
+          </Field>
+          <Field
+            label="Confirm password"
+            htmlFor="repeat"
+            error={confirmError}
           >
-            Email Address
-          </label>
-          <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-            <Mail className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
-            <input
-              className="w-full placeholder:text-primary/30 focus:outline-none bg-transparent"
-              id="email"
-              placeholder="scholar@Maymanah.com"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+            <PasswordInput
+              id="repeat"
+              icon={<Lock />}
+              placeholder="Retype your password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              invalid={!!confirmError}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
-          </div>
+          </Field>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="flex w-full flex-col gap-2">
-            <label
-              className="text-[10px] uppercase tracking-widest font-bold"
-              htmlFor="password"
-            >
-              Password
-            </label>
-            <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-              <Lock className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
-              <input
-                className="w-full placeholder:text-primary/30 focus:outline-none bg-transparent"
-                id="password"
-                placeholder="•••••••••••"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                className="text-primary hover:text-primary-dark transition-colors"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="size-4!" />
-                ) : (
-                  <Eye className="size-4!" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex w-full flex-col gap-2">
-            <label
-              className="text-[10px] uppercase tracking-widest font-bold"
-              htmlFor="repeat"
-            >
-              Confirm Password
-            </label>
-            <div className="flex items-center gap-4 group px-4 h-14 border border-primary-dark/80 focus-within:border-primary rounded-xl">
-              <Lock className="size-4! text-primary-dark/80 group-focus-within:text-primary transition-colors" />
-              <input
-                className="w-full placeholder:text-primary/30 focus:outline-none bg-transparent"
-                id="repeat"
-                placeholder="•••••••••••"
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                className="text-primary hover:text-primary-dark transition-colors"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="size-4!" />
-                ) : (
-                  <Eye className="size-4!" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex w-full flex-col gap-1 px-1">
+        {(strength || (confirmPassword && !confirmError)) && (
+          <div className="flex flex-col gap-1.5 px-0.5">
             {strength && (
               <>
-                <div className="h-1 w-full bg-border rounded-full overflow-hidden">
+                <div className="h-1 w-full overflow-hidden rounded-full bg-ivory/10">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${strength.color} ${strength.width}`}
+                    className={`h-full rounded-full transition-all duration-300 ${strength.bar} ${strength.width}`}
                   />
                 </div>
-                <span
-                  className={`text-[10px] font-bold ${strength.color.replace("bg-", "text-")}`}
-                >
+                <span className={`text-[13px] ${strength.text}`}>
                   {strength.label}
                 </span>
               </>
             )}
-          </div>
-
-          <div className="flex w-full px-1">
-            {confirmPassword && (
-              <p
-                className={`text-[10px] font-bold ${password === confirmPassword ? "text-success" : "text-danger"}`}
-              >
-                {password === confirmPassword
-                  ? "✓ Passwords match"
-                  : "✗ Passwords do not match"}
-              </p>
+            {confirmPassword && !confirmError && (
+              <span className="text-[13px] text-night-success">
+                Passwords match.
+              </span>
             )}
           </div>
-        </div>
+        )}
 
-        <button
+        <Button
+          type="submit"
+          size="lg"
+          loading={loading}
           disabled={
             loading ||
             !name ||
@@ -302,28 +250,24 @@ export default function Register() {
             password !== confirmPassword ||
             password.length < 8
           }
-          className="w-full h-14 bg-primary text-text-inverse rounded-xl font-black text-lg tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed! disabled:hover:shadow-primary/20 disabled:hover:translate-y-0"
-          type="submit"
+          className="mt-1 w-full"
         >
-          {loading ? "Creating Account" : "Create Account"}
-          <FontAwesomeIcon
-            icon={loading ? faSpinner : faArrowRight}
-            className={`size-4! transition-transform ${loading ? "animate-spin" : ""} ${!loading && email && password && name && password === confirmPassword && password.length >= 7 ? "group-hover:translate-x-1" : ""}`}
-          />
-        </button>
+          {loading ? "Creating your account" : "Create account"}
+          {!loading && (
+            <ArrowRight className="size-4 transition-transform motion-safe:group-hover:translate-x-1" />
+          )}
+        </Button>
 
-        <div className="flex justify-between w-full items-center px-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold">
-            Already enrolled?
-          </span>
-          <a
-            className="text-[10px] uppercase tracking-widest text-primary font-bold hover:text-primary-dark transition-colors"
+        <p className="text-center text-sm text-sage">
+          Already enrolled?{" "}
+          <Link
             href="/login"
+            className="font-medium text-lapis transition-colors hover:text-ivory"
           >
-            Log In
-          </a>
-        </div>
+            Sign in
+          </Link>
+        </p>
       </form>
-    </main>
+    </AuthPanel>
   );
 }

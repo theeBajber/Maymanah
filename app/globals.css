@@ -1,43 +1,68 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Qandeel tokens — theme-independent design constants.
+   See DESIGN_SYSTEM.md. These never change with light/dark;
+   they are the night-scene palette used by auth and by any
+   surface that is deliberately "night" regardless of theme.
+   ============================================================ */
 :root {
-    --bg-primary: #fdfcf8;
-    --bg-secondary: #f5f3ee;
-    --bg-elevated: #ffffff;
-    --bg-hover: #ede9e3;
-    --bg-card: #ffffff;
+    --layl: #0B151B;
+    --layl-deep: #060D11;
+    --brass: #C6A15B;
+    --lapis: #8FA9D0;
+    --ivory: #EAE6DA;
+    --sage: #93A5A8;
 
-    --primary: #b8860b;
-    --primary-light: #d4a73a;
-    --primary-dark: #8b6914;
-    --primary-muted: #f5efe6;
-    --primary-subtle: #e8dcc8;
+    /* semantic states tuned for the night palette */
+    --night-success: #8FBF9A;
+    --night-warning: #D9A441;
+    --night-danger: #E08A7E;
+}
 
-    --secondary: #0d9488;
-    --secondary-light: #14b8a6;
-    --secondary-dark: #0f766e;
-    --secondary-muted: #e6f4f3;
-    --secondary-subtle: #cceae8;
+/* Qandeel light — ivory-paper ground, Layl ink, same brass/lapis accents.
+   Darkened brass/lapis variants keep body text and small UI at AA on paper;
+   the pale tones from the dark palette remain as *-light for large fills. */
+:root {
+    --bg-primary: #f4efe2;
+    --bg-secondary: #ece4d0;
+    --bg-elevated: #faf7ee;
+    --bg-hover: #e6dcc2;
+    --bg-card: #faf7ee;
 
-    --success: #16a34a;
-    --success-muted: #dcfce7;
-    --warning: #d97706;
-    --warning-muted: #fef3c7;
-    --danger: #dc2626;
-    --danger-muted: #fee2e2;
-    --info: #2563eb;
-    --info-muted: #dbeafe;
+    --primary: #8a6a34;
+    --primary-light: #c6a15b;
+    --primary-dark: #6e5427;
+    --primary-muted: #f1e6cd;
+    --primary-subtle: #e3d3a9;
 
-    --text-primary: #1c1917;
-    --text-secondary: #57534e;
-    --text-tertiary: #78716c;
-    --text-muted: #a8a29e;
-    --text-inverse: #ffffff;
+    --secondary: #3f628f;
+    --secondary-light: #8fa9d0;
+    --secondary-dark: #2f4a6c;
+    --secondary-muted: #e1e9f3;
+    --secondary-subtle: #c3d3e7;
 
-    --border: #e7e5e4;
-    --border-strong: #d6d3d1;
-    --divider: #f5f5f4;
+    --success: #357040;
+    --success-muted: #dceadb;
+    --warning: #a6742a;
+    --warning-muted: #f3e6c8;
+    --danger: #b23b30;
+    --danger-muted: #f5dad5;
+    --info: #3b5d8a;
+    --info-muted: #dce6f2;
+
+    --text-primary: #0b151b;
+    --text-secondary: #4b5a5d;
+    --text-tertiary: #6e7d80;
+    --text-muted: #98a3a5;
+    --text-inverse: #faf7ee;
+
+    --border: #ded2ae;
+    --border-strong: #c9b98c;
+    --divider: #ede4cd;
     --pattern-image: url("/pattern-light.png");
 }
 
@@ -78,46 +103,67 @@
     --color-border: var(--border);
     --color-border-strong: var(--border-strong);
     --color-divider: var(--divider);
+
+    /* Qandeel color utilities (bg-layl, text-ivory, border-brass, …) */
+    --color-layl: var(--layl);
+    --color-layl-deep: var(--layl-deep);
+    --color-brass: var(--brass);
+    --color-lapis: var(--lapis);
+    --color-ivory: var(--ivory);
+    --color-sage: var(--sage);
+    --color-night-success: var(--night-success);
+    --color-night-warning: var(--night-warning);
+    --color-night-danger: var(--night-danger);
+
+    /* Qandeel elevation scale (shadow-rest, shadow-raise, shadow-float, shadow-glow-brass, shadow-glow-lapis) */
+    --shadow-rest: 0 1px 2px rgba(6, 13, 17, 0.5);
+    --shadow-raise: 0 8px 24px -8px rgba(6, 13, 17, 0.55);
+    --shadow-float: 0 20px 48px -12px rgba(6, 13, 17, 0.65);
+    --shadow-glow-brass: 0 0 40px -12px rgba(198, 161, 91, 0.3);
+    --shadow-glow-lapis: 0 0 32px -12px rgba(143, 169, 208, 0.25);
+
+    /* Qandeel motion (ease-qandeel) */
+    --ease-qandeel: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-primary: #0d1517;
-        --bg-secondary: #111e21;
-        --bg-elevated: #162226;
-        --bg-hover: #1a2e33;
-        --bg-card: #162226;
+        --bg-primary: #0b151b;
+        --bg-secondary: #0e1a21;
+        --bg-elevated: #101e26;
+        --bg-hover: #15242e;
+        --bg-card: #101e26;
 
-        --primary: #d4a73a;
-        --primary-light: #e5b94a;
-        --primary-dark: #b8922e;
-        --primary-muted: #2a2418;
-        --primary-subtle: #3d3220;
+        --primary: #c6a15b;
+        --primary-light: #d6b678;
+        --primary-dark: #a9854b;
+        --primary-muted: #221d12;
+        --primary-subtle: #38301d;
 
-        --secondary: #14b8a6;
-        --secondary-light: #2dd4bf;
-        --secondary-dark: #0d9488;
-        --secondary-muted: #1a2e2c;
-        --secondary-subtle: #244745;
+        --secondary: #8fa9d0;
+        --secondary-light: #a9bedd;
+        --secondary-dark: #6d89b4;
+        --secondary-muted: #131e2c;
+        --secondary-subtle: #22334a;
 
-        --success: #22c55e;
-        --success-muted: #1e3a28;
-        --warning: #f59e0b;
-        --warning-muted: #3d3220;
-        --danger: #ef4444;
-        --danger-muted: #3d2020;
-        --info: #3b82f6;
-        --info-muted: #1e3a5f;
+        --success: #8fbf9a;
+        --success-muted: #14251a;
+        --warning: #d9a441;
+        --warning-muted: #2a2210;
+        --danger: #e08a7e;
+        --danger-muted: #2c1714;
+        --info: #8fa9d0;
+        --info-muted: #16222f;
 
-        --text-primary: #ffffff;
-        --text-secondary: #94a3b8;
-        --text-tertiary: #64748b;
-        --text-muted: #475569;
-        --text-inverse: #0d1517;
+        --text-primary: #eae6da;
+        --text-secondary: #93a5a8;
+        --text-tertiary: #6e8085;
+        --text-muted: #4e5d63;
+        --text-inverse: #0b151b;
 
-        --border: #1e3338;
-        --border-strong: #2a454d;
-        --divider: #18282b;
+        --border: #1c2b33;
+        --border-strong: #2a3e48;
+        --divider: #142128;
     }
 }
 
@@ -243,83 +289,84 @@
 }
 
 .dark {
-    --bg-primary: #0d1517;
-    --bg-secondary: #111e21;
-    --bg-elevated: #162226;
-    --bg-hover: #1a2e33;
-    --bg-card: #162226;
+    --bg-primary: #0b151b;
+    --bg-secondary: #0e1a21;
+    --bg-elevated: #101e26;
+    --bg-hover: #15242e;
+    --bg-card: #101e26;
 
-    --primary: #d4a73a;
-    --primary-light: #e5b94a;
-    --primary-dark: #b8922e;
-    --primary-muted: #2a2418;
-    --primary-subtle: #3d3220;
+    --primary: #c6a15b;
+    --primary-light: #d6b678;
+    --primary-dark: #a9854b;
+    --primary-muted: #221d12;
+    --primary-subtle: #38301d;
 
-    --secondary: #14b8a6;
-    --secondary-light: #2dd4bf;
-    --secondary-dark: #0d9488;
-    --secondary-muted: #1e3a2c;
-    --secondary-subtle: #244745;
+    --secondary: #8fa9d0;
+    --secondary-light: #a9bedd;
+    --secondary-dark: #6d89b4;
+    --secondary-muted: #131e2c;
+    --secondary-subtle: #22334a;
 
-    --success: #22c55e;
-    --success-muted: #1e3a28;
-    --warning: #f59e0b;
-    --warning-muted: #3d3220;
-    --danger: #ef4444;
-    --danger-muted: #3d2020;
-    --info: #3b82f6;
-    --info-muted: #1e3a5f;
+    --success: #8fbf9a;
+    --success-muted: #14251a;
+    --warning: #d9a441;
+    --warning-muted: #2a2210;
+    --danger: #e08a7e;
+    --danger-muted: #2c1714;
+    --info: #8fa9d0;
+    --info-muted: #16222f;
 
-    --text-primary: #ffffff;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #64748b;
-    --text-muted: #475569;
-    --text-inverse: #0d1517;
+    --text-primary: #eae6da;
+    --text-secondary: #93a5a8;
+    --text-tertiary: #6e8085;
+    --text-muted: #4e5d63;
+    --text-inverse: #0b151b;
 
-    --border: #1e3338;
-    --border-strong: #2a454d;
-    --divider: #18282b;
+    --border: #1c2b33;
+    --border-strong: #2a3e48;
+    --divider: #142128;
     --pattern-image: url("/pattern.png");
 }
 
 /* Force light variables when .light class is present (override prefers-color-scheme) */
 .light {
-    --bg-primary: #fdfcf8;
-    --bg-secondary: #f5f3ee;
-    --bg-elevated: #ffffff;
-    --bg-hover: #ede9e3;
-    --bg-card: #ffffff;
+    --bg-primary: #f4efe2;
+    --bg-secondary: #ece4d0;
+    --bg-elevated: #faf7ee;
+    --bg-hover: #e6dcc2;
+    --bg-card: #faf7ee;
 
-    --primary: #b8860b;
-    --primary-light: #d4a73a;
-    --primary-dark: #8b6914;
-    --primary-muted: #f5efe6;
-    --primary-subtle: #e8dcc8;
+    --primary: #8a6a34;
+    --primary-light: #c6a15b;
+    --primary-dark: #6e5427;
+    --primary-muted: #f1e6cd;
+    --primary-subtle: #e3d3a9;
 
-    --secondary: #0d9488;
-    --secondary-light: #14b8a6;
-    --secondary-dark: #0f766e;
-    --secondary-muted: #e6f4f3;
-    --secondary-subtle: #cceae8;
+    --secondary: #3f628f;
+    --secondary-light: #8fa9d0;
+    --secondary-dark: #2f4a6c;
+    --secondary-muted: #e1e9f3;
+    --secondary-subtle: #c3d3e7;
 
-    --success: #16a34a;
-    --success-muted: #dcfce7;
-    --warning: #d97706;
-    --warning-muted: #fef3c7;
-    --danger: #dc2626;
-    --danger-muted: #fee2e2;
-    --info: #2563eb;
-    --info-muted: #dbeafe;
+    --success: #357040;
+    --success-muted: #dceadb;
+    --warning: #a6742a;
+    --warning-muted: #f3e6c8;
+    --danger: #b23b30;
+    --danger-muted: #f5dad5;
+    --info: #3b5d8a;
+    --info-muted: #dce6f2;
 
-    --text-primary: #1c1917;
-    --text-secondary: #57534e;
-    --text-tertiary: #78716c;
-    --text-muted: #a8a29e;
-    --text-inverse: #ffffff;
+    --text-primary: #0b151b;
+    --text-secondary: #4b5a5d;
+    --text-tertiary: #6e7d80;
+    --text-muted: #98a3a5;
+    --text-inverse: #faf7ee;
 
-    --border: #e7e5e4;
-    --border-strong: #d6d3d1;
-    --divider: #f5f5f4;
+    --border: #ded2ae;
+    --border-strong: #c9b98c;
+    --divider: #ede4cd;
+    --pattern-image: url("/pattern-light.png");
 }
 
 /* Hero background helper that uses the pattern image variable */
@@ -341,7 +388,7 @@
 body {
     background: var(--bg-primary);
     color: var(--text-primary);
-    font-family: Arial, Helvetica, sans-serif;
+    /* font-family comes from next/font (IBM Plex Sans) applied on <body> in the root layout */
 }
 .text-balance {
     text-wrap: balance;
@@ -382,4 +429,155 @@ button {
 }
 .shake {
     animation: shake 0.4s ease;
+}
+
+/* ============================================================
+   Qandeel material & interaction layer
+   ============================================================ */
+
+/* --- Glass grades (see DESIGN_SYSTEM.md 2.2) ---
+   Perf rule: max 3 backdrop-filter surfaces per viewport. */
+.glass-pane {
+    background: rgba(16, 30, 38, 0.55);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid rgba(234, 230, 218, 0.1);
+    box-shadow:
+        inset 0 1px 0 rgba(234, 230, 218, 0.07),
+        0 12px 32px -8px rgba(6, 13, 17, 0.6);
+}
+
+/* Pane look without backdrop-filter — for card lists and any surface
+   beyond the 3-blur budget. More opaque to compensate for no blur. */
+.glass-still {
+    background: rgba(16, 30, 38, 0.78);
+    border: 1px solid rgba(234, 230, 218, 0.1);
+    box-shadow:
+        inset 0 1px 0 rgba(234, 230, 218, 0.07),
+        0 12px 32px -8px rgba(6, 13, 17, 0.6);
+}
+
+.glass-veil {
+    background: rgba(11, 21, 27, 0.65);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    border-bottom: 1px solid rgba(234, 230, 218, 0.08);
+}
+
+.glass-lantern {
+    background: rgba(16, 30, 38, 0.55);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid rgba(198, 161, 91, 0.28);
+    box-shadow:
+        inset 0 1px 0 rgba(234, 230, 218, 0.09),
+        0 0 48px -16px rgba(198, 161, 91, 0.3),
+        0 12px 32px -8px rgba(6, 13, 17, 0.6);
+}
+
+/* Night scene: containers that are always the night palette,
+   independent of the light/dark theme (auth, styleguide). */
+.night-scene {
+    color-scheme: dark;
+}
+.night-scene input:-webkit-autofill,
+.night-scene input:-webkit-autofill:hover,
+.night-scene input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #101e26 inset;
+    -webkit-text-fill-color: var(--ivory);
+    caret-color: var(--ivory);
+}
+
+/* --- Focus: one global, visible, brass ring --- */
+:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+}
+
+/* --- Entry + ambient motion (gated behind motion preference) --- */
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes fade-up {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .stagger-fade > * {
+        animation: fade-up 0.55s var(--ease-qandeel) both;
+    }
+    .stagger-fade > *:nth-child(1) { animation-delay: 0.05s; }
+    .stagger-fade > *:nth-child(2) { animation-delay: 0.12s; }
+    .stagger-fade > *:nth-child(3) { animation-delay: 0.19s; }
+    .stagger-fade > *:nth-child(4) { animation-delay: 0.26s; }
+    .stagger-fade > *:nth-child(5) { animation-delay: 0.33s; }
+    .stagger-fade > *:nth-child(6) { animation-delay: 0.4s; }
+    .stagger-fade > *:nth-child(7) { animation-delay: 0.47s; }
+    .stagger-fade > *:nth-child(8) { animation-delay: 0.54s; }
+
+    /* General-purpose staggered entrance for lists of any length —
+       set style={{ "--i": index }} per item instead of relying on
+       nth-child, which .stagger-fade caps at 8. The one reusable
+       "this list just appeared" primitive for the whole site. */
+    .stagger-item {
+        animation: fade-up 0.5s var(--ease-qandeel) both;
+        animation-delay: calc(var(--i, 0) * 55ms);
+    }
+
+    /* The one reusable "this is alive" hover for any clickable card,
+       row, or tile — rise plus a shadow escalation from raise to float. */
+    .hover-lift {
+        transition:
+            transform 0.25s var(--ease-qandeel),
+            box-shadow 0.25s var(--ease-qandeel),
+            border-color 0.25s var(--ease-qandeel);
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-float);
+    }
+    .hover-lift:active {
+        transform: translateY(-1px);
+    }
+
+    /* Scroll reveals — hidden state only exists when motion is allowed,
+       so content is never invisible under reduced motion or without JS. */
+    .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+            opacity 0.7s var(--ease-qandeel),
+            transform 0.7s var(--ease-qandeel);
+    }
+    .reveal.is-visible {
+        opacity: 1;
+        transform: none;
+    }
+
+    @keyframes girih-drift {
+        from {
+            transform: translate3d(0, 0, 0);
+        }
+        to {
+            transform: translate3d(-72px, -72px, 0);
+        }
+    }
+    .girih-drift {
+        animation: girih-drift 120s linear infinite alternate;
+    }
+}
+
+/* --- Reduced motion: kill all animation and transitions --- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

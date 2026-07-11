@@ -3,6 +3,7 @@ import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { elMessiri } from "@/components/ui/fonts";
 import { LogOut, User } from "lucide-react";
 import type { UserRole } from "@prisma/client";
 
@@ -16,7 +17,7 @@ type AdminUser = {
 
 export function AdminTopBar({ user }: { user: AdminUser }) {
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 z-50 bg-bg-primary/80 backdrop-blur-md border-b border-border">
+    <header className="glass-veil fixed top-0 left-0 right-0 h-16 z-50">
       <div className="h-full max-w-screen-2xl mx-auto px-4 flex items-center justify-between gap-4">
         <Link href="/admin" className="flex items-center gap-2 shrink-0">
           <Image
@@ -26,7 +27,9 @@ export function AdminTopBar({ user }: { user: AdminUser }) {
             width={439}
             height={339}
           />
-          <span className="hidden sm:inline text-lg font-bold text-primary tracking-tight">
+          <span
+            className={`hidden sm:inline text-lg font-semibold text-primary tracking-tight ${elMessiri.className}`}
+          >
             Maymanah
           </span>
           <span className="hidden sm:inline text-[10px] uppercase tracking-widest font-semibold text-text-muted bg-bg-hover px-2 py-0.5 rounded-md">

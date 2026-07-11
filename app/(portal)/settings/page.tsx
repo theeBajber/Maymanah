@@ -6,24 +6,25 @@ import { ThemeSelector } from "@/components/ui/theme-selector";
 import { useToast } from "@/components/ui/toast";
 import { Dropdown } from "@/components/ui/Dropdown";
 import Image from "next/image";
-import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
-  faCog,
-  faLock,
-  faBell,
-  faPalette,
-  faSignOut,
-  faTrash,
-  faShieldAlt,
-  faSave,
-  faX,
-  faBars,
-  faChalkboardUser,
-  faPen,
-  faCalendarWeek,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+  Settings as SettingsIcon,
+  Lock,
+  Bell,
+  Palette,
+  LogOut,
+  Trash2,
+  ShieldCheck,
+  Save,
+  X,
+  Menu,
+  GraduationCap,
+  Pen,
+  CalendarRange,
+  type LucideIcon,
+} from "lucide-react";
+import { PortalHeader } from "@/components/ui/portal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useDrawerBehavior } from "@/lib/useDrawer";
 
 type TabType =
   | "profile"
@@ -38,29 +39,30 @@ type TabType =
 interface SettingsTab {
   id: TabType;
   label: string;
-  icon: IconDefinition;
+  icon: LucideIcon;
 }
 
 const baseTabs: SettingsTab[] = [
-  { id: "profile", label: "Profile", icon: faCog },
-  { id: "security", label: "Security", icon: faLock },
-  { id: "notifications", label: "Notifications", icon: faBell },
-  { id: "interface", label: "Interface", icon: faPalette },
-  { id: "availability", label: "Availability", icon: faCalendarWeek },
-  { id: "sessions", label: "Sessions", icon: faSignOut },
-  { id: "danger", label: "Danger Zone", icon: faTrash },
+  { id: "profile", label: "Profile", icon: SettingsIcon },
+  { id: "security", label: "Security", icon: Lock },
+  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "interface", label: "Interface", icon: Palette },
+  { id: "availability", label: "Availability", icon: CalendarRange },
+  { id: "sessions", label: "Sessions", icon: LogOut },
+  { id: "danger", label: "Danger Zone", icon: Trash2 },
 ];
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useDrawerBehavior(sidebarOpen, () => setSidebarOpen(false));
 
   const tabs: SettingsTab[] =
     session?.user?.role === "TEACHER"
       ? [
-          { id: "ustadh", label: "Ustadh", icon: faChalkboardUser },
-          { id: "availability", label: "Availability", icon: faCalendarWeek },
+          { id: "ustadh", label: "Ustadh", icon: GraduationCap },
+          { id: "availability", label: "Availability", icon: CalendarRange },
           ...baseTabs.filter((t) => t.id !== "availability"),
         ]
       : baseTabs.filter((t) => t.id !== "availability");
@@ -76,11 +78,11 @@ export default function SettingsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left ${
                 activeTab === tab.id
-                  ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
+                  ? "bg-primary text-text-inverse hover:shadow-glow-brass"
                   : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
               }`}
             >
-              <FontAwesomeIcon icon={tab.icon} className="size-4 shrink-0" />
+              <tab.icon className="size-4 shrink-0" />
               <span className="text-sm font-medium">{tab.label}</span>
             </button>
           ))}
@@ -104,7 +106,7 @@ export default function SettingsPage() {
             onClick={() => setSidebarOpen(false)}
             className="text-text-secondary hover:text-text-primary transition-colors"
           >
-            <FontAwesomeIcon icon={faX} className="size-5" />
+            <X className="size-5" />
           </button>
         </div>
         <nav className="space-y-1">
@@ -117,11 +119,11 @@ export default function SettingsPage() {
               }}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left ${
                 activeTab === tab.id
-                  ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
+                  ? "bg-primary text-text-inverse hover:shadow-glow-brass"
                   : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
               }`}
             >
-              <FontAwesomeIcon icon={tab.icon} className="size-4 shrink-0" />
+              <tab.icon className="size-4 shrink-0" />
               <span className="text-sm font-medium">{tab.label}</span>
             </button>
           ))}
@@ -135,7 +137,7 @@ export default function SettingsPage() {
             className="text-text-secondary hover:text-text-primary transition-colors"
             aria-label="Toggle menu"
           >
-            <FontAwesomeIcon icon={faBars} className="size-5" />
+            <Menu className="size-5" />
           </button>
           <h2 className="text-lg font-bold text-text-primary">
             {tabs.find((t) => t.id === activeTab)?.label}
@@ -279,10 +281,10 @@ function ProfileSettings() {
             <button
               type="button"
               onClick={() => setShowAvatarPicker((p) => !p)}
-              className="absolute -bottom-1 -right-1 bg-primary text-text-inverse rounded-full p-1.5 hover:brightness-110 transition-all text-xs shadow-sm"
+              className="absolute -bottom-1 -right-1 bg-primary text-text-inverse rounded-full p-1.5 hover:brightness-110 transition-all text-xs shadow-raise"
               title="Change avatar"
             >
-              <FontAwesomeIcon icon={faPen} className="size-3" />
+              <Pen className="size-3" />
             </button>
           </div>
           <div>
@@ -299,7 +301,7 @@ function ProfileSettings() {
           <div className="relative">
             <div
               ref={avatarPickerRef}
-              className="absolute z-10 mt-2 bg-bg-elevated border border-border rounded-2xl p-4 shadow-lg"
+              className="absolute z-10 mt-2 bg-bg-elevated border border-border rounded-2xl p-4 shadow-float"
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium text-text-primary">Choose Avatar</span>
@@ -308,7 +310,7 @@ function ProfileSettings() {
                   onClick={() => setShowAvatarPicker(false)}
                   className="text-text-muted hover:text-text-primary transition-colors"
                 >
-                  <FontAwesomeIcon icon={faX} className="size-3" />
+                  <X className="size-3" />
                 </button>
               </div>
               <div className="flex gap-3 flex-wrap">
@@ -330,6 +332,7 @@ function ProfileSettings() {
                       src={portrait}
                       alt="Avatar option"
                       fill
+                      sizes="56px"
                       className="object-cover"
                     />
                   </button>
@@ -344,21 +347,31 @@ function ProfileSettings() {
             Gender
           </label>
           <div className="flex gap-3">
-            {(["male", "female"] as const).map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setFormData((prev) => ({ ...prev, gender: g }))}
-                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  formData.gender === g
-                    ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
-                    : "border border-border text-text-secondary hover:border-primary"
-                }`}
-              >
-                {g === "male" ? "Male" : "Female"}
-              </button>
-            ))}
+            {(["male", "female"] as const).map((g) => {
+              const isGenderLocked = !!formData.gender;
+              const isSelected = formData.gender === g;
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  disabled={isGenderLocked}
+                  onClick={() => setFormData((prev) => ({ ...prev, gender: g }))}
+                  className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    isSelected
+                      ? "bg-primary text-text-inverse"
+                      : "border border-border text-text-secondary hover:border-primary"
+                  } ${isGenderLocked ? "opacity-60 cursor-not-allowed hover:border-border hover:shadow-none" : "hover:shadow-glow-brass"}`}
+                >
+                  {g === "male" ? "Male" : "Female"}
+                </button>
+              );
+            })}
           </div>
+          {formData.gender && (
+            <p className="text-xs text-text-muted mt-2">
+              Gender is locked after your first save — it&apos;s used to match you with a same-gender teacher for live sessions. Contact support if this needs to change.
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -461,9 +474,9 @@ function ProfileSettings() {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
         >
-          <FontAwesomeIcon icon={faSave} className="size-4" />
+          <Save className="size-4" />
           {loading ? "Saving..." : "Save Changes"}
         </button>
       </form>
@@ -524,7 +537,7 @@ function SecuritySettings() {
           Security Settings
         </h2>
 
-        <div className="mb-6 p-6 rounded-2xl border border-border bg-bg-elevated">
+        <div className="mb-6 p-6 rounded-2xl border border-border bg-bg-elevated shadow-raise">
           <h3 className="text-lg font-semibold text-text-primary mb-4">
             Change Password
           </h3>
@@ -570,16 +583,16 @@ function SecuritySettings() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
+              className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
             >
               {loading ? "Updating..." : "Update Password"}
             </button>
           </form>
         </div>
 
-        <div className="p-6 rounded-2xl border border-border bg-bg-elevated">
+        <div className="p-6 rounded-2xl border border-border bg-bg-elevated shadow-raise">
           <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <FontAwesomeIcon icon={faShieldAlt} className="size-5 text-primary" />
+            <ShieldCheck className="size-5 text-primary" />
             Two-Factor Authentication
           </h3>
           <p className="text-sm text-text-secondary mb-4">
@@ -681,7 +694,7 @@ function NotificationsSettings() {
       </h2>
 
       <div className="space-y-4">
-        <div className="p-5 rounded-2xl border border-border bg-bg-elevated">
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated shadow-raise">
           <div className="flex items-center justify-between mb-1">
             <h3 className="font-semibold text-text-primary">
               Email Notifications
@@ -693,7 +706,7 @@ function NotificationsSettings() {
               }`}
             >
               <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-5 w-5 transform rounded-full bg-text-inverse transition-transform ${
                   preferences.emailNotifications
                     ? "translate-x-6"
                     : "translate-x-1"
@@ -706,7 +719,7 @@ function NotificationsSettings() {
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl border border-border bg-bg-elevated">
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated shadow-raise">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-text-primary">
               Daily Study Reminders
@@ -718,7 +731,7 @@ function NotificationsSettings() {
               }`}
             >
               <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-5 w-5 transform rounded-full bg-text-inverse transition-transform ${
                   preferences.studyReminders ? "translate-x-6" : "translate-x-1"
                 }`}
               />
@@ -743,7 +756,7 @@ function NotificationsSettings() {
       <button
         onClick={handleSave}
         disabled={loading}
-        className="mt-5 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
+        className="mt-5 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
       >
         {loading ? "Saving..." : "Save Preferences"}
       </button>
@@ -805,9 +818,9 @@ function InterfaceSettings() {
       </h2>
 
       <div className="space-y-6">
-        <div className="p-5 rounded-2xl border border-border bg-bg-elevated">
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated shadow-raise">
           <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <FontAwesomeIcon icon={faPalette} className="size-5 text-primary" />
+            <Palette className="size-5 text-primary" />
             Theme
           </h3>
           <p className="text-sm text-text-secondary mb-4">
@@ -855,7 +868,7 @@ function InterfaceSettings() {
       <button
         onClick={handleSave}
         disabled={loading}
-        className="mt-6 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
+        className="mt-6 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
       >
         {loading ? "Saving..." : "Save Settings"}
       </button>
@@ -990,9 +1003,9 @@ function AvailabilitySettings() {
       <button
         onClick={handleSave}
         disabled={saving || loading}
-        className="mt-6 inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
+        className="mt-6 inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
       >
-        <FontAwesomeIcon icon={faSave} className="size-4" />
+        <Save className="size-4" />
         {saving ? "Saving..." : "Save Availability"}
       </button>
     </div>
@@ -1053,7 +1066,7 @@ function SessionsSettings() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="p-5 rounded-2xl border border-border bg-bg-elevated">
+            <div key={i} className="p-5 rounded-2xl border border-border bg-bg-elevated shadow-raise">
               <div className="flex items-center justify-between">
                 <div className="space-y-2 flex-1">
                   <Skeleton className="h-5 w-1/3" />
@@ -1070,10 +1083,10 @@ function SessionsSettings() {
           {sessions.map((s) => (
             <div
               key={s.id}
-              className="p-5 rounded-2xl border border-border bg-bg-elevated flex items-center justify-between"
+              className="p-5 rounded-2xl border border-border bg-bg-elevated flex items-center justify-between gap-3"
             >
-              <div>
-                <h3 className="font-semibold text-text-primary">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-text-primary truncate" title={s.deviceName}>
                   {s.deviceName}
                 </h3>
                 <p className="text-sm text-text-secondary">IP: {s.ipAddress}</p>
@@ -1083,7 +1096,7 @@ function SessionsSettings() {
               </div>
               <button
                 onClick={() => handleLogoutSession(s.id)}
-                className="px-4 py-2 bg-danger/10 text-danger rounded-xl text-sm font-medium hover:bg-danger/20 transition-colors"
+                className="shrink-0 px-4 py-2 bg-danger/10 text-danger rounded-xl text-sm font-medium hover:bg-danger/20 transition-colors"
               >
                 Logout
               </button>
@@ -1147,7 +1160,7 @@ function DangerZoneSettings() {
         </p>
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="px-6 py-2.5 bg-danger text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all active:scale-[0.97] shadow-sm shadow-danger/20"
+          className="px-6 py-2.5 bg-danger text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all active:scale-[0.97] "
         >
           Delete My Account
         </button>
@@ -1155,7 +1168,7 @@ function DangerZoneSettings() {
 
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-bg-elevated rounded-2xl p-8 max-w-md w-full shadow-xl border border-border">
+          <div className="bg-bg-elevated rounded-2xl p-8 max-w-md w-full shadow-float border border-border">
             <h3 className="text-xl font-bold text-text-primary mb-4">
               Confirm Account Deletion
             </h3>
@@ -1182,7 +1195,7 @@ function DangerZoneSettings() {
               <button
                 onClick={handleDeleteAccount}
                 disabled={loading}
-                className="flex-1 px-4 py-2.5 bg-danger text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-danger/20"
+                className="flex-1 px-4 py-2.5 bg-danger text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] "
               >
                 {loading ? "Deleting..." : "Delete"}
               </button>
@@ -1206,7 +1219,7 @@ function ToggleSwitch({ value, onChange }: { value: boolean; onChange: (v: boole
       aria-checked={value}
     >
       <span
-        className={`pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+        className={`pointer-events-none inline-block h-6 w-6 rounded-full bg-text-inverse ring-0 transition-transform duration-200 ${
           value ? "translate-x-5" : "translate-x-0"
         }`}
       />
@@ -1268,7 +1281,7 @@ function UstadhSettings() {
         Ustadh Profile
       </h2>
 
-      <div className="mb-6 p-4 rounded-2xl border border-border bg-bg-elevated">
+      <div className="mb-6 p-4 rounded-2xl border border-border bg-bg-elevated shadow-raise">
         <p className="text-sm text-text-secondary mb-1">Approval Status</p>
         <span
           className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${
@@ -1355,9 +1368,9 @@ function UstadhSettings() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] shadow-sm shadow-primary/20"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
           >
-            <FontAwesomeIcon icon={faSave} className="size-4" />
+            <Save className="size-4" />
             {loading ? "Saving..." : "Save Changes"}
           </button>
         </form>

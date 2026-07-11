@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export function DailySessionButton({
   startTime,
@@ -11,6 +12,7 @@ export function DailySessionButton({
   endTime: string;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
@@ -35,10 +37,10 @@ export function DailySessionButton({
         router.push(`/session/${data.id}${isTest ? "?test=1" : ""}`);
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to start session");
+        toast({ variant: "error", title: err.error || "Failed to start session" });
       }
     } catch {
-      alert("Something went wrong");
+      toast({ variant: "error", title: "Something went wrong" });
     } finally {
       setLoading(false);
     }
@@ -48,7 +50,7 @@ export function DailySessionButton({
     const minsUntil = Math.round((start.getTime() - now.getTime()) / 60000);
     return (
       <div className="flex items-center gap-3 text-sm text-text-secondary">
-        <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
+        <span className="size-2 rounded-full bg-warning animate-pulse" />
         Coming up in {minsUntil} min
       </div>
     );
@@ -58,7 +60,7 @@ export function DailySessionButton({
     <button
       onClick={handleStart}
       disabled={loading || !canJoin}
-      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse rounded-xl font-semibold text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] shadow-sm shadow-primary/20"
+      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse rounded-xl font-semibold text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] hover:shadow-glow-brass"
     >
       {loading ? "Starting..." : canJoin ? "Start Session" : "Session ended"}
     </button>

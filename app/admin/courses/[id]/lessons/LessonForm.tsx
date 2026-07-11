@@ -233,7 +233,7 @@ export function LessonForm({
                   onClick={() => setPreview(false)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     !preview
-                      ? "bg-bg-elevated text-text-primary shadow-sm"
+                      ? "bg-bg-elevated text-text-primary shadow-raise"
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
@@ -245,7 +245,7 @@ export function LessonForm({
                   onClick={() => setPreview(true)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     preview
-                      ? "bg-bg-elevated text-text-primary shadow-sm"
+                      ? "bg-bg-elevated text-text-primary shadow-raise"
                       : "text-text-secondary hover:text-text-primary"
                   }`}
                 >

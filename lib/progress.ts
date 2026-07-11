@@ -72,6 +72,7 @@ export async function completeLesson(
 
     const total = lesson.course._count.lessons;
     const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+    const isComplete = total > 0 && pct >= 100;
 
     await safeQuery(() =>
       prisma.enrollment.updateMany({
@@ -79,7 +80,13 @@ export async function completeLesson(
           userId: session.user.id,
           courseId: lesson.courseId,
         },
-        data: { progress: pct },
+        data: {
+          progress: pct,
+          ...(isComplete && {
+            status: "COMPLETED",
+            completedAt: new Date(),
+          }),
+        },
       }),
     );
   }

@@ -1,25 +1,27 @@
 import { getCourseBySlug } from "@/lib/courses";
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
-import { amiri } from "@/components/ui/fonts";
+import { amiri, elMessiri } from "@/components/ui/fonts";
+import { EmptyState } from "@/components/ui/portal";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faPlay,
-  faLock,
-  faCheckCircle,
-  faClipboardList,
-  faClock,
-  faGraduationCap,
-  faArrowRight,
-  faVideo,
-  faCalendar,
-  faBolt,
-  faStar,
-  faSun,
-} from "@fortawesome/free-solid-svg-icons";
+  ArrowRight,
+  Award,
+  Bolt,
+  Calendar,
+  CheckCircle,
+  ClipboardList,
+  Clock,
+  Download,
+  GraduationCap,
+  Lock,
+  Play,
+  Star,
+  Sun,
+  Video,
+} from "lucide-react";
 import EnrollButton from "./EnrollButton";
 import { DailySessionButton } from "./DailySessionButton";
 import { SetAvailabilityForPairing } from "./SetAvailabilityForPairing";
@@ -160,14 +162,15 @@ export default async function CourseDetailPage({
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-elevated to-bg-secondary border border-border">
+    <div className="stagger-fade p-6 max-w-7xl mx-auto space-y-8">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-elevated to-bg-secondary border border-border shadow-raise">
         <div className="flex flex-col md:flex-row">
           <div className="relative w-full md:w-[380px] lg:w-[420px] h-56 md:h-auto shrink-0 overflow-hidden">
             <Image
               src={course.image || "/calligraphy.png"}
               alt={course.title}
               fill
+              sizes="(min-width: 768px) 420px, 100vw"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-bg-elevated/60 via-bg-elevated/20 to-transparent md:bg-gradient-to-r from-bg-elevated/80 to-transparent" />
@@ -180,14 +183,14 @@ export default async function CourseDetailPage({
               {course.slug === "hifdh-ul-quran" ? (
                 allAppointments.length > 0 && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
-                    <FontAwesomeIcon icon={faVideo} className="size-3" />
+                    <Video className="size-3" />
                     {allAppointments.length} sessions
                   </span>
                 )
               ) : (
                 course.lessons.length > 0 && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg-hover text-text-secondary border border-border text-[11px] font-semibold">
-                    <FontAwesomeIcon icon={faClock} className="size-3" />
+                    <Clock className="size-3" />
                     {course.lessons.length} modules
                   </span>
                 )
@@ -238,11 +241,11 @@ export default async function CourseDetailPage({
             <SetAvailabilityForPairing />
           )}
           {dailySlot && (
-            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-bg-elevated p-6">
+            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-bg-elevated p-6 shadow-raise">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 text-sm text-primary font-semibold mb-1">
-                    <FontAwesomeIcon icon={faSun} className="size-4" />
+                    <Sun className="size-4" />
                     Today&apos;s Daily Session
                   </div>
                   <p className="text-2xl font-bold text-text-primary">
@@ -261,7 +264,7 @@ export default async function CourseDetailPage({
           )}
 
           {recurringSlots.length > 0 && (
-            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
               <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">
                 Your Schedule
               </h3>
@@ -272,16 +275,14 @@ export default async function CourseDetailPage({
                     hour: "2-digit",
                     minute: "2-digit",
                   });
+                  const SlotIcon = s.type === "DAILY_HIFDH" ? Sun : Bolt;
                   return (
                     <div key={s.type}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <FontAwesomeIcon
-                              icon={s.type === "DAILY_HIFDH" ? faSun : faBolt}
-                              className="text-primary size-4"
-                            />
-                          </div>
+                          <span className="flex size-9 items-center justify-center rounded-[10px] border border-primary/25 text-primary">
+                            <SlotIcon className="size-4" />
+                          </span>
                           <div>
                             <p className="font-medium text-sm text-text-primary">
                               {s.type === "DAILY_HIFDH" ? "Daily Hifdh" : "Muraja'ah"}
@@ -307,26 +308,27 @@ export default async function CourseDetailPage({
           {upcomingMuraja.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
-                <FontAwesomeIcon icon={faStar} className="size-3.5 text-primary" />
+                <Star className="size-3.5 text-primary" />
                 Upcoming Sessions
               </h3>
               <div className="space-y-2.5">
-                {upcomingMuraja.map((a) => (
+                {upcomingMuraja.map((a, index) => (
                   <Link
                     key={a.id}
                     href={isEnrolled ? `/session/${a.id}` : "#enroll"}
-                    className="group flex items-center gap-4 p-4 rounded-xl border border-border bg-bg-elevated hover:border-primary/30 hover:shadow-sm hover:bg-bg-hover transition-all"
+                    style={{ "--i": index } as React.CSSProperties}
+                    className="hover-lift stagger-item group flex items-center gap-4 p-4 rounded-xl border border-border bg-bg-elevated hover:border-primary/30 hover:bg-bg-hover"
                   >
-                    <div className="relative shrink-0 size-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                      <FontAwesomeIcon icon={a.sessionType === "MURAJA" ? faBolt : faVideo} className="text-primary size-4" />
-                    </div>
+                    <span className="relative shrink-0 flex size-11 items-center justify-center rounded-[10px] border border-primary/25 text-primary group-hover:bg-primary/5 transition-colors">
+                      {a.sessionType === "MURAJA" ? <Bolt className="size-4" /> : <Video className="size-4" />}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate text-text-primary">
                         {a.title || (a.sessionType === "MURAJA" ? "Muraja'ah Session" : "Extra Session")}
                       </h3>
                       <div className="flex items-center gap-3 text-xs text-text-secondary mt-1">
                         <span className="flex items-center gap-1">
-                          <FontAwesomeIcon icon={faCalendar} className="size-3" />
+                          <Calendar className="size-3" />
                           {formatSessionDate(a.startTime)}
                         </span>
                         {a.teacher && (
@@ -337,9 +339,9 @@ export default async function CourseDetailPage({
                         </span>
                       </div>
                     </div>
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-text-inverse font-semibold text-sm hover:brightness-110 transition-all shrink-0 active:scale-[0.97] shadow-sm shadow-primary/20">
+                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-primary text-text-inverse font-semibold text-sm transition-all shrink-0 active:scale-[0.97] group-hover:shadow-glow-brass">
                       Join
-                      <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                      <ArrowRight className="size-3" />
                     </span>
                   </Link>
                 ))}
@@ -359,9 +361,9 @@ export default async function CourseDetailPage({
                     key={a.id}
                     className="flex items-center gap-4 p-4 rounded-xl border border-border bg-bg-elevated/50 opacity-70"
                   >
-                    <div className="relative shrink-0 size-11 rounded-xl bg-bg-hover flex items-center justify-center">
-                      <FontAwesomeIcon icon={faVideo} className="text-text-muted size-4" />
-                    </div>
+                    <span className="relative shrink-0 flex size-11 items-center justify-center rounded-[10px] bg-bg-hover text-text-muted">
+                      <Video className="size-4" />
+                    </span>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate text-text-primary text-sm">
                         {a.title || "Session"}
@@ -381,23 +383,48 @@ export default async function CourseDetailPage({
           )}
 
           {!dailySlot && upcomingMuraja.length === 0 && pastSessions.length === 0 && !(isEnrolled && recurringSlots.length === 0) && (
-            <div className="rounded-2xl border border-dashed border-border/60 bg-bg-elevated/50 p-12 text-center">
-              <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <FontAwesomeIcon icon={faVideo} className="text-primary text-xl" />
-              </div>
-              <h3 className="font-semibold text-text-primary text-lg mb-1">No sessions yet</h3>
-              <p className="text-sm text-text-secondary">Sessions will appear here once your teacher schedules them.</p>
-            </div>
+            <EmptyState title="Sessions will appear here once your teacher schedules them." />
           )}
         </section>
       ) : (
+        <>
+        {isEnrolled && course.lessons.length > 0 &&
+          (course.enrollmentStatus === "COMPLETED" || completedCount >= course.lessons.length) && (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-bg-elevated p-6 text-center shadow-raise sm:flex-row sm:items-center sm:justify-between sm:text-left">
+              <div className="flex items-center gap-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-primary/30 text-primary">
+                  <Award className="size-6" />
+                </span>
+                <div>
+                  <h3 className={`${elMessiri.className} text-lg font-semibold text-text-primary`}>
+                    Course complete — well done!
+                  </h3>
+                  <p className="text-sm text-text-secondary">
+                    Your certificate of completion is ready to download.
+                  </p>
+                </div>
+              </div>
+              <a
+                href={`/api/courses/${slug}/certificate`}
+                className="flex shrink-0 items-center justify-center gap-2 rounded-[10px] bg-primary px-5 py-2.5 text-sm font-semibold text-text-inverse transition-all hover:shadow-glow-brass active:scale-[0.97]"
+              >
+                <Download className="size-4" />
+                Download Certificate
+              </a>
+            </div>
+        )}
+
         <section>
           <div className="flex items-center gap-3 mb-5">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <FontAwesomeIcon icon={faGraduationCap} className="text-primary size-4" />
-            </div>
+            <span className="flex size-8 items-center justify-center rounded-[8px] border border-primary/25 text-primary">
+              <GraduationCap className="size-4" />
+            </span>
             <div>
-              <h2 className="text-lg font-bold text-text-primary">Modules</h2>
+              <h2
+                className={`${elMessiri.className} text-lg font-semibold text-text-primary`}
+              >
+                Modules
+              </h2>
               {isEnrolled && (
                 <p className="text-xs text-text-secondary">{completedCount} of {course.lessons.length} completed</p>
               )}
@@ -414,19 +441,19 @@ export default async function CourseDetailPage({
                 const isCompleted = prog?.completed;
                 const isLocked = index > firstUnlocked;
                 const hasQuiz = !!lessonExams[lesson.id];
-                const isNext = isEnrolled && !isCompleted && !isLocked;
 
                 return (
                   <Link
                     key={lesson.id}
                     href={isEnrolled && !isLocked ? `/courses/${slug}/lessons/${lesson.id}` : isEnrolled ? "#" : "#enroll"}
-                    className={`group flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
+                    style={{ "--i": index } as React.CSSProperties}
+                    className={`stagger-item group flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
                       isCompleted
                         ? "bg-success/5 border-success/20 hover:border-success/40"
                         : isLocked
                           ? "bg-bg-elevated/50 border-border/60 opacity-50 cursor-default"
                           : isEnrolled
-                            ? "bg-bg-elevated border-border hover:border-primary/30 hover:shadow-sm hover:bg-bg-hover"
+                            ? "bg-bg-elevated border-border hover:border-primary/30 hover:shadow-raise hover:bg-bg-hover"
                             : "bg-bg-elevated border-border/60 hover:border-primary/20 hover:bg-bg-hover"
                     }`}
                   >
@@ -442,9 +469,9 @@ export default async function CourseDetailPage({
                       }`}
                     >
                       {isCompleted ? (
-                        <FontAwesomeIcon icon={faCheckCircle} className="size-5" />
+                        <CheckCircle className="size-5" />
                       ) : isLocked ? (
-                        <FontAwesomeIcon icon={faLock} className="size-4" />
+                        <Lock className="size-4" />
                       ) : (
                         <span className="text-base">{index + 1}</span>
                       )}
@@ -459,13 +486,13 @@ export default async function CourseDetailPage({
                       <div className="flex items-center gap-3 text-xs text-text-secondary mt-1">
                         {lesson.duration && (
                           <span className="flex items-center gap-1">
-                            <FontAwesomeIcon icon={faClock} className="size-3" />
+                            <Clock className="size-3" />
                             {lesson.duration} min
                           </span>
                         )}
                         {hasQuiz && (
                           <span className="flex items-center gap-1">
-                            <FontAwesomeIcon icon={faClipboardList} className="size-3" />
+                            <ClipboardList className="size-3" />
                             Quiz
                           </span>
                         )}
@@ -480,27 +507,27 @@ export default async function CourseDetailPage({
                     <div className="shrink-0">
                       {isCompleted ? (
                         <span className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success/10 text-success font-semibold text-sm">
-                          <FontAwesomeIcon icon={faCheckCircle} className="size-3.5" />
+                          <CheckCircle className="size-3.5" />
                           Done
                         </span>
                       ) : isLocked ? (
                         <span className="text-text-muted/50">
-                          <FontAwesomeIcon icon={faLock} className="size-4" />
+                          <Lock className="size-4" />
                         </span>
                       ) : (
                         <span className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-[0.97] ${
                           isEnrolled
-                            ? "bg-primary text-text-inverse group-hover:brightness-110 shadow-sm shadow-primary/20"
+                            ? "bg-primary text-text-inverse group-hover:shadow-glow-brass"
                             : "bg-primary/10 text-primary group-hover:bg-primary/15"
                         }`}>
                           {isEnrolled ? (
                             <>
                               Start
-                              <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                              <ArrowRight className="size-3" />
                             </>
                           ) : (
                             <>
-                              <FontAwesomeIcon icon={faPlay} className="size-3" />
+                              <Play className="size-3" />
                               Enroll to access
                             </>
                           )}
@@ -512,15 +539,10 @@ export default async function CourseDetailPage({
               })}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-border/60 bg-bg-elevated/50 p-12 text-center">
-              <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <FontAwesomeIcon icon={faGraduationCap} className="text-primary text-xl" />
-              </div>
-              <h3 className="font-semibold text-text-primary text-lg mb-1">No modules yet</h3>
-              <p className="text-sm text-text-secondary">Content for this course is being prepared.</p>
-            </div>
+            <EmptyState title="Content for this course is being prepared." />
           )}
         </section>
+        </>
       )}
     </div>
   );

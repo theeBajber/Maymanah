@@ -1,5 +1,6 @@
 import { prisma, safeQuery } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
+import { PortalHeader, StatTile } from "@/components/ui/portal";
 import { BookOpen, Users, GraduationCap, FileText } from "lucide-react";
 
 async function getStats() {
@@ -17,31 +18,25 @@ export default async function AdminDashboard() {
   const stats = await getStats();
 
   const cards = [
-    { label: "Courses", value: stats.courses, icon: BookOpen, color: "text-primary" },
-    { label: "Lessons", value: stats.lessons, icon: FileText, color: "text-secondary" },
-    { label: "Enrollments", value: stats.enrollments, icon: Users, color: "text-info" },
-    { label: "Students", value: stats.students, icon: GraduationCap, color: "text-success" },
+    { label: "Courses", value: stats.courses, icon: BookOpen, tone: "brass" as const },
+    { label: "Lessons", value: stats.lessons, icon: FileText, tone: "brass" as const },
+    { label: "Enrollments", value: stats.enrollments, icon: Users, tone: "info" as const },
+    { label: "Students", value: stats.students, icon: GraduationCap, tone: "success" as const },
   ];
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-primary">Admin Dashboard</h1>
-        <p className="text-text-secondary mt-1">Overview of your platform</p>
-      </div>
+    <div className="stagger-fade space-y-8">
+      <PortalHeader title="Admin Dashboard" subtitle="Overview of your platform" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card) => (
-          <div
+          <StatTile
             key={card.label}
-            className="bg-bg-card border border-border rounded-xl p-5"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <card.icon className={`size-6 ${card.color}`} />
-            </div>
-            <p className="text-3xl font-bold text-text-primary">{card.value}</p>
-            <p className="text-sm text-text-secondary mt-1">{card.label}</p>
-          </div>
+            icon={card.icon}
+            value={card.value}
+            label={card.label}
+            tone={card.tone}
+          />
         ))}
       </div>
     </div>

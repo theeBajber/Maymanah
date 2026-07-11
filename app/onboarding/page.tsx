@@ -1,18 +1,13 @@
 "use client";
 
-import {
-  faArrowRight,
-  faSpinner,
-  faCheck,
-  faChevronRight,
-  faGraduationCap,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ArrowRight, Loader2, Check, ChevronRight, GraduationCap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { elMessiri } from "@/components/ui/fonts";
+import { GirihField } from "@/components/ui/girih";
 
 const STEPS = [
   { id: "basics", label: "Basics" },
@@ -28,7 +23,7 @@ function GenderToggle({ value, onChange }: { value: string; onChange: (v: string
         onClick={() => onChange("male")}
         className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
           value === "male"
-            ? "bg-bg-elevated text-text-primary shadow-sm"
+            ? "bg-brass text-layl-deep"
             : "text-text-muted hover:text-text-secondary"
         }`}
       >
@@ -39,7 +34,7 @@ function GenderToggle({ value, onChange }: { value: string; onChange: (v: string
         onClick={() => onChange("female")}
         className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
           value === "female"
-            ? "bg-bg-elevated text-text-primary shadow-sm"
+            ? "bg-brass text-layl-deep"
             : "text-text-muted hover:text-text-secondary"
         }`}
       >
@@ -61,7 +56,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       aria-checked={value}
     >
       <span
-        className={`pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+        className={`pointer-events-none inline-block h-6 w-6 rounded-full bg-text-inverse ring-0 transition-transform duration-200 ${
           value ? "translate-x-5" : "translate-x-0"
         }`}
       />
@@ -122,7 +117,7 @@ export default function OnboardingPage() {
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <FontAwesomeIcon icon={faSpinner} className="size-8 text-primary animate-spin" />
+        <Loader2 className="size-8 text-primary animate-spin" />
       </div>
     );
   }
@@ -188,13 +183,22 @@ export default function OnboardingPage() {
   const progressPercent = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-4 md:p-6">
-      <div className="w-full max-w-xl">
-        <div className="bg-bg-card rounded-2xl border border-border shadow-2xl overflow-hidden">
+    <div className="dark night-scene relative flex min-h-svh w-full items-center justify-center overflow-hidden bg-layl-deep p-4 text-ivory md:p-6">
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_0%,#0E1B23_0%,#0B151B_45%,#060D11_100%)]"
+      />
+      <GirihField className="absolute inset-0" opacity={0.05} tile={84} fade="radial" animate />
+      <div
+        aria-hidden
+        className="absolute -top-40 left-1/2 h-[32rem] w-[44rem] -translate-x-1/2 bg-[radial-gradient(closest-side,rgba(198,161,91,0.14),transparent)]"
+      />
+      <div className="relative w-full max-w-xl">
+        <div className="glass-lantern rounded-3xl overflow-hidden">
           <div className="p-8 md:p-12">
             <div className="flex items-center justify-center gap-3 mb-8">
               <Image className="h-10 w-auto" src="/logo.png" height={339} width={439} alt="Maymanah" />
-              <span className="text-2xl font-black uppercase tracking-wider text-primary">Maymanah</span>
+              <span className={`${elMessiri.className} text-2xl font-semibold text-ivory`}>Maymanah</span>
             </div>
 
             <div className="mb-8">
@@ -210,7 +214,7 @@ export default function OnboardingPage() {
                             : "bg-bg-hover text-text-muted"
                       }`}
                     >
-                      {i < step ? <FontAwesomeIcon icon={faCheck} className="size-3" /> : i + 1}
+                      {i < step ? <Check className="size-3" /> : i + 1}
                     </div>
                     <span
                       className={`hidden md:block text-[10px] uppercase tracking-widest font-bold ${
@@ -350,7 +354,7 @@ export default function OnboardingPage() {
 
                       <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
                         <p className="text-[11px] text-primary font-medium flex items-center gap-2">
-                          <FontAwesomeIcon icon={faGraduationCap} className="size-3" />
+                          <GraduationCap className="size-3" />
                           Your application will be reviewed by our team after submission.
                         </p>
                       </div>
@@ -461,10 +465,10 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => setStep((s) => s + 1)}
                       disabled={!canProceed()}
-                      className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-bold text-sm hover:shadow-glow-brass hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                     >
                       Continue
-                      <FontAwesomeIcon icon={faChevronRight} className="size-3" />
+                      <ChevronRight className="size-3" />
                     </button>
                   </>
                 ) : (
@@ -472,17 +476,17 @@ export default function OnboardingPage() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={saving}
-                    className="px-8 py-2.5 bg-primary text-text-inverse rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="px-8 py-2.5 bg-primary text-text-inverse rounded-xl font-bold text-sm hover:shadow-glow-brass hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {saving ? (
                       <>
-                        <FontAwesomeIcon icon={faSpinner} className="size-4 animate-spin" />
+                        <Loader2 className="size-4 animate-spin" />
                         Saving...
                       </>
                     ) : (
                       <>
                         Complete Setup
-                        <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+                        <ArrowRight className="size-3" />
                       </>
                     )}
                   </button>

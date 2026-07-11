@@ -81,8 +81,28 @@ model User {
   lessonProgress        LessonProgress[]
   submissions           Submission[]
   userAnalytics         UserAnalytics[]
+  notifications         Notification[]
 
   @@index([role])
+}
+
+// ─── Notifications ───
+// Matches an existing table already live in the database (predates this
+// schema — a prior messaging feature wrote to it; kept its exact shape
+// rather than forcing a conflicting migration over real rows).
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String?
+  metadata  Json?    @default("{}")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
 }
 
 model Profile {

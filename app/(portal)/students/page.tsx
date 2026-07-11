@@ -2,8 +2,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faBookOpen, faNoteSticky } from "@fortawesome/free-solid-svg-icons";
+import { ArrowRight, BookOpen, StickyNote } from "lucide-react";
+import { PortalHeader, EmptyState } from "@/components/ui/portal";
 
 export const dynamic = "force-dynamic";
 
@@ -33,32 +33,24 @@ export default async function MyStudents() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
-      <section>
-        <h1 className="text-3xl font-bold text-text-primary tracking-tight">
-          My Students
-        </h1>
-        <p className="text-sm text-text-secondary mt-1">
-          {matches.length} active student{matches.length !== 1 ? "s" : ""}
-        </p>
-      </section>
+    <div className="stagger-fade p-6 space-y-6 max-w-4xl mx-auto">
+      <PortalHeader
+        title="My Students"
+        subtitle={`${matches.length} active student${matches.length !== 1 ? "s" : ""}`}
+      />
 
       {matches.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-bg-elevated/50 p-12 text-center">
-          <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-            <FontAwesomeIcon icon={faBookOpen} className="text-primary text-lg" />
-          </div>
-          <p className="text-sm text-text-secondary">No active students assigned yet.</p>
-        </div>
+        <EmptyState title="No active students assigned yet." />
       ) : (
         <div className="space-y-2">
-          {matches.map((m) => {
+          {matches.map((m, index) => {
             const progress = m.student.quranProgress?.[0];
             return (
               <Link
                 key={m.student.id}
                 href={`/students/${m.student.id}`}
-                className="rounded-2xl border border-border bg-bg-elevated p-5 hover:border-primary/30 hover:shadow-sm transition-all flex items-center justify-between group"
+                style={{ "--i": index } as React.CSSProperties}
+                className="hover-lift stagger-item rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise hover:border-primary/30 flex items-center justify-between group"
               >
                 <div>
                   <p className="font-semibold text-text-primary">
@@ -67,12 +59,12 @@ export default async function MyStudents() {
                   <div className="flex items-center gap-4 mt-1 text-sm text-text-secondary">
                     <span>Surah {progress?.lastSurah ?? "?"}:{progress?.lastVerse ?? "?"}</span>
                     <span className="flex items-center gap-1">
-                      <FontAwesomeIcon icon={faNoteSticky} className="size-3" />
+                      <StickyNote className="size-3" />
                       {m.student.studentNotes.length} open note{m.student.studentNotes.length !== 1 ? "s" : ""}
                     </span>
                   </div>
                 </div>
-                <FontAwesomeIcon icon={faArrowRight} className="text-text-muted group-hover:text-primary transition-colors size-4" />
+                <ArrowRight className="text-text-muted group-hover:text-primary transition-colors size-4" />
               </Link>
             );
           })}

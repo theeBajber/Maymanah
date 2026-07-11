@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 import { SideNav, TopNav } from "@/components/ui/PortalNav";
 
 export const metadata: Metadata = {
-  title: "Maymanah - Portal",
+  title: "Portal",
   description: "Quran learning platform",
+  robots: { index: false, follow: false },
 };
 
 export default async function PortalLayout({
