@@ -41,10 +41,10 @@ export default async function AdminLessonsPage({ params }: Props) {
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-text-primary">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-text-primary wrap-break-word">
                 {course.title}
               </h1>
               <p className="text-text-secondary mt-1">
@@ -53,7 +53,7 @@ export default async function AdminLessonsPage({ params }: Props) {
             </div>
             <Link
               href={`/admin/courses/${course.id}/lessons/new`}
-              className="flex items-center gap-2 px-4 py-2.5 bg-primary text-text-inverse rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
+              className="flex shrink-0 items-center gap-2 px-4 py-2.5 bg-primary text-text-inverse rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
             >
               <Plus className="size-4" />
               New Lesson

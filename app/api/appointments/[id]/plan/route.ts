@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { updateHifdhProgress } from "@/lib/progress";
 
 const planSchema = z.object({
   fromSurah: z.number().int().min(1).max(114),
@@ -28,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
     const appointment = await prisma.appointment.findUnique({
       where: { id },
-      select: { id: true, teacherId: true, mentorship: { select: { teacherId: true } } },
+      select: { id: true, teacherId: true, mentorship: { select: { teacherId: true, studentId: true } } },
     });
 
     if (!appointment) {
@@ -45,6 +46,13 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       create: { appointmentId: id, ...parsed.data },
       update: parsed.data,
     });
+
+    const studentId = appointment.mentorship?.studentId;
+    if (studentId) {
+      updateHifdhProgress(studentId).catch((err) =>
+        console.error("updateHifdhProgress error:", err),
+      );
+    }
 
     return NextResponse.json({ plan });
   } catch (error) {

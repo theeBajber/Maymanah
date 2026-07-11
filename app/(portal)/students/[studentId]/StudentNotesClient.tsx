@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faCheck,
-  faRotateLeft,
-  faChevronDown,
-  faChevronRight,
-  faPlus,
-} from "@fortawesome/free-solid-svg-icons";
+import { Check, RotateCcw, ChevronDown, ChevronRight, Plus } from "lucide-react";
 
 type Note = {
   id: string;
@@ -85,13 +78,13 @@ function NoteCard({ note, onResolve, onReopen }: {
           {onResolve && (
             <button onClick={() => onResolve(note.id)}
               className="size-8 flex items-center justify-center rounded-lg bg-success-muted text-success hover:bg-success hover:text-text-inverse transition-colors" title="Resolve">
-              <FontAwesomeIcon icon={faCheck} className="size-3" />
+              <Check className="size-3" />
             </button>
           )}
           {onReopen && (
             <button onClick={() => onReopen(note.id)}
               className="size-8 flex items-center justify-center rounded-lg bg-warning-muted text-warning hover:bg-warning hover:text-text-inverse transition-colors" title="Reopen">
-              <FontAwesomeIcon icon={faRotateLeft} className="size-3" />
+              <RotateCcw className="size-3" />
             </button>
           )}
         </div>
@@ -178,11 +171,11 @@ export function StudentNotesClient({
   return (
     <div className="space-y-8">
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h2 className="text-xl font-semibold">Open To-Do Notes ({openNotes.length})</h2>
           <button onClick={() => setShowAddNote(!showAddNote)}
             className="flex items-center gap-1 text-sm bg-primary text-text-inverse px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors">
-            <FontAwesomeIcon icon={faPlus} className="size-3" /> Add Note
+            <Plus className="size-3" /> Add Note
           </button>
         </div>
 
@@ -228,7 +221,7 @@ export function StudentNotesClient({
       <section>
         <button onClick={() => setShowResolved(!showResolved)}
           className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
-          <FontAwesomeIcon icon={showResolved ? faChevronDown : faChevronRight} className="size-3" />
+          {showResolved ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
           <span className="text-sm font-medium">Resolved Notes ({resolvedNotes.length})</span>
         </button>
         {showResolved && (

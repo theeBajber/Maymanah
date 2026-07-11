@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlay, faPause, faVolumeHigh, faVolumeXmark, faExpand } from "@fortawesome/free-solid-svg-icons";
+import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 
 type MediaType = "video" | "audio";
 
@@ -74,27 +73,27 @@ export function MediaPlayer({ src, type }: { src: string; type?: MediaType }) {
               onClick={togglePlay}
               className="pointer-events-auto size-16 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-all hover:scale-105"
             >
-              <FontAwesomeIcon icon={faPlay} className="size-6 text-white" />
+              <Play className="size-6 text-white" />
             </button>
           )}
         </div>
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="flex items-center gap-3">
             <button onClick={togglePlay} className="text-white hover:text-primary transition-colors">
-              <FontAwesomeIcon icon={playing ? faPause : faPlay} className="size-4" />
+              {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
             </button>
             <div className="flex-1 h-1.5 rounded-full bg-white/30 cursor-pointer" onClick={seek}>
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
             </div>
             <span className="text-white/80 text-xs font-mono tabular-nums">{fmt(currentTime)} / {fmt(duration)}</span>
             <button onClick={toggleMute} className="text-white hover:text-primary transition-colors">
-              <FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} className="size-4" />
+              {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
             </button>
             <button
               onClick={() => ref.current?.requestFullscreen()}
               className="text-white hover:text-primary transition-colors"
             >
-              <FontAwesomeIcon icon={faExpand} className="size-4" />
+              <Maximize className="size-4" />
             </button>
           </div>
         </div>
@@ -108,7 +107,7 @@ export function MediaPlayer({ src, type }: { src: string; type?: MediaType }) {
         onClick={togglePlay}
         className="size-12 rounded-full bg-primary flex items-center justify-center hover:bg-primary-dark transition-all shrink-0"
       >
-        <FontAwesomeIcon icon={playing ? faPause : faPlay} className="size-5 text-text-inverse" />
+        {playing ? <Pause className="size-5 text-text-inverse" /> : <Play className="size-5 text-text-inverse" />}
       </button>
       <div className="flex-1 min-w-0">
         <div className="h-2 rounded-full bg-bg-primary cursor-pointer" onClick={seek}>
@@ -117,7 +116,7 @@ export function MediaPlayer({ src, type }: { src: string; type?: MediaType }) {
       </div>
       <span className="text-text-secondary text-xs font-mono tabular-nums shrink-0">{fmt(currentTime)} / {fmt(duration)}</span>
       <button onClick={toggleMute} className="text-text-secondary hover:text-primary transition-colors shrink-0">
-        <FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} className="size-4" />
+        {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
       </button>
       <audio
         ref={ref}

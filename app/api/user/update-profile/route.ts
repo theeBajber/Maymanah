@@ -87,6 +87,11 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    // Gender drives same-gender teacher/student matching for live sessions,
+    // so it can only be set once — silently ignore further changes rather
+    // than error, since the settings form resubmits the whole profile.
+    const canSetGender = !user.gender;
+
     const [updatedUser, updatedProfile] = await Promise.all([
       prisma.user.update({
         where: { id: user.id },
@@ -94,7 +99,7 @@ export async function PATCH(req: NextRequest) {
           ...(name && { name }),
           ...(email && { email }),
           ...(image !== undefined && { image }),
-          ...(gender !== undefined && { gender }),
+          ...(gender !== undefined && canSetGender && { gender }),
         },
       }),
       prisma.profile.upsert({

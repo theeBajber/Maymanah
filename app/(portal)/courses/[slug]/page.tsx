@@ -1,10 +1,18 @@
 import { getCourseBySlug } from "@/lib/courses";
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
-import { amiri } from "@/components/ui/fonts";
+import { amiri, elMessiri } from "@/components/ui/fonts";
+import { EmptyState } from "@/components/ui/portal";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import {
+  Award,
+  Bolt,
+  Download,
+  Lock,
+  Sun,
+} from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlay,
@@ -15,7 +23,6 @@ import {
   faGraduationCap,
   faArrowRight,
   faVideo,
-  faCalendar,
   faBolt,
   faStar,
   faSun,
@@ -26,6 +33,8 @@ import EnrollButton from "./EnrollButton";
 import { DailySessionButton } from "./DailySessionButton";
 import { SetAvailabilityForPairing } from "./SetAvailabilityForPairing";
 import ReviewSection from "./ReviewSection";
+import { RescheduleSlotButton } from "./RescheduleSlotButton";
+import { ScheduleSectionClient } from "./ScheduleSectionClient";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +77,7 @@ export default async function CourseDetailPage({
   } | null = null;
   let certificate: { id: string } | null = null;
 
-  if (isEnrolled && userId && course.slug !== "hifdh-ul-quran") {
+  if (isEnrolled && userId) {
     const [progress, exams, fexam, ijazah] = await Promise.all([
       safeQuery(() =>
         prisma.lessonProgress.findMany({
@@ -92,7 +101,14 @@ export default async function CourseDetailPage({
           },
           select: { id: true, lessonId: true, totalMarks: true },
         }),
-      ).catch(() => [] as Array<{ id: string; lessonId: string | null; totalMarks: number }>),
+      ).catch(
+        () =>
+          [] as Array<{
+            id: string;
+            lessonId: string | null;
+            totalMarks: number;
+          }>,
+      ),
       safeQuery(() =>
         prisma.exam.findFirst({
           where: { courseId: course.id, examType: "FINAL", isPublished: true },
@@ -117,7 +133,8 @@ export default async function CourseDetailPage({
       lessonProgress[p.lessonId] = { completed: p.completed, score: p.score };
     }
     for (const e of exams) {
-      if (e.lessonId) lessonExams[e.lessonId] = { id: e.id, totalMarks: e.totalMarks };
+      if (e.lessonId)
+        lessonExams[e.lessonId] = { id: e.id, totalMarks: e.totalMarks };
     }
     finalExam = fexam;
 
@@ -136,7 +153,7 @@ export default async function CourseDetailPage({
   }
 
   let firstUnlocked = 0;
-  if (isEnrolled && course.slug !== "hifdh-ul-quran") {
+  if (isEnrolled) {
     for (let i = 0; i < course.lessons.length; i++) {
       if (i > 0 && !lessonProgress[course.lessons[i - 1].id]?.completed) break;
       firstUnlocked = i;
@@ -148,10 +165,16 @@ export default async function CourseDetailPage({
   ).length;
 
   let userReview: { rating: number; comment: string | null } | null = null;
-  let allReviews: { id: string; rating: number; comment: string | null; user: { name: string | null; image: string | null }; createdAt: Date }[] = [];
+  let allReviews: {
+    id: string;
+    rating: number;
+    comment: string | null;
+    user: { name: string | null; image: string | null };
+    createdAt: Date;
+  }[] = [];
   let averageRating: number | null = null;
 
-  if (certificate && userId && course.slug !== "hifdh-ul-quran") {
+  if (certificate && userId) {
     const [review, reviews] = await Promise.all([
       safeQuery(() =>
         prisma.courseReview.findUnique({
@@ -170,9 +193,13 @@ export default async function CourseDetailPage({
     ]);
     userReview = review;
     allReviews = reviews ?? [];
-    averageRating = allReviews.length > 0
-      ? Math.round((allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length) * 10) / 10
-      : null;
+    averageRating =
+      allReviews.length > 0
+        ? Math.round(
+            (allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length) *
+              10,
+          ) / 10
+        : null;
   }
 
   let dailySlot: { startTime: Date; endTime: Date; duration: number } | null =
@@ -184,9 +211,10 @@ export default async function CourseDetailPage({
     endTime: Date | null;
     status: string;
     sessionType: string;
+    joinedAt: Date | null;
+    missed: boolean;
     teacher: { id: string; name: string | null; image: string | null } | null;
   }[] = [];
-  let upcomingMuraja: typeof allAppointments = [];
   let pastSessions: typeof allAppointments = [];
 
   let recurringSlots: {
@@ -196,14 +224,23 @@ export default async function CourseDetailPage({
     duration: number;
   }[] = [];
   let teacherName: string | null = null;
+  let teacherId: string | null = null;
+  let mentorshipId: string | null = null;
+  let teacherAvail: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
+  let mismatchNotifications: {
+    id: string;
+    body: string | null;
+    metadata: any;
+  }[] = [];
 
   if (course.slug === "hifdh-ul-quran" && userId) {
     const mentorship = await safeQuery(() =>
       prisma.mentorship.findFirst({
         where: { studentId: userId, status: "ACTIVE" },
         include: {
-          teacher: { select: { name: true } },
+          teacher: { select: { id: true, name: true } },
           recurringSlots: {
+            orderBy: { dayOfWeek: "asc" },
             select: {
               type: true,
               dayOfWeek: true,
@@ -217,7 +254,30 @@ export default async function CourseDetailPage({
 
     if (mentorship) {
       teacherName = mentorship.teacher.name;
+      teacherId = mentorship.teacher.id;
+      mentorshipId = mentorship.id;
       recurringSlots = mentorship.recurringSlots;
+
+      teacherAvail = (await safeQuery(() =>
+        prisma.availability.findMany({
+          where: { userId: teacherId!, isRecurring: true },
+          select: { dayOfWeek: true, startTime: true, endTime: true },
+          orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+        }),
+      ).catch(() => [])) ?? [];
+
+      mismatchNotifications =
+        (await safeQuery(() =>
+          prisma.notification.findMany({
+            where: {
+              userId,
+              type: "session_rescheduled",
+              isRead: false,
+            },
+            select: { id: true, body: true, metadata: true },
+            orderBy: { createdAt: "desc" },
+          }),
+        ).catch(() => [])) ?? [];
 
       const today = new Date();
       const dayOfWeek = today.getDay();
@@ -248,12 +308,22 @@ export default async function CourseDetailPage({
           }),
         ).catch(() => [])) ?? [];
 
-      upcomingMuraja = allAppointments.filter(
-        (a) =>
-          a.sessionType !== "DAILY_HIFDH" &&
-          a.status === "SCHEDULED" &&
-          new Date(a.startTime) > new Date(),
-      );
+      if (daily && dailySlot) {
+        const todaysAppt = allAppointments.find(
+          (a) =>
+            a.sessionType === "DAILY_HIFDH" &&
+            a.startTime.toDateString() === today.toDateString() &&
+            Math.abs(a.startTime.getTime() - dailySlot!.startTime.getTime()) > 60000,
+        );
+        if (todaysAppt) {
+          dailySlot = {
+            startTime: todaysAppt.startTime,
+            endTime: todaysAppt.endTime ?? dailySlot.endTime,
+            duration: dailySlot.duration,
+          };
+        }
+      }
+
       pastSessions = allAppointments.filter(
         (a) => a.status === "COMPLETED" || new Date(a.startTime) <= new Date(),
       );
@@ -282,15 +352,29 @@ export default async function CourseDetailPage({
     return now >= startTime && (!endTime || now <= endTime);
   }
 
+  function getNextOccurrence(slot: { dayOfWeek: number; startTime: string }): Date | null {
+    const today = new Date();
+    const todayDay = today.getDay();
+    const daysUntil = (slot.dayOfWeek - todayDay + 7) % 7;
+    if (daysUntil > 6 - todayDay) return null;
+    const next = new Date(today);
+    next.setDate(today.getDate() + daysUntil);
+    const [h, m] = slot.startTime.split(":").map(Number);
+    next.setHours(h, m, 0, 0);
+    if (daysUntil === 0 && next.getTime() - today.getTime() < 2 * 60 * 60 * 1000) return null;
+    return next;
+  }
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-elevated to-bg-secondary border border-border">
+    <div className="stagger-fade p-6 max-w-7xl mx-auto space-y-8">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-bg-elevated to-bg-secondary border border-border shadow-raise">
         <div className="flex flex-col md:flex-row">
           <div className="relative w-full md:w-[380px] lg:w-[420px] h-56 md:h-auto shrink-0 overflow-hidden">
             <Image
               src={course.image || "/calligraphy.png"}
               alt={course.title}
               fill
+              sizes="(min-width: 768px) 420px, 100vw"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-bg-elevated/60 via-bg-elevated/20 to-transparent md:bg-gradient-to-r from-bg-elevated/80 to-transparent" />
@@ -378,11 +462,11 @@ export default async function CourseDetailPage({
             <SetAvailabilityForPairing />
           )}
           {dailySlot && (
-            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-bg-elevated p-6">
+            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-bg-elevated p-6 shadow-raise">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 text-sm text-primary font-semibold mb-1">
-                    <FontAwesomeIcon icon={faSun} className="size-4" />
+                    <Sun className="size-4" />
                     Today&apos;s Daily Session
                   </div>
                   <p className="text-2xl font-bold text-text-primary">
@@ -404,7 +488,7 @@ export default async function CourseDetailPage({
           )}
 
           {recurringSlots.length > 0 && (
-            <div className="rounded-2xl border border-border bg-bg-elevated p-5">
+            <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
               <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">
                 Your Schedule
               </h3>
@@ -425,16 +509,15 @@ export default async function CourseDetailPage({
                     hour: "2-digit",
                     minute: "2-digit",
                   });
+                  const SlotIcon = s.type === "DAILY_HIFDH" ? Sun : Bolt;
+                  const nextOccurrence = getNextOccurrence(s);
                   return (
-                    <div key={s.type}>
+                    <div key={`${s.type}-${s.dayOfWeek}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <FontAwesomeIcon
-                              icon={s.type === "DAILY_HIFDH" ? faSun : faBolt}
-                              className="text-primary size-4"
-                            />
-                          </div>
+                          <span className="flex size-9 items-center justify-center rounded-[10px] border border-primary/25 text-primary">
+                            <SlotIcon className="size-4" />
+                          </span>
                           <div>
                             <p className="font-medium text-sm text-text-primary">
                               {s.type === "DAILY_HIFDH"
@@ -446,6 +529,14 @@ export default async function CourseDetailPage({
                             </p>
                           </div>
                         </div>
+                        {nextOccurrence && mentorshipId && teacherId && (
+                          <RescheduleSlotButton
+                            mentorshipId={mentorshipId}
+                            teacherId={teacherId}
+                            sessionType={s.type}
+                            nextOccurrence={nextOccurrence.toISOString()}
+                          />
+                        )}
                       </div>
                     </div>
                   );
@@ -456,72 +547,14 @@ export default async function CourseDetailPage({
                   Teacher: {teacherName}
                 </p>
               )}
-            </div>
-          )}
-
-          {upcomingMuraja.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
-                <FontAwesomeIcon
-                  icon={faStar}
-                  className="size-3.5 text-primary"
+              {mentorshipId && teacherId && (
+                <ScheduleSectionClient
+                  mentorshipId={mentorshipId}
+                  teacherId={teacherId}
+                  teacherAvail={teacherAvail}
+                  mismatchNotifications={mismatchNotifications}
                 />
-                Upcoming Sessions
-              </h3>
-              <div className="space-y-2.5">
-                {upcomingMuraja.map((a) => {
-                  const joinable = canJoinSession(a.startTime, a.endTime);
-                  return (
-                    <div
-                      key={a.id}
-                      className="group flex items-center gap-4 p-4 rounded-xl border border-border bg-bg-elevated hover:border-primary/30 hover:shadow-sm hover:bg-bg-hover transition-all"
-                    >
-                      <div className="relative shrink-0 size-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                        <FontAwesomeIcon
-                          icon={a.sessionType === "MURAJA" ? faBolt : faVideo}
-                          className="text-primary size-4"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate text-text-primary">
-                          {a.title ||
-                            (a.sessionType === "MURAJA"
-                              ? "Muraja'ah Session"
-                              : "Extra Session")}
-                        </h3>
-                        <div className="flex items-center gap-3 text-xs text-text-secondary mt-1">
-                          <span className="flex items-center gap-1">
-                            <FontAwesomeIcon
-                              icon={faCalendar}
-                              className="size-3"
-                            />
-                            {formatSessionDate(a.startTime)}
-                          </span>
-                          {a.teacher && (
-                            <span>with {a.teacher.name || "Teacher"}</span>
-                          )}
-                          <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">
-                            {a.sessionType === "MURAJA" ? "Muraja'ah" : "Extra"}
-                          </span>
-                        </div>
-                      </div>
-                      {joinable ? (
-                        <Link
-                          href={`/session/${a.id}`}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-text-inverse font-semibold text-sm hover:brightness-110 transition-all shrink-0 active:scale-[0.97] shadow-sm shadow-primary/20"
-                        >
-                          Join
-                          <FontAwesomeIcon icon={faArrowRight} className="size-3" />
-                        </Link>
-                      ) : (
-                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-hover text-text-muted font-semibold text-sm shrink-0">
-                          Upcoming
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              )}
             </div>
           )}
 
@@ -561,27 +594,38 @@ export default async function CourseDetailPage({
             </div>
           )}
 
-          {!dailySlot &&
-            upcomingMuraja.length === 0 &&
-            pastSessions.length === 0 &&
-            !(isEnrolled && recurringSlots.length === 0) && (
-              <div className="rounded-2xl border border-dashed border-border/60 bg-bg-elevated/50 p-12 text-center">
-                <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <FontAwesomeIcon
-                    icon={faVideo}
-                    className="text-primary text-xl"
-                  />
-                </div>
-                <h3 className="font-semibold text-text-primary text-lg mb-1">
-                  No sessions yet
-                </h3>
-                <p className="text-sm text-text-secondary">
-                  Sessions will appear here once your teacher schedules them.
-                </p>
-              </div>
-            )}
+          {!dailySlot && pastSessions.length === 0 && !(isEnrolled && recurringSlots.length === 0) && (
+            <EmptyState title="Sessions will appear here once your teacher schedules them." />
+          )}
         </section>
       ) : (
+        <>
+        {isEnrolled && course.lessons.length > 0 &&
+          (course.enrollmentStatus === "COMPLETED" || completedCount >= course.lessons.length) && (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-bg-elevated p-6 text-center shadow-raise sm:flex-row sm:items-center sm:justify-between sm:text-left">
+              <div className="flex items-center gap-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-primary/30 text-primary">
+                  <Award className="size-6" />
+                </span>
+                <div>
+                  <h3 className={`${elMessiri.className} text-lg font-semibold text-text-primary`}>
+                    Course complete — well done!
+                  </h3>
+                  <p className="text-sm text-text-secondary">
+                    Your certificate of completion is ready to download.
+                  </p>
+                </div>
+              </div>
+              <a
+                href={`/api/courses/${slug}/certificate`}
+                className="flex shrink-0 items-center justify-center gap-2 rounded-[10px] bg-primary px-5 py-2.5 text-sm font-semibold text-text-inverse transition-all hover:shadow-glow-brass active:scale-[0.97]"
+              >
+                <Download className="size-4" />
+                Download Certificate
+              </a>
+            </div>
+        )}
+
         <section>
           <div className="flex items-center gap-3 mb-5">
             <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -591,7 +635,11 @@ export default async function CourseDetailPage({
               />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-text-primary">Modules</h2>
+              <h2
+                className={`${elMessiri.className} text-lg font-semibold text-text-primary`}
+              >
+                Modules
+              </h2>
               {isEnrolled && (
                 <p className="text-xs text-text-secondary">
                   {completedCount} of {course.lessons.length} completed
@@ -608,25 +656,19 @@ export default async function CourseDetailPage({
                 const isCompleted = prog?.completed;
                 const isLocked = index > firstUnlocked;
                 const hasQuiz = !!lessonExams[lesson.id];
-                const isNext = isEnrolled && !isCompleted && !isLocked;
 
                 return (
                   <Link
                     key={lesson.id}
-                    href={
-                      isEnrolled && !isLocked
-                        ? `/courses/${slug}/lessons/${lesson.id}`
-                        : isEnrolled
-                          ? "#"
-                          : "#enroll"
-                    }
-                    className={`group flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
+                    href={isEnrolled && !isLocked ? `/courses/${slug}/lessons/${lesson.id}` : isEnrolled ? "#" : "#enroll"}
+                    style={{ "--i": index } as React.CSSProperties}
+                    className={`stagger-item group flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
                       isCompleted
                         ? "bg-success/5 border-success/20 hover:border-success/40"
                         : isLocked
                           ? "bg-bg-elevated/50 border-border/60 opacity-50 cursor-default"
                           : isEnrolled
-                            ? "bg-bg-elevated border-border hover:border-primary/30 hover:shadow-sm hover:bg-bg-hover"
+                            ? "bg-bg-elevated border-border hover:border-primary/30 hover:shadow-raise hover:bg-bg-hover"
                             : "bg-bg-elevated border-border/60 hover:border-primary/20 hover:bg-bg-hover"
                     }`}
                   >
@@ -647,7 +689,7 @@ export default async function CourseDetailPage({
                           className="size-5"
                         />
                       ) : isLocked ? (
-                        <FontAwesomeIcon icon={faLock} className="size-4" />
+                        <Lock className="size-4" />
                       ) : (
                         <span className="text-base">{index + 1}</span>
                       )}
@@ -689,7 +731,9 @@ export default async function CourseDetailPage({
                             {(() => {
                               const examData = lessonExams[lesson.id];
                               if (examData && examData.totalMarks > 0) {
-                                const pct = Math.round((prog.score! / examData.totalMarks) * 100);
+                                const pct = Math.round(
+                                  (prog.score! / examData.totalMarks) * 100,
+                                );
                                 return `Score: ${pct}%`;
                               }
                               return `Score: ${prog.score}`;
@@ -710,16 +754,14 @@ export default async function CourseDetailPage({
                         </span>
                       ) : isLocked ? (
                         <span className="text-text-muted/50">
-                          <FontAwesomeIcon icon={faLock} className="size-4" />
+                          <Lock className="size-4" />
                         </span>
                       ) : (
-                        <span
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-[0.97] ${
-                            isEnrolled
-                              ? "bg-primary text-text-inverse group-hover:brightness-110 shadow-sm shadow-primary/20"
-                              : "bg-primary/10 text-primary group-hover:bg-primary/15"
-                          }`}
-                        >
+                        <span className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-[0.97] ${
+                          isEnrolled
+                            ? "bg-primary text-text-inverse group-hover:shadow-glow-brass"
+                            : "bg-primary/10 text-primary group-hover:bg-primary/15"
+                        }`}>
                           {isEnrolled ? (
                             <>
                               Start
@@ -745,20 +787,7 @@ export default async function CourseDetailPage({
               })}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-border/60 bg-bg-elevated/50 p-12 text-center">
-              <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <FontAwesomeIcon
-                  icon={faGraduationCap}
-                  className="text-primary text-xl"
-                />
-              </div>
-              <h3 className="font-semibold text-text-primary text-lg mb-1">
-                No modules yet
-              </h3>
-              <p className="text-sm text-text-secondary">
-                Content for this course is being prepared.
-              </p>
-            </div>
+            <EmptyState title="Content for this course is being prepared." />
           )}
 
           {isEnrolled && finalExam && (
@@ -837,8 +866,8 @@ export default async function CourseDetailPage({
                       ) : finalExamSubmission?.status === "GRADED" ? (
                         <span
                           className={`font-medium ${
-                            ((finalExamSubmission.totalScore ?? 0) * 100 /
-                              (finalExam.totalMarks || 1)) >=
+                            ((finalExamSubmission.totalScore ?? 0) * 100) /
+                              (finalExam.totalMarks || 1) >=
                             finalExam.passMark
                               ? "text-success"
                               : "text-danger"
@@ -866,8 +895,8 @@ export default async function CourseDetailPage({
                         }`}
                       >
                         {finalExamSubmission?.status === "GRADED"
-                          ? ((finalExamSubmission.totalScore ?? 0) * 100 /
-                              (finalExam.totalMarks || 1)) >=
+                          ? ((finalExamSubmission.totalScore ?? 0) * 100) /
+                              (finalExam.totalMarks || 1) >=
                             finalExam.passMark
                             ? "Passed"
                             : "Retake"
@@ -888,9 +917,14 @@ export default async function CourseDetailPage({
             <div className="mt-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="size-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faStar} className="text-amber-500 size-4" />
+                  <FontAwesomeIcon
+                    icon={faStar}
+                    className="text-amber-500 size-4"
+                  />
                 </div>
-                <h2 className="text-lg font-bold text-text-primary">Rate This Course</h2>
+                <h2 className="text-lg font-bold text-text-primary">
+                  Rate This Course
+                </h2>
               </div>
               <ReviewSection
                 slug={course.slug}
@@ -901,6 +935,7 @@ export default async function CourseDetailPage({
             </div>
           )}
         </section>
+        </>
       )}
     </div>
   );

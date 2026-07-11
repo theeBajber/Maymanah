@@ -1,53 +1,107 @@
 "use client";
 
-import { faArrowRight, faSpinner, faEnvelope, faCheck } from "@fortawesome/free-solid-svg-icons";
+import { ArrowRight, Lock, Mail, User } from "lucide-react";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
-import Image from "next/image";
-import { useState } from "react";
+import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
+import { Button } from "@/components/ui/button";
+import { Field, Input, PasswordInput } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toast";
+import { AuthPanel } from "../AuthPanel";
+
+type Strength = {
+  label: string;
+  bar: string;
+  text: string;
+  width: string;
+};
 
 export default function Register() {
   const { toast } = useToast();
   const [name, setName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"STUDENT" | "TEACHER">("STUDENT");
-  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [resending, setResending] = useState(false);
 
-  const getPasswordStrength = (pwd: string) => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("role")?.toUpperCase() === "TEACHER") setRole("TEACHER");
+  }, []);
+
+  const getPasswordStrength = (pwd: string): Strength | null => {
     if (pwd.length === 0) return null;
     if (pwd.length < 6)
-      return { label: "Too short", color: "bg-danger", width: "w-1/4" };
+      return {
+        label: "Too short — use at least 8 characters",
+        bar: "bg-night-danger",
+        text: "text-night-danger",
+        width: "w-1/4",
+      };
     if (pwd.length < 8)
-      return { label: "Weak", color: "bg-warning", width: "w-2/4" };
+      return {
+        label: "Weak — add a few more characters",
+        bar: "bg-night-warning",
+        text: "text-night-warning",
+        width: "w-2/4",
+      };
     if (!/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd))
-      return { label: "Fair", color: "bg-yellow-400", width: "w-3/4" };
-    return { label: "Strong", color: "bg-success", width: "w-full" };
+      return {
+        label: "Fair — add an uppercase letter and a number",
+        bar: "bg-lapis",
+        text: "text-lapis",
+        width: "w-3/4",
+      };
+    return {
+      label: "Strong password",
+      bar: "bg-night-success",
+      text: "text-night-success",
+      width: "w-full",
+    };
   };
+
   const isValidName = (n: string) =>
     /^[a-zA-Z]+([\s'-][a-zA-Z]+)+$/.test(n.trim());
 
   const strength = getPasswordStrength(password);
+  const nameError =
+    nameTouched && name && !isValidName(name)
+      ? "Enter your first and last name — letters, spaces, and hyphens only."
+      : undefined;
+  const confirmError =
+    confirmPassword && password !== confirmPassword
+      ? "These don't match yet — retype your password."
+      : undefined;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const failSubmit = (message: string) => {
+    setError(message);
+    setShake(true);
+    setTimeout(() => setShake(false), 400);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast({ title: "Passwords do not match", variant: "error" });
+      failSubmit("The passwords don't match — retype both fields.");
       return;
     }
-
     if (password.length < 8) {
-      toast({ title: "Password must be at least 8 characters", variant: "error" });
+      failSubmit("Your password needs at least 8 characters.");
       return;
     }
     if (!isValidName(name)) {
-      toast({ title: "Please enter a valid name!", variant: "error" });
+      failSubmit("Enter your full name — first and last.");
       return;
     }
 
@@ -68,36 +122,32 @@ export default function Register() {
       setLoading(false);
 
       if (!res.ok) {
-        toast({ title: data.error?.[0]?.message || data.error || "Registration failed", variant: "error" });
+        failSubmit(
+          data.error?.[0]?.message || data.error || "Registration failed",
+        );
         return;
       }
 
       setRegisteredEmail(email.trim().toLowerCase());
     } catch {
       setLoading(false);
-      toast({ title: "Something went wrong. Please try again.", variant: "error" });
+      failSubmit("Something went wrong on our side. Please try again.");
     }
   };
 
   if (registeredEmail) {
     return (
-      <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-10 md:p-14 w-full max-w-xl animate-in fade-in duration-500">
-        <div className="flex flex-col items-center gap-2 mb-8">
-          <h1 className="text-4xl md:text-5xl font-black flex items-center gap-4 uppercase tracking-wider">
-            <Image className="h-12 w-auto" src={"/logo.png"} height={339} width={439} alt="" />
-            Maymanah
-          </h1>
-        </div>
-        <div className="text-center py-6 space-y-6">
-          <div className="w-20 h-20 mx-auto rounded-full bg-success/10 flex items-center justify-center">
-            <FontAwesomeIcon icon={faEnvelope} className="size-8 text-success" />
+      <AuthPanel heading="Check your email" wide>
+        <div className="flex flex-col items-center gap-6 py-4 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-brass/10">
+            <FontAwesomeIcon icon={faEnvelope} className="size-7 text-brass" />
           </div>
-          <h2 className="text-2xl font-bold text-text-primary">Check your email</h2>
-          <p className="text-text-secondary text-sm leading-relaxed max-w-sm mx-auto">
-            We sent a verification link to <strong className="text-text-primary">{registeredEmail}</strong>.
+          <p className="text-sm text-sage leading-relaxed max-w-sm">
+            We sent a verification link to{" "}
+            <strong className="text-ivory">{registeredEmail}</strong>.
             Click the link to activate your account.
           </p>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-sage/60">
             Didn't get the email? Check your spam folder or{" "}
             <button
               type="button"
@@ -121,191 +171,153 @@ export default function Register() {
                   setResending(false);
                 }
               }}
-              className="text-primary font-medium hover:underline disabled:opacity-50"
+              className="font-medium text-lapis transition-colors hover:text-ivory disabled:opacity-50"
             >
               {resending ? "Sending..." : "resend"}
             </button>
           </p>
-          <a
+          <Link
             href="/login"
-            className="inline-block mt-4 px-8 py-3 bg-primary text-text-inverse rounded-xl font-bold hover:brightness-110 transition-all active:scale-[0.97]"
+            className="mt-2 inline-flex h-11 items-center justify-center rounded-[10px] bg-brass px-6 text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B]"
           >
             Go to Login
-          </a>
+          </Link>
         </div>
-      </main>
+      </AuthPanel>
     );
   }
 
   return (
-    <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-8 md:p-14 w-full max-w-xl animate-in fade-in duration-500">
-      <div className="flex flex-col items-center gap-2 mb-8">
-        <h1 className="text-4xl md:text-5xl font-black flex items-center gap-4 uppercase tracking-wider">
-          <Image className="h-12 w-auto" src={"/logo.png"} height={339} width={439} alt="" />
-          Maymanah
-        </h1>
-        <div className="flex items-center justify-center">
-          <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
-          <div className="mx-4 text-[10px] uppercase tracking-[0.3em] text-primary font-bold text-center">
-            Begin your Quran Journey!
-          </div>
-          <div className="h-px w-12 bg-linear-to-r from-transparent via-primary-dark to-transparent"></div>
+    <AuthPanel heading="Begin your journey" wide>
+      {error && (
+        <div
+          role="alert"
+          className={`mb-5 rounded-[10px] border border-night-danger/40 bg-night-danger/10 px-4 py-3 text-center text-sm text-night-danger ${shake ? "shake" : ""}`}
+        >
+          {error}
         </div>
-      </div>
+      )}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <SegmentedControl
+          label="Join as"
+          value={role}
+          onChange={setRole}
+          options={[
+            { value: "STUDENT", label: "Learner" },
+            { value: "TEACHER", label: "Teacher" },
+          ]}
+        />
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="w-full justify-center flex items-center">
-          <div className="bg-bg-primary p-1 rounded-xl flex gap-1 border border-border w-fit">
-            <button
-              type="button"
-              onClick={() => setRole("STUDENT")}
-              className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
-                role === "STUDENT"
-                  ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              Learner
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("TEACHER")}
-              className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
-                role === "TEACHER"
-                  ? "bg-primary text-text-inverse shadow-sm shadow-primary/20"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              Teacher
-            </button>
-          </div>
-        </div>
+        <Field label="Full name" htmlFor="name" error={nameError}>
+          <Input
+            id="name"
+            type="text"
+            icon={<User />}
+            placeholder="Umar Farouq"
+            autoComplete="name"
+            value={name}
+            invalid={!!nameError}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => setNameTouched(true)}
+            required
+          />
+        </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] uppercase tracking-widest font-bold px-1" htmlFor="name">
-            Full Name
-          </label>
-          <div className="flex items-center gap-3 px-4 h-12 border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors">
-            <User className="size-4 shrink-0 text-text-muted" />
-            <input
-              className="w-full bg-transparent placeholder:text-text-muted/50 focus:outline-none text-sm"
-              id="name"
-              placeholder="Umar Farouq"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+        <Field label="Email address" htmlFor="email">
+          <Input
+            id="email"
+            type="email"
+            icon={<Mail />}
+            placeholder="you@example.com"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </Field>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label="Password" htmlFor="password">
+            <PasswordInput
+              id="password"
+              icon={<Lock />}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] uppercase tracking-widest font-bold px-1" htmlFor="email">
-            Email Address
-          </label>
-          <div className="flex items-center gap-3 px-4 h-12 border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors">
-            <Mail className="size-4 shrink-0 text-text-muted" />
-            <input
-              className="w-full bg-transparent placeholder:text-text-muted/50 focus:outline-none text-sm"
-              id="email"
-              placeholder="scholar@Maymanah.com"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+          </Field>
+          <Field
+            label="Confirm password"
+            htmlFor="repeat"
+            error={confirmError}
+          >
+            <PasswordInput
+              id="repeat"
+              icon={<Lock />}
+              placeholder="Retype your password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              invalid={!!confirmError}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
-          </div>
+          </Field>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex w-full flex-col gap-1.5">
-            <label className="text-[10px] uppercase tracking-widest font-bold" htmlFor="password">
-              Password
-            </label>
-            <div className="flex items-center gap-3 px-4 h-12 border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors">
-              <Lock className="size-4 shrink-0 text-text-muted" />
-              <input
-                className="w-full bg-transparent placeholder:text-text-muted/50 focus:outline-none text-sm"
-                id="password"
-                placeholder="•••••••••••"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                className="text-text-muted hover:text-text-primary transition-colors shrink-0"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex w-full flex-col gap-1.5">
-            <label className="text-[10px] uppercase tracking-widest font-bold" htmlFor="repeat">
-              Confirm Password
-            </label>
-            <div className="flex items-center gap-3 px-4 h-12 border border-border focus-within:border-primary rounded-xl bg-bg-primary transition-colors">
-              <Lock className="size-4 shrink-0 text-text-muted" />
-              <input
-                className="w-full bg-transparent placeholder:text-text-muted/50 focus:outline-none text-sm"
-                id="repeat"
-                placeholder="•••••••••••"
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 items-start">
-          <div className="flex-1 w-full px-1 space-y-1">
+        {(strength || (confirmPassword && !confirmError)) && (
+          <div className="flex flex-col gap-1.5 px-0.5">
             {strength && (
               <>
-                <div className="h-1 w-full bg-border rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-300 ${strength.color} ${strength.width}`} />
+                <div className="h-1 w-full overflow-hidden rounded-full bg-ivory/10">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${strength.bar} ${strength.width}`}
+                  />
                 </div>
-                <span className={`text-[10px] font-bold ${strength.color.replace("bg-", "text-")}`}>
+                <span className={`text-[13px] ${strength.text}`}>
                   {strength.label}
                 </span>
               </>
             )}
-          </div>
-          <div className="flex-1 w-full px-1">
-            {confirmPassword && (
-              <p className={`text-[10px] font-bold ${password === confirmPassword ? "text-success" : "text-danger"}`}>
-                {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
-              </p>
+            {confirmPassword && !confirmError && (
+              <span className="text-[13px] text-night-success">
+                Passwords match.
+              </span>
             )}
           </div>
-        </div>
+        )}
 
-        <button
-          disabled={loading || !name || !email || !password || password !== confirmPassword || password.length < 8}
-          className="w-full h-12 bg-primary text-text-inverse rounded-xl font-bold text-base tracking-tight shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-primary/20"
+        <Button
           type="submit"
+          size="lg"
+          loading={loading}
+          disabled={
+            loading ||
+            !name ||
+            !email ||
+            !password ||
+            password !== confirmPassword ||
+            password.length < 8
+          }
+          className="mt-1 w-full"
         >
-          {loading ? "Creating Account" : "Create Account"}
-          <FontAwesomeIcon
-            icon={loading ? faSpinner : faArrowRight}
-            className={`size-3.5 transition-transform ${loading ? "animate-spin" : ""} ${!loading && email && password && name && password === confirmPassword && password.length >= 7 ? "group-hover:translate-x-0.5" : ""}`}
-          />
-        </button>
+          {loading ? "Creating your account" : "Create account"}
+          {!loading && (
+            <ArrowRight className="size-4 transition-transform motion-safe:group-hover:translate-x-1" />
+          )}
+        </Button>
 
-        <div className="flex justify-between items-center px-1 pt-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold text-text-muted">
-            Already enrolled?
-          </span>
-          <a className="text-[10px] uppercase tracking-widest text-primary font-bold hover:underline transition-all" href="/login">
-            Log In
-          </a>
-        </div>
+        <p className="text-center text-sm text-sage">
+          Already enrolled?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-lapis transition-colors hover:text-ivory"
+          >
+            Sign in
+          </Link>
+        </p>
       </form>
-    </main>
+    </AuthPanel>
   );
 }

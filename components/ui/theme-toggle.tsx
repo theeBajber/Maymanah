@@ -2,12 +2,21 @@
 
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // next-themes has no way to know the resolved theme during SSR (it lives
+  // in localStorage/system preference, neither available on the server), so
+  // rendering theme-dependent UI before mount causes a hydration mismatch.
+  // Render the same neutral state on server and first client paint, then
+  // swap to the real icon once mounted.
+  useEffect(() => setMounted(true), []);
 
   const currentTheme = theme === "system" ? resolvedTheme : theme;
-  const isDark = currentTheme === "dark";
+  const isDark = mounted && currentTheme === "dark";
 
   return (
     <button

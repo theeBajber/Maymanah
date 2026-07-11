@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { autoPairHifdhStudent } from "@/lib/mentorship";
+import { createNotification } from "@/lib/notifications";
 import { NextResponse } from "next/server";
 
 export async function POST() {
@@ -55,6 +56,34 @@ export async function POST() {
         },
       }, { status: 404 });
     }
+
+    const [teacherUser, studentUser] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: mentorship.teacherId },
+        select: { name: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true },
+      }),
+    ]);
+
+    await Promise.all([
+      createNotification({
+        userId: session.user.id,
+        type: "mentorship_paired",
+        title: "You've been paired with a teacher",
+        body: `${teacherUser?.name ?? "Your teacher"} will guide your Hifdh sessions. View your schedule to see your upcoming sessions.`,
+        metadata: { mentorshipId: mentorship.id, link: "/courses/hifdh-ul-quran" },
+      }),
+      createNotification({
+        userId: mentorship.teacherId,
+        type: "mentorship_paired",
+        title: "A new student has been paired with you",
+        body: `${studentUser?.name ?? "A student"} has been matched with you for Hifdh mentorship.`,
+        metadata: { mentorshipId: mentorship.id, link: "/students" },
+      }),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

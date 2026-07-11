@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: [
-    "unpotent-luka-hypotonic.ngrok-free.dev/",
+    "circle-sureness-deodorize.ngrok-free.dev",
     "192.168.87.108",
   ],
   images: {

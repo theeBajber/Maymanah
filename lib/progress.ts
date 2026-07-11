@@ -1,10 +1,8 @@
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
+import { issueCertificate } from "@/lib/certificate";
 
-export async function getLessonProgress(
-  lessonId: string,
-  studentId: string,
-) {
+export async function getLessonProgress(lessonId: string, studentId: string) {
   return safeQuery(() =>
     prisma.lessonProgress.findUnique({
       where: {
@@ -14,10 +12,7 @@ export async function getLessonProgress(
   );
 }
 
-export async function completeLesson(
-  lessonId: string,
-  score?: number,
-) {
+export async function completeLesson(lessonId: string, score?: number) {
   const session = await auth();
   if (!session?.user?.id) return;
 
@@ -83,7 +78,11 @@ export async function completeLesson(
     if (pct === 100) {
       const finalExam = await safeQuery(() =>
         prisma.exam.findFirst({
-          where: { courseId: lesson.courseId, examType: "FINAL", isPublished: true },
+          where: {
+            courseId: lesson.courseId,
+            examType: "FINAL",
+            isPublished: true,
+          },
           select: { id: true, passMark: true, totalMarks: true },
         }),
       );
@@ -101,9 +100,11 @@ export async function completeLesson(
           }),
         );
 
-        const pctPassed = graded && (finalExam.totalMarks ?? 1) > 0
-          ? ((graded.totalScore ?? 0) / (finalExam.totalMarks ?? 1)) * 100 >= (finalExam.passMark ?? 50)
-          : false;
+        const pctPassed =
+          graded && (finalExam.totalMarks ?? 1) > 0
+            ? ((graded.totalScore ?? 0) / (finalExam.totalMarks ?? 1)) * 100 >=
+              (finalExam.passMark ?? 50)
+            : false;
 
         if (!pctPassed) {
           await safeQuery(() =>
@@ -125,7 +126,9 @@ export async function completeLesson(
         },
         data: {
           progress: pct,
-          ...(pct === 100 ? { status: "COMPLETED", completedAt: new Date() } : {}),
+          ...(pct === 100
+            ? { status: "COMPLETED", completedAt: new Date() }
+            : {}),
         },
       }),
     );
@@ -141,4 +144,72 @@ export async function completeLesson(
   }
 
   return progress;
+}
+
+export async function updateHifdhProgress(studentId: string) {
+  const course = await safeQuery(() =>
+    prisma.course.findFirst({
+      where: { slug: "hifdh-ul-quran" },
+      select: { id: true },
+    }),
+  );
+  if (!course) return;
+
+  const result = await safeQuery(() =>
+    prisma.sessionPlan.aggregate({
+      _max: { toSurah: true },
+      where: {
+        appointment: {
+          mentorship: { studentId },
+        },
+      },
+    }),
+  );
+
+  const maxSurah = result._max.toSurah ?? 0;
+  const pct = Math.round((maxSurah / 114) * 100);
+
+  await safeQuery(() =>
+    prisma.enrollment.updateMany({
+      where: { userId: studentId, courseId: course.id },
+      data: {
+        progress: pct,
+        ...(pct === 100
+          ? { status: "COMPLETED", completedAt: new Date() }
+          : {}),
+      },
+    }),
+  );
+
+  if (pct === 100) {
+    const latestPlan = await safeQuery(() =>
+      prisma.sessionPlan.findFirst({
+        where: {
+          appointment: { mentorship: { studentId } },
+        },
+        orderBy: { updatedAt: "desc" },
+        include: {
+          appointment: {
+            include: {
+              mentorship: {
+                include: { teacher: { select: { name: true } } },
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const teacherName =
+      latestPlan?.appointment?.mentorship?.teacher?.name ?? undefined;
+
+    await issueCertificate(studentId, course.id, teacherName);
+
+    await safeQuery(() =>
+      prisma.user.update({
+        where: { id: studentId },
+        data: { xp: { increment: 20 } },
+      }),
+    );
+  }
 }

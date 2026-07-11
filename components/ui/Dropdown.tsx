@@ -59,7 +59,7 @@ export function Dropdown<T extends string>({
         />
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border bg-bg-elevated shadow-lg animate-in">
+        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border bg-bg-elevated shadow-float animate-in">
           {options.map((opt) => (
             <button
               key={opt.value}

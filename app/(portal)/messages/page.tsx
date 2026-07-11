@@ -46,17 +46,19 @@ export default function MessagesPage() {
     if (!activePartnerId) return;
     fetch(`/api/messages?userId=${activePartnerId}`)
       .then((r) => r.json())
-      .then((data) => setMessages(data.messages ?? []));
+      .then((data) => {
+        setMessages(data.messages ?? []);
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.partner.id === activePartnerId ? { ...c, unreadCount: 0 } : c,
+          ),
+        );
+      });
     fetch("/api/messages/read", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ senderId: activePartnerId }),
     }).catch(() => {});
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.partner.id === activePartnerId ? { ...c, unreadCount: 0 } : c,
-      ),
-    );
   }, [activePartnerId]);
 
   useEffect(() => {

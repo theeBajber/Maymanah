@@ -1,12 +1,6 @@
 "use client";
 
-import { faWebAwesome } from "@fortawesome/free-brands-svg-icons/faWebAwesome";
-import {
-  faChartColumn,
-  faCreditCard,
-  faHeart,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ChartColumn, CreditCard } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import {
   KES_PRESETS,
@@ -17,11 +11,25 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { amiri, elMessiri } from "@/components/ui/fonts";
+import { GirihField } from "@/components/ui/girih";
+import { PageHeader } from "@/components/ui/page-header";
+import { SegmentedControl } from "@/components/ui/segmented";
 
 export default function Donate() {
   return (
-    <main className="flex flex-col items-center pb-16 p-4 sm:p-6 md:p-8">
-      <Hero />
+    <main className="flex w-full flex-col items-center gap-12 pb-24">
+      <PageHeader
+        arabic="صَدَقَةٌ جَارِيَةٌ"
+        title={
+          <>
+            Keep the platform free,
+            <br />
+            support our servers
+          </>
+        }
+        lede="Maymanah runs almost entirely on free tiers and volunteer time. Donations go toward scaling infrastructure as the community grows."
+      />
       <Suspense fallback={<DonationSkeleton />}>
         <DonatePageContent />
       </Suspense>
@@ -29,33 +37,25 @@ export default function Donate() {
   );
 }
 
-function Hero() {
+function DonationSkeleton() {
   return (
-    <section className="flex flex-col gap-4 w-full max-w-7xl text-center md:text-left py-4 pt-16">
-      <div className="flex items-center justify-center gap-2 w-50 h-6.5 text-primary-dark rounded-full mx-auto md:mx-0 font-semibold text-xs uppercase tracking-wider border border-primary/20">
-        <FontAwesomeIcon icon={faHeart} />
-        Support the Mission
-      </div>
-      <h1 className="text-5xl font-black leading-tight tracking-[-0.033em]">
-        Keep the platform free,
-        <br />
-        support our servers
-      </h1>
-      <p className="text-text-secondary text-lg font-normal leading-relaxed max-w-2xl">
-        Maymanah runs almost entirely on free tiers and volunteer time. Donations
-        go toward scaling infrastructure as the community grows.
-      </p>
-    </section>
+    <div className="grid w-full max-w-6xl animate-pulse grid-cols-1 gap-5 px-4 sm:px-6 md:px-8 lg:grid-cols-2">
+      <div className="glass-still h-96 rounded-2xl" />
+      <div className="glass-still h-96 rounded-2xl" />
+    </div>
   );
 }
 
-function DonationSkeleton() {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl w-full animate-pulse">
-      <div className="h-96 bg-bg-card rounded-xl border border-border" />
-      <div className="h-96 bg-bg-card rounded-xl border border-border" />
-    </div>
-  );
+/* Rough impact framing derived from the cost table below:
+   video streaming ($1,200/mo) ≈ $40/day of live classrooms. */
+function impactLine(amount: number, currency: DonationCurrency) {
+  const usd = currency === "USD" ? amount : amount / 130;
+  if (usd <= 0) return "Every amount helps keep the sanctuary open.";
+  if (usd < 10) return "Covers hours of live classroom streaming.";
+  if (usd < 25) return "Keeps a student's live sessions running for a week.";
+  if (usd < 70)
+    return "Funds a full day of live classrooms for the whole platform.";
+  return "Carries days of the entire sanctuary's infrastructure.";
 }
 
 function DonatePageContent() {
@@ -104,7 +104,8 @@ function DonatePageContent() {
       toast({
         variant: "warning",
         title: "Payment canceled",
-        description: "No charge was made. You can try again whenever you're ready.",
+        description:
+          "No charge was made. You can try again whenever you're ready.",
       });
       router.replace("/donate", { scroll: false });
     }
@@ -287,47 +288,46 @@ function DonatePageContent() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl w-full">
+    <div className="grid w-full max-w-6xl grid-cols-1 gap-5 px-4 sm:px-6 md:px-8 lg:grid-cols-2">
       <TransparencyPanel />
 
-      <div className="bg-bg-card rounded-xl border border-border p-8 shadow-md">
-        <div className="flex flex-col gap-6">
-          <div>
-            <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-3">
-              Currency
-            </p>
-            <div className="flex p-1 bg-bg-primary/20 rounded-lg border border-border">
-              <button
-                type="button"
-                onClick={() => handleCurrencyChange("USD")}
-                className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${
-                  currency === "USD"
-                    ? "bg-primary text-text-inverse shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                USD
-              </button>
-              <button
-                type="button"
-                onClick={() => handleCurrencyChange("KES")}
-                className={`flex-1 py-2 text-sm font-bold rounded-md transition-colors ${
-                  currency === "KES"
-                    ? "bg-primary text-text-inverse shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                KES
-              </button>
-            </div>
-          </div>
+      {/* the giving panel — the page's one lantern */}
+      <div className="glass-lantern relative flex flex-col gap-6 overflow-hidden rounded-3xl p-6 md:p-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-20"
+        >
+          <GirihField
+            className="absolute inset-0"
+            opacity={0.08}
+            tile={56}
+            fade="bottom"
+          />
+        </div>
 
-          <div>
-            <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-3 text-center">
-              Choose Amount
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {presets.map((preset) => (
+        <div className="relative flex flex-col gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+            Currency
+          </p>
+          <SegmentedControl
+            label="Currency"
+            value={currency}
+            onChange={handleCurrencyChange}
+            options={[
+              { value: "USD", label: "USD" },
+              { value: "KES", label: "KES" },
+            ]}
+          />
+        </div>
+
+        <div className="relative flex flex-col gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+            Choose an amount
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {presets.map((preset) => {
+              const selected = amount === preset && !isCustom;
+              return (
                 <button
                   key={preset}
                   type="button"
@@ -335,69 +335,71 @@ function DonatePageContent() {
                     setAmount(preset);
                     setIsCustom(false);
                   }}
-                  className={`flex flex-col items-center justify-center py-4 rounded-xl border-2 transition-all duration-200 active:scale-95 ${
-                    amount === preset && !isCustom
-                      ? "border-primary bg-primary/10 text-primary shadow-md shadow-primary/10 scale-[1.03]"
-                      : "border-border hover:border-primary/50 hover:bg-primary/5"
+                  className={`flex items-center justify-center rounded-xl border py-4 text-xl font-semibold transition-all duration-200 active:scale-[0.985] ${
+                    selected
+                      ? "border-brass/60 bg-brass/10 text-brass shadow-glow-brass"
+                      : "border-ivory/10 bg-ivory/[0.03] text-ivory hover:border-brass/30"
                   }`}
                 >
-                  <span className="text-2xl font-black">
-                    {currency === "USD"
-                      ? `$${preset}`
-                      : `KES ${preset.toLocaleString()}`}
-                  </span>
+                  {currency === "USD"
+                    ? `$${preset}`
+                    : `KES ${preset.toLocaleString()}`}
                 </button>
-              ))}
-
-              <div
-                className={`relative rounded-xl border-2 transition-all duration-200 ${
-                  isCustom
-                    ? "border-primary bg-primary/10 shadow-md shadow-primary/10"
-                    : "border-border hover:border-primary/50 hover:bg-primary/5"
+              );
+            })}
+            <div
+              className={`relative rounded-xl border transition-all duration-200 ${
+                isCustom
+                  ? "border-brass/60 bg-brass/10 shadow-glow-brass"
+                  : "border-ivory/10 bg-ivory/[0.03] hover:border-brass/30"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm font-semibold ${
+                  isCustom ? "text-brass" : "text-sage/50"
                 }`}
               >
-                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                  <span
-                    className={`font-black text-sm transition-colors duration-200 ${
-                      isCustom ? "text-primary" : "text-text-muted"
-                    }`}
-                  >
-                    {currencySymbol}
-                  </span>
-                </div>
-                <input
-                  className="w-full h-full py-4 pl-14 pr-4 rounded-xl bg-transparent focus:outline-none text-2xl font-black placeholder:text-text-muted text-center"
-                  placeholder="Custom"
-                  type="text"
-                  inputMode="numeric"
-                  value={
-                    isCustom ? (amount === 0 ? "" : amount.toLocaleString()) : ""
-                  }
-                  onChange={(e) => {
-                    const val =
-                      currency === "KES"
-                        ? e.target.value.replace(/[^0-9]/g, "")
-                        : e.target.value.replace(/[^0-9.]/g, "");
-                    setIsCustom(true);
-                    setAmount(val ? Number(val) : 0);
-                  }}
-                  onFocus={() => {
-                    setIsCustom(true);
-                    setAmount(0);
-                  }}
-                />
-              </div>
+                {currencySymbol}
+              </span>
+              <input
+                className="h-full w-full rounded-xl bg-transparent py-4 pl-14 pr-4 text-center text-xl font-semibold text-ivory placeholder:text-sage/40 focus:outline-none"
+                placeholder="Custom"
+                aria-label="Custom amount"
+                type="text"
+                inputMode="numeric"
+                value={
+                  isCustom ? (amount === 0 ? "" : amount.toLocaleString()) : ""
+                }
+                onChange={(e) => {
+                  const val =
+                    currency === "KES"
+                      ? e.target.value.replace(/[^0-9]/g, "")
+                      : e.target.value.replace(/[^0-9.]/g, "");
+                  setIsCustom(true);
+                  setAmount(val ? Number(val) : 0);
+                }}
+                onFocus={() => {
+                  setIsCustom(true);
+                  setAmount(0);
+                }}
+              />
             </div>
           </div>
+          <p className="text-[13px] text-sage" aria-live="polite">
+            {impactLine(amount, currency)}
+          </p>
+        </div>
 
-          {(showMpesaPhone || phone) && (
-            <div>
-              <label
-                htmlFor="mpesa-phone"
-                className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 block"
-              >
-                M-Pesa Phone Number
-              </label>
+        {(showMpesaPhone || phone) && (
+          <div className="relative flex flex-col gap-2">
+            <label
+              htmlFor="mpesa-phone"
+              className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass"
+            >
+              M-Pesa phone number
+            </label>
+            <div className="flex h-12 items-center rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 transition-all duration-300 focus-within:border-brass/60 focus-within:shadow-[0_0_0_3px_rgba(198,161,91,0.12)]">
               <input
                 id="mpesa-phone"
                 type="tel"
@@ -408,83 +410,81 @@ function DonatePageContent() {
                   setPhone(e.target.value);
                   setShowMpesaPhone(true);
                 }}
-                className="w-full px-4 py-3 rounded-lg border border-border bg-bg-primary/20 focus:outline-none focus:border-primary"
+                className="w-full bg-transparent text-[15px] text-ivory placeholder:text-sage/40 focus:outline-none"
               />
-              <p className="text-xs text-text-muted mt-2">
-                Required for M-Pesa. Use Safaricom format: 2547XXXXXXXX
-              </p>
             </div>
-          )}
-
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={anonymous}
-              onChange={(e) => setAnonymous(e.target.checked)}
-              className="mt-1 size-4 accent-primary"
-            />
-            <span className="text-sm text-text-secondary leading-relaxed">
-              Donate anonymously
-              {session?.user && !anonymous && (
-                <span className="block text-xs text-text-muted mt-1">
-                  Your donation will be linked to your account (
-                  {session.user.email}).
-                </span>
-              )}
-            </span>
-          </label>
-
-          <div className="flex flex-col gap-3">
-            <p className="text-xs font-bold text-text-secondary uppercase tracking-widest text-center">
-              Choose Payment Method
+            <p className="text-[13px] text-sage/70">
+              Required for M-Pesa. Use Safaricom format: 2547XXXXXXXX
             </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={loading !== null}
-                onClick={handleStripeDonate}
-                className="flex-1 flex items-center gap-2 justify-center h-12 rounded-lg bg-text-primary/90 text-text-inverse hover:bg-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FontAwesomeIcon icon={faCreditCard} />
-                <span className="font-bold">
-                  {loading === "stripe" ? "Redirecting..." : "Card"}
-                </span>
-              </button>
-              <button
-                type="button"
-                disabled={loading !== null}
-                onClick={handlePayPalDonate}
-                className="flex-1 flex items-center justify-center h-12 rounded-lg bg-[#3b7bbf] text-text-inverse hover:bg-[#2d629a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="font-black italic">PayPal</span>
-              </button>
-            </div>
+          </div>
+        )}
+
+        <label className="relative flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={anonymous}
+            onChange={(e) => setAnonymous(e.target.checked)}
+            className="mt-1 size-4 accent-(--brass)"
+          />
+          <span className="text-sm leading-relaxed text-sage">
+            Donate anonymously
+            {session?.user && !anonymous && (
+              <span className="mt-1 block text-[13px] text-sage/60">
+                Your donation will be linked to your account (
+                {session.user.email}).
+              </span>
+            )}
+          </span>
+        </label>
+
+        <div className="relative flex flex-col gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+            Payment method
+          </p>
+          <div className="flex gap-2.5">
             <button
               type="button"
               disabled={loading !== null}
-              onClick={() => {
-                setShowMpesaPhone(true);
-                handleMpesaDonate();
-              }}
-              className="w-full flex items-center justify-center h-12 rounded-lg border border-white/10 hover:bg-[#0eb520]/85 bg-[#0eb520] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleStripeDonate}
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[10px] bg-brass font-semibold text-layl-deep transition-all duration-300 hover:bg-[#D2AF6B] hover:shadow-glow-brass active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
             >
-              <Image
-                width={597}
-                height={418}
-                alt="M-Pesa"
-                className="h-18 w-auto"
-                src="/mpesa.png"
-              />
-              {loading === "mpesa" && (
-                <span className="sr-only">Sending M-Pesa prompt...</span>
-              )}
+              <CreditCard className="size-4" />
+              {loading === "stripe" ? "Redirecting" : "Card"}
+            </button>
+            <button
+              type="button"
+              disabled={loading !== null}
+              onClick={handlePayPalDonate}
+              className="flex h-12 flex-1 items-center justify-center rounded-[10px] border border-ivory/15 font-semibold italic text-ivory transition-colors hover:bg-ivory/5 active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
+            >
+              PayPal
             </button>
           </div>
-
-          <p className="text-center text-xs text-text-secondary">
-            Secure, encrypted transaction. Tax-deductible in many regions.
-          </p>
+          <button
+            type="button"
+            disabled={loading !== null}
+            onClick={() => {
+              setShowMpesaPhone(true);
+              handleMpesaDonate();
+            }}
+            className="flex h-12 w-full items-center justify-center rounded-[10px] bg-[#0C8A1B] transition-colors hover:bg-[#0A7517] active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
+          >
+            <Image
+              width={597}
+              height={418}
+              alt="Donate with M-Pesa"
+              className="h-16 w-auto"
+              src="/mpesa.png"
+            />
+            {loading === "mpesa" && (
+              <span className="sr-only">Sending M-Pesa prompt</span>
+            )}
+          </button>
         </div>
+
+        <p className="relative text-center text-[13px] text-sage/70">
+          Secure, encrypted transaction. Tax-deductible in many regions.
+        </p>
       </div>
     </div>
   );
@@ -492,18 +492,17 @@ function DonatePageContent() {
 
 function TransparencyPanel() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="bg-bg-card rounded-xl border border-border p-6 shadow-2xl backdrop-blur-sm">
-        <div className="flex items-center gap-4 mb-6">
-          <FontAwesomeIcon
-            icon={faChartColumn}
-            className="size-4! text-primary"
-          />
-          <h2 className="text-xl font-bold leading-tight">
-            Transparency &amp; Monthly Costs
+    <div className="flex flex-col gap-5">
+      <div className="glass-still flex flex-col gap-6 rounded-2xl p-6 md:p-8">
+        <div className="flex items-center gap-3">
+          <ChartColumn className="size-4.5 text-brass" />
+          <h2
+            className={`${elMessiri.className} text-xl font-semibold text-ivory`}
+          >
+            Transparency &amp; monthly costs
           </h2>
         </div>
-        <div className="space-y-4">
+        <div className="flex flex-col">
           <CostRow
             title="Server Hosting"
             subtitle="High-availability cloud infrastructure"
@@ -526,33 +525,40 @@ function TransparencyPanel() {
             last
           />
         </div>
-        <div className="mt-8 pt-6 border-t border-white/10">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-semibold text-sm uppercase tracking-wide">
-              Monthly Goal Progress
+        <div className="flex flex-col gap-3 border-t border-ivory/8 pt-5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sage">
+              Monthly goal progress
             </span>
-            <span className="text-primary font-bold px-2 py-1 rounded text-sm">
-              65%
-            </span>
+            <span className="text-sm font-semibold text-brass">65%</span>
           </div>
-          <div className="h-3 w-full bg-bg-primary/30 rounded-full overflow-hidden mb-2">
-            <div className="h-full w-[65%] bg-linear-to-r from-primary to-primary-light" />
+          <div className="h-2 w-full overflow-hidden rounded-full bg-ivory/10">
+            <div className="h-full w-[65%] rounded-full bg-linear-to-r from-[#A9854B] to-brass" />
           </div>
-          <p className="text-text-secondary text-sm font-medium italic">
-            &quot;$1,365 of $2,100 raised this month. Almost there!&quot;
+          <p className="text-sm text-sage">
+            $1,365 of $2,100 raised this month.
           </p>
         </div>
       </div>
 
-      <div className="bg-primary/5 rounded-xl p-6 border border-primary/20">
-        <h3 className="text-primary font-bold text-lg mb-2 flex items-center gap-2">
-          <FontAwesomeIcon icon={faWebAwesome} />
+      <div className="glass-still flex flex-col gap-4 rounded-2xl p-6 md:p-8">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
           Sadaqah Jariyah
         </h3>
-        <p className="text-text-secondary text-sm leading-relaxed italic">
-          &quot;When a person dies, his deeds come to an end except for three:
-          Ongoing charity (Sadaqah Jariyah), knowledge which is beneficial, or
-          a righteous child who prays for him.&quot; (Muslim)
+        <p
+          lang="ar"
+          dir="rtl"
+          className={`${amiri.className} text-xl leading-loose text-ivory/90`}
+        >
+          إِذَا مَاتَ الْإِنْسَانُ انْقَطَعَ عَمَلُهُ إِلَّا مِنْ ثَلَاثٍ
+        </p>
+        <p className="text-sm leading-relaxed text-sage">
+          &ldquo;When a person dies, his deeds come to an end except for
+          three: ongoing charity (Sadaqah Jariyah), knowledge which is
+          beneficial, or a righteous child who prays for him.&rdquo;
+        </p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sage/70">
+          Sahih Muslim
         </p>
       </div>
     </div>
@@ -572,15 +578,15 @@ function CostRow({
 }) {
   return (
     <div
-      className={`flex justify-between items-center py-2 ${
-        last ? "" : "border-b border-primary/15"
+      className={`flex items-center justify-between py-3 ${
+        last ? "" : "border-b border-ivory/8"
       }`}
     >
-      <div className="flex flex-col">
-        <p className="font-semibold">{title}</p>
-        <p className="text-text-secondary text-xs">{subtitle}</p>
+      <div className="flex flex-col gap-0.5">
+        <p className="text-[15px] font-medium text-ivory">{title}</p>
+        <p className="text-[13px] text-sage/80">{subtitle}</p>
       </div>
-      <p className="text-primary font-bold text-lg">{amount}</p>
+      <p className="font-semibold text-brass">{amount}</p>
     </div>
   );
 }

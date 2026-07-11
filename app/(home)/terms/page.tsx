@@ -1,63 +1,104 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { elMessiri } from "@/components/ui/fonts";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "The terms and conditions governing use of Maymanah.",
+  alternates: { canonical: "/terms" },
+};
+
 export default function Terms() {
   return (
-    <main className="w-full flex flex-col items-center pb-16 p-6 sm:p-8 gap-16 *:sm:px-8 *:px-4">
-      <section className="flex flex-col gap-2 items-center text-center max-w-3x pt-16">
-        <h1 className="text-[3.75rem] md:text-[6rem] leading-[0.95] font-black tracking-tighter">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 pb-24 pt-16 md:pt-20">
+      <header className="flex flex-col gap-3">
+        <h1
+          className={`${elMessiri.className} text-4xl font-semibold text-ivory md:text-5xl`}
+        >
           Terms and Conditions
         </h1>
-        <div className="h-1 w-24 bg-primary mt-8 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.5)]"></div>
-        <p className="text-lg md:text-xl text-on-surface-variant font-body mt-4">
-          Last Updated: April 22, 2026
-        </p>
-      </section>
-      <section className="bg-bg-card rounded-lg p-8 md:p-16 shadow-2xl border border-primary/10 max-w-7xl flex flex-col gap-12 relative overflow-hidden backdrop-blur-sm">
-        <article className="flex flex-col gap-4">
-          <div className="flex items-center gap-4 mb-2">
-            <h2 className="text-[1.875rem] font-bold font-headline">
-              1. Agreement to Terms
-            </h2>
-          </div>
-          <p className="text-lg text-slate-400 font-body leading-relaxed">
-            By accessing or using Maymanah, you agree to be bound by these Terms
-            and Conditions. If you disagree with any part of the terms, you may
-            not access the service. These terms constitute a legally binding
-            agreement made between you and Maymanah.
+        <p className="text-sage">Last updated: April 22, 2026</p>
+      </header>
+
+      <article className="flex flex-col gap-12 text-[15px] leading-relaxed text-sage md:text-base">
+        <section className="flex flex-col gap-4">
+          <h2
+            className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+          >
+            1. Agreement to terms
+          </h2>
+          <span
+            aria-hidden
+            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+          />
+          <p>
+            By accessing or using Maymanah, you agree to be bound by these
+            Terms and Conditions. If you disagree with any part of the terms,
+            you may not access the service. These terms constitute a legally
+            binding agreement made between you and Maymanah.
           </p>
-        </article>
-        <hr className="border-t border-primary/20" />
-        <article className="flex flex-col gap-4">
-          <div className="flex items-center gap-4 mb-2">
-            <h2 className="text-[1.875rem] font-bold">2. Educational Use</h2>
-          </div>
-          <p className="text-lg text-slate-400 font-body leading-relaxed">
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <h2
+            className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+          >
+            2. Educational use
+          </h2>
+          <span
+            aria-hidden
+            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+          />
+          <p>
             The materials provided on this platform are for educational and
-            spiritual growth purposes. You are granted a limited, non-exclusive,
-            non-transferable license to access and use the curriculum for
-            personal, non-commercial use.
+            spiritual growth purposes. You are granted a limited,
+            non-exclusive, non-transferable license to access and use the
+            curriculum for personal, non-commercial use.
           </p>
-          <ul className="list-disc list-inside text-lg text-slate-400 font-body leading-relaxed ml-4 mt-2 space-y-2">
-            <li>Do not redistribute materials without explicit permission.</li>
-            <li>
-              Maintain respect for the sacred nature of the texts provided.
-            </li>
-            <li>
-              Account sharing is strictly prohibited and may result in
-              termination.
-            </li>
+          <ul className="flex flex-col gap-3">
+            {[
+              "Do not redistribute materials without explicit permission.",
+              "Maintain respect for the sacred nature of the texts provided.",
+              "Account sharing is strictly prohibited and may result in termination.",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <span
+                  aria-hidden
+                  className="mt-2 size-1.5 shrink-0 rotate-45 bg-brass/60"
+                />
+                <span>{item}</span>
+              </li>
+            ))}
           </ul>
-        </article>
-        <hr className="border-t border-primary/20" />
-        <article className="flex flex-col gap-4">
-          <div className="flex items-center gap-4 mb-2">
-            <h2 className="text-[1.875rem] font-bold">3. User Conduct</h2>
-          </div>
-          <p className="text-lg text-slate-400 font-body leading-relaxed">
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <h2
+            className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+          >
+            3. User conduct
+          </h2>
+          <span
+            aria-hidden
+            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+          />
+          <p>
             Users are expected to conduct themselves with adab (etiquette)
-            within community forums and live sessions. Harassment, hate speech,
-            or disruptive behavior will lead to immediate account suspension.
+            within community forums and live sessions. Harassment, hate
+            speech, or disruptive behavior will lead to immediate account
+            suspension.
           </p>
-        </article>
-      </section>
+        </section>
+      </article>
+
+      <Link
+        href="/"
+        className="flex w-fit items-center gap-2 text-sm text-lapis transition-colors hover:text-ivory"
+      >
+        <ArrowLeft className="size-4" />
+        Return to home
+      </Link>
     </main>
   );
 }

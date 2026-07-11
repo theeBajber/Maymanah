@@ -23,8 +23,8 @@ export function ThemeSelector() {
             onClick={() => setTheme(value)}
             className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
               active
-                ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                : "border-border-strong bg-bg-primary text-text-secondary hover:border-emerald-300 hover:text-text-primary"
+                ? "border-primary bg-primary-muted text-primary"
+                : "border-border-strong bg-bg-primary text-text-secondary hover:border-primary/40 hover:text-text-primary"
             }`}
             aria-pressed={active}
           >

@@ -9,6 +9,7 @@ export function CourseCard({
   progress,
   lessons,
   href,
+  index = 0,
 }: {
   className?: string;
   image?: string | null;
@@ -16,6 +17,7 @@ export function CourseCard({
   progress?: number | null;
   lessons?: number | null;
   href?: string;
+  index?: number;
 }) {
   const totalLessons = lessons ?? 0;
   const completedLessons = totalLessons > 0
@@ -26,13 +28,15 @@ export function CourseCard({
   return (
     <Link
       href={href ?? ""}
-      className={`group relative flex flex-col rounded-2xl overflow-hidden bg-bg-elevated border border-border shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 ${className}`}
+      style={{ "--i": index } as React.CSSProperties}
+      className={`hover-lift stagger-item group relative flex flex-col rounded-2xl overflow-hidden bg-bg-elevated border border-border shadow-raise hover:border-primary/30 ${className}`}
     >
       <div className="relative h-40 overflow-hidden">
         {image ? (
           <Image
             src={image}
             fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
             alt={title ?? "Course"}
           />
@@ -40,6 +44,7 @@ export function CourseCard({
           <Image
             src={"/calligraphy.png"}
             fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
             alt="Course"
           />
@@ -74,16 +79,19 @@ export function LeaderBoardCard({
   name,
   xp,
   image,
+  index = 0,
 }: {
   currentUser?: boolean;
   rank?: number;
   name?: string | null;
   xp?: number;
   image?: string | null;
+  index?: number;
 }) {
   return (
     <div
-      className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
+      style={{ "--i": index } as React.CSSProperties}
+      className={`stagger-item flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
         currentUser ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-bg-hover"
       }`}
     >

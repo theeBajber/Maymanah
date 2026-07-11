@@ -12,12 +12,12 @@ export function DailySessionButton({
   endTime: string;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const { toast } = useToast();
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000);
+    const id = setInterval(() => setNow(new Date()), 1_000);
     return () => clearInterval(id);
   }, []);
 
@@ -47,11 +47,18 @@ export function DailySessionButton({
   }
 
   if (isBefore) {
-    const minsUntil = Math.round((start.getTime() - now.getTime()) / 60000);
+    const diff = start.getTime() - now.getTime();
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    let label: string;
+    if (h > 0) label = `${h}h ${m}m`;
+    else if (m > 0) label = `${m}m ${s}s`;
+    else label = `${s}s`;
     return (
       <div className="flex items-center gap-3 text-sm text-text-secondary">
         <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
-        Coming up in {minsUntil} min
+        Coming up in {label}
       </div>
     );
   }
@@ -60,7 +67,7 @@ export function DailySessionButton({
     <button
       onClick={handleStart}
       disabled={loading || !canJoin}
-      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse rounded-xl font-semibold text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] shadow-sm shadow-primary/20"
+      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse rounded-xl font-semibold text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] hover:shadow-glow-brass"
     >
       {loading ? "Starting..." : canJoin ? "Start Session" : "Session ended"}
     </button>
