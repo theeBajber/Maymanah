@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClock, faSpinner, faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import { faSpinner, faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { useToast } from "@/components/ui/toast";
 import { RescheduleAvailabilityButton } from "./RescheduleAvailabilityButton";
 
@@ -16,7 +16,7 @@ export function ScheduleSectionClient({
   mentorshipId: string;
   teacherId: string;
   teacherAvail: { dayOfWeek: number; startTime: string; endTime: string }[];
-  mismatchNotifications: { id: string; body: string | null; metadata: any }[];
+  mismatchNotifications: { id: string; body: string | null; metadata: unknown }[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -94,7 +94,6 @@ export function ScheduleSectionClient({
       <div id="schedule-section">
         <RescheduleAvailabilityButton
           mentorshipId={mentorshipId}
-          teacherId={teacherId}
           teacherAvail={teacherAvail}
           autoOpen={autoOpen}
         />

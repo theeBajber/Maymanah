@@ -39,9 +39,8 @@ export function SetAvailabilityForPairing() {
   const preDragSelectedRef = useRef<Set<SlotKey> | null>(null);
 
   const FIRST_HOUR = HOURS[0];
-  const ROWS = HOURS.length * MINUTES.length;
 
-  function getCellKey(row: number, day: number): SlotKey {
+  const getCellKey = useCallback((row: number, day: number): SlotKey => {
     const hourOffset = Math.floor(row / MINUTES.length);
     const minOffset = (row % MINUTES.length) * (60 / MINUTES.length);
     const hour = FIRST_HOUR + hourOffset;
@@ -51,14 +50,14 @@ export function SetAvailabilityForPairing() {
     const endHour = min === 0 ? hour : hour + 1;
     const end = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
     return toSlotKey(day, start, end);
-  }
+  }, [FIRST_HOUR]);
 
-  function getRectKeys(
+  const getRectKeys = useCallback((
     anchorRow: number,
     anchorDay: number,
     currentRow: number,
     currentDay: number,
-  ): Set<SlotKey> {
+  ): Set<SlotKey> => {
     const minRow = Math.min(anchorRow, currentRow);
     const maxRow = Math.max(anchorRow, currentRow);
     const minDay = Math.min(anchorDay, currentDay);
@@ -70,7 +69,7 @@ export function SetAvailabilityForPairing() {
       }
     }
     return keys;
-  }
+  }, [getCellKey]);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -106,7 +105,7 @@ export function SetAvailabilityForPairing() {
         return next;
       });
     },
-    [selected],
+    [selected, getCellKey],
   );
 
   const handleCellMouseEnter = useCallback(
@@ -126,7 +125,7 @@ export function SetAvailabilityForPairing() {
         return;
       }
       prevRectKeysRef.current = newRectKeys;
-      setSelected((prev) => {
+      setSelected(() => {
         const base = preDragSelectedRef.current!;
         if (dragActionRef.current === "add") {
           const next = new Set(base);
@@ -139,7 +138,7 @@ export function SetAvailabilityForPairing() {
         }
       });
     },
-    [],
+    [getRectKeys],
   );
 
   async function handleSaveAndPair() {
@@ -205,7 +204,7 @@ export function SetAvailabilityForPairing() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-elevated shadow-raise p-6">
+    <div className="rounded-2xl border border-border bg-bg-elevated p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <FontAwesomeIcon icon={faClock} className="text-primary size-4" />
@@ -294,7 +293,10 @@ export function SetAvailabilityForPairing() {
         >
           {saving ? (
             <>
-              <FontAwesomeIcon icon={faSpinner} className="size-3.5 animate-spin" />
+              <FontAwesomeIcon
+                icon={faSpinner}
+                className="size-3.5 animate-spin"
+              />
               Finding a teacher...
             </>
           ) : (
