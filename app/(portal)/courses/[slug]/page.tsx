@@ -7,25 +7,20 @@ import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  Award,
   Bolt,
-  Download,
   Lock,
   Sun,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlay,
-  faLock,
   faCheckCircle,
   faClipboardList,
   faClock,
   faGraduationCap,
   faArrowRight,
   faVideo,
-  faBolt,
   faStar,
-  faSun,
   faCertificate,
   faAward,
 } from "@fortawesome/free-solid-svg-icons";
@@ -230,7 +225,7 @@ export default async function CourseDetailPage({
   let mismatchNotifications: {
     id: string;
     body: string | null;
-    metadata: any;
+    metadata: unknown;
   }[] = [];
 
   if (course.slug === "hifdh-ul-quran" && userId) {
@@ -330,8 +325,6 @@ export default async function CourseDetailPage({
     }
   }
 
-  const now = new Date();
-
   function formatSessionDate(startTime: Date) {
     const date = new Date(startTime);
     const today = new Date();
@@ -346,10 +339,6 @@ export default async function CourseDetailPage({
     if (isToday) return `Today at ${time}`;
     if (isTomorrow) return `Tomorrow at ${time}`;
     return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${time}`;
-  }
-
-  function canJoinSession(startTime: Date, endTime: Date | null) {
-    return now >= startTime && (!endTime || now <= endTime);
   }
 
   function getNextOccurrence(slot: { dayOfWeek: number; startTime: string }): Date | null {
@@ -600,30 +589,30 @@ export default async function CourseDetailPage({
         </section>
       ) : (
         <>
-        {isEnrolled && course.lessons.length > 0 &&
-          (course.enrollmentStatus === "COMPLETED" || completedCount >= course.lessons.length) && (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-bg-elevated p-6 text-center shadow-raise sm:flex-row sm:items-center sm:justify-between sm:text-left">
-              <div className="flex items-center gap-4">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-primary/30 text-primary">
-                  <Award className="size-6" />
-                </span>
-                <div>
-                  <h3 className={`${elMessiri.className} text-lg font-semibold text-text-primary`}>
-                    Course complete — well done!
-                  </h3>
-                  <p className="text-sm text-text-secondary">
-                    Your certificate of completion is ready to download.
-                  </p>
-                </div>
-              </div>
-              <a
-                href={`/api/courses/${slug}/certificate`}
-                className="flex shrink-0 items-center justify-center gap-2 rounded-[10px] bg-primary px-5 py-2.5 text-sm font-semibold text-text-inverse transition-all hover:shadow-glow-brass active:scale-[0.97]"
-              >
-                <Download className="size-4" />
-                Download Certificate
-              </a>
+        {isEnrolled && course.lessons.length > 0 && certificate && (
+          <Link
+            href={`/certificates/${certificate.id}`}
+            className="group flex items-center gap-4 p-4 rounded-xl border border-success/30 bg-success/5 hover:border-success/50 hover:bg-success/10 transition-all"
+          >
+            <div className="size-11 rounded-xl bg-success flex items-center justify-center shrink-0">
+              <FontAwesomeIcon
+                icon={faAward}
+                className="size-5 text-text-inverse"
+              />
             </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-text-primary">
+                Certificate Earned
+              </h3>
+              <p className="text-xs text-text-secondary mt-1">
+                View and download your course certificate
+              </p>
+            </div>
+            <span className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success text-text-inverse font-semibold text-sm group-hover:brightness-110 transition-all">
+              View Certificate
+              <FontAwesomeIcon icon={faArrowRight} className="size-3" />
+            </span>
+          </Link>
         )}
 
         <section>
@@ -790,7 +779,7 @@ export default async function CourseDetailPage({
             <EmptyState title="Content for this course is being prepared." />
           )}
 
-          {isEnrolled && finalExam && (
+          {isEnrolled && finalExam && !certificate && (
             <div className="mt-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="size-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
@@ -804,32 +793,7 @@ export default async function CourseDetailPage({
                 </h2>
               </div>
 
-              {certificate ? (
-                <Link
-                  href={`/certificates/${certificate.id}`}
-                  className="group flex items-center gap-4 p-4 rounded-xl border border-success/30 bg-success/5 hover:border-success/50 hover:bg-success/10 transition-all"
-                >
-                  <div className="size-11 rounded-xl bg-success flex items-center justify-center shrink-0">
-                    <FontAwesomeIcon
-                      icon={faAward}
-                      className="size-5 text-text-inverse"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-text-primary">
-                      Certificate Earned
-                    </h3>
-                    <p className="text-xs text-text-secondary mt-1">
-                      View and download your course certificate
-                    </p>
-                  </div>
-                  <span className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success text-text-inverse font-semibold text-sm group-hover:brightness-110 transition-all">
-                    View Certificate
-                    <FontAwesomeIcon icon={faArrowRight} className="size-3" />
-                  </span>
-                </Link>
-              ) : (
-                <Link
+              <Link
                   href={`/courses/${slug}/exam`}
                   className={`group flex items-center gap-4 p-4 rounded-xl border transition-all ${
                     completedCount >= course.lessons.length
@@ -909,7 +873,6 @@ export default async function CourseDetailPage({
                     )}
                   </div>
                 </Link>
-              )}
             </div>
           )}
 

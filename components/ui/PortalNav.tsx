@@ -18,12 +18,21 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
-import useSWR from "swr";
 import { elMessiri } from "@/components/ui/fonts";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTopNavContent } from "@/lib/TopNavContext";
+
+type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  isRead: boolean;
+  createdAt: string;
+  metadata: { link?: string } | null;
+};
 
 function ProfileDropdown({
   open,
@@ -187,7 +196,7 @@ function NotificationDropdown({
               <Link
                 key={n.id}
                 href={href}
-                onClick={async (e) => {
+                onClick={async () => {
                   if (!n.isRead) {
                     await fetch("/api/notifications/read", {
                       method: "PATCH",
@@ -238,153 +247,6 @@ function NotificationDropdown({
               </Link>
             );
           })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-type NotificationItem = {
-  id: string;
-  type: string;
-  title: string;
-  body: string | null;
-  isRead: boolean;
-  createdAt: string;
-  metadata: { link?: string } | null;
-};
-
-function timeAgo(iso: string) {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function NotificationBell() {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { data, mutate } = useSWR<{
-    notifications: NotificationItem[];
-    unreadCount: number;
-  }>("/api/user/notifications", fetcher, { refreshInterval: 60000 });
-
-  const notifications = data?.notifications ?? [];
-  const unreadCount = data?.unreadCount ?? 0;
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [open]);
-
-  async function markAllRead() {
-    await fetch("/api/user/notifications", { method: "PATCH" });
-    mutate();
-  }
-
-  async function handleNotificationClick(item: NotificationItem) {
-    if (!item.isRead) {
-      await fetch(`/api/user/notifications/${item.id}`, { method: "PATCH" });
-      mutate();
-    }
-    setOpen(false);
-    if (item.metadata?.link) {
-      router.push(item.metadata.link);
-    }
-  }
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        className="relative flex size-9 items-center justify-center rounded-[10px] text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
-        aria-label={
-          unreadCount > 0
-            ? `Notifications, ${unreadCount} unread`
-            : "Notifications"
-        }
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 flex size-2.5 items-center justify-center rounded-full bg-danger text-[8px] font-bold text-text-inverse" />
-        )}
-        <FontAwesomeIcon icon={faBell} className="size-4" />
-      </button>
-
-      {open && (
-        <div
-          role="menu"
-          className="glass-pane animate-slide-in absolute right-0 top-12 z-50 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl"
-        >
-          <div className="flex items-center justify-between border-b border-ivory/8 px-4 py-3">
-            <p className="text-sm font-semibold text-text-primary">
-              Notifications
-            </p>
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllRead}
-                className="text-xs font-medium text-primary transition-colors hover:text-primary-light"
-              >
-                Mark all as read
-              </button>
-            )}
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-text-secondary">
-                No notifications yet.
-              </p>
-            ) : (
-              notifications.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleNotificationClick(item)}
-                  className={`flex w-full flex-col gap-0.5 border-b border-ivory/5 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-bg-hover ${
-                    item.isRead ? "" : "bg-primary/5"
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    {!item.isRead && (
-                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                    )}
-                    <span
-                      className={`flex-1 text-sm ${item.isRead ? "text-text-secondary" : "font-medium text-text-primary"}`}
-                    >
-                      {item.title}
-                    </span>
-                  </div>
-                  {item.body && (
-                    <p className="pl-3.5 text-xs text-text-secondary line-clamp-2">
-                      {item.body}
-                    </p>
-                  )}
-                  <p className="pl-3.5 text-[11px] text-text-muted">
-                    {timeAgo(item.createdAt)}
-                  </p>
-                </button>
-              ))
-            )}
-          </div>
         </div>
       )}
     </div>
@@ -442,10 +304,17 @@ export function TopNav() {
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Image
             src="/logo.png"
-            alt="Maymanah"
-            className="h-8 md:h-9 w-auto"
-            width={439}
-            height={339}
+            alt=""
+            className="h-8 md:h-9 w-auto dark:hidden"
+            width={413}
+            height={279}
+          />
+          <Image
+            src="/logo-ivory.png"
+            alt=""
+            className="h-8 md:h-9 w-auto hidden dark:block"
+            width={413}
+            height={279}
           />
           <span
             className={`${elMessiri.className} hidden text-lg font-semibold text-text-primary sm:inline`}

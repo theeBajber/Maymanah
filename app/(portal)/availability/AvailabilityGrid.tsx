@@ -47,9 +47,8 @@ export function AvailabilityGrid({
   const preDragSelectedRef = useRef<Set<SlotKey> | null>(null);
 
   const FIRST_HOUR = HOURS[0];
-  const ROWS = HOURS.length * MINUTES.length;
 
-  function getCellKey(row: number, day: number): SlotKey {
+  const getCellKey = useCallback((row: number, day: number): SlotKey => {
     const hourOffset = Math.floor(row / MINUTES.length);
     const minOffset = (row % MINUTES.length) * (60 / MINUTES.length);
     const hour = FIRST_HOUR + hourOffset;
@@ -59,14 +58,14 @@ export function AvailabilityGrid({
     const endHour = min === 0 ? hour : hour + 1;
     const end = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
     return toSlotKey(day, start, end);
-  }
+  }, [FIRST_HOUR]);
 
-  function getRectKeys(
+  const getRectKeys = useCallback((
     anchorRow: number,
     anchorDay: number,
     currentRow: number,
     currentDay: number,
-  ): Set<SlotKey> {
+  ): Set<SlotKey> => {
     const minRow = Math.min(anchorRow, currentRow);
     const maxRow = Math.max(anchorRow, currentRow);
     const minDay = Math.min(anchorDay, currentDay);
@@ -78,7 +77,7 @@ export function AvailabilityGrid({
       }
     }
     return keys;
-  }
+  }, [getCellKey]);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -114,7 +113,7 @@ export function AvailabilityGrid({
         return next;
       });
     },
-    [selected],
+    [selected, getCellKey],
   );
 
   const handleCellMouseEnter = useCallback(
@@ -134,7 +133,7 @@ export function AvailabilityGrid({
         return;
       }
       prevRectKeysRef.current = newRectKeys;
-      setSelected((prev) => {
+      setSelected(() => {
         const base = preDragSelectedRef.current!;
         if (dragActionRef.current === "add") {
           const next = new Set(base);
@@ -147,7 +146,7 @@ export function AvailabilityGrid({
         }
       });
     },
-    [],
+    [getRectKeys],
   );
 
   async function handleSave() {

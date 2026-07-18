@@ -16,6 +16,9 @@
     --lapis: #8FA9D0;
     --ivory: #EAE6DA;
     --sage: #93A5A8;
+    --layl-deep-rgb: 6, 13, 17;
+    --ivory-rgb: 234, 230, 218;
+    --brass-rgb: 198, 161, 91;
 
     /* semantic states tuned for the night palette */
     --night-success: #8FBF9A;
@@ -64,6 +67,9 @@
     --border-strong: #c9b98c;
     --divider: #ede4cd;
     --pattern-image: url("/pattern-light.png");
+    --bg-primary-rgb: 244, 239, 226;
+    --bg-elevated-rgb: 250, 247, 238;
+    --border-rgb: 222, 210, 174;
 }
 
 @theme inline {
@@ -164,6 +170,9 @@
         --border: #1c2b33;
         --border-strong: #2a3e48;
         --divider: #142128;
+        --bg-primary-rgb: 11, 21, 27;
+        --bg-elevated-rgb: 16, 30, 38;
+        --border-rgb: 28, 43, 51;
     }
 }
 
@@ -326,6 +335,9 @@
     --border-strong: #2a3e48;
     --divider: #142128;
     --pattern-image: url("/pattern.png");
+    --bg-primary-rgb: 11, 21, 27;
+    --bg-elevated-rgb: 16, 30, 38;
+    --border-rgb: 28, 43, 51;
 }
 
 /* Force light variables when .light class is present (override prefers-color-scheme) */
@@ -367,6 +379,9 @@
     --border-strong: #c9b98c;
     --divider: #ede4cd;
     --pattern-image: url("/pattern-light.png");
+    --bg-primary-rgb: 244, 239, 226;
+    --bg-elevated-rgb: 250, 247, 238;
+    --border-rgb: 222, 210, 174;
 }
 
 /* Hero background helper that uses the pattern image variable */
@@ -438,41 +453,41 @@ button {
 /* --- Glass grades (see DESIGN_SYSTEM.md 2.2) ---
    Perf rule: max 3 backdrop-filter surfaces per viewport. */
 .glass-pane {
-    background: rgba(16, 30, 38, 0.55);
-    backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
-    border: 1px solid rgba(234, 230, 218, 0.1);
+    background: rgba(var(--bg-elevated-rgb), 0.72);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border: 1px solid rgba(var(--border-rgb), 0.12);
     box-shadow:
-        inset 0 1px 0 rgba(234, 230, 218, 0.07),
-        0 12px 32px -8px rgba(6, 13, 17, 0.6);
+        inset 0 1px 0 rgba(var(--border-rgb), 0.07),
+        0 12px 32px -8px rgba(var(--layl-deep-rgb), 0.6);
 }
 
 /* Pane look without backdrop-filter — for card lists and any surface
    beyond the 3-blur budget. More opaque to compensate for no blur. */
 .glass-still {
-    background: rgba(16, 30, 38, 0.78);
-    border: 1px solid rgba(234, 230, 218, 0.1);
+    background: rgba(var(--bg-elevated-rgb), 0.9);
+    border: 1px solid rgba(var(--border-rgb), 0.12);
     box-shadow:
-        inset 0 1px 0 rgba(234, 230, 218, 0.07),
-        0 12px 32px -8px rgba(6, 13, 17, 0.6);
+        inset 0 1px 0 rgba(var(--border-rgb), 0.07),
+        0 12px 32px -8px rgba(var(--layl-deep-rgb), 0.6);
 }
 
 .glass-veil {
-    background: rgba(11, 21, 27, 0.65);
-    backdrop-filter: blur(12px) saturate(1.2);
-    -webkit-backdrop-filter: blur(12px) saturate(1.2);
-    border-bottom: 1px solid rgba(234, 230, 218, 0.08);
+    background: rgba(var(--bg-primary-rgb), 0.82);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border-bottom: 1px solid rgba(var(--border-rgb), 0.1);
 }
 
 .glass-lantern {
-    background: rgba(16, 30, 38, 0.55);
-    backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
-    border: 1px solid rgba(198, 161, 91, 0.28);
+    background: rgba(var(--bg-elevated-rgb), 0.72);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border: 1px solid rgba(var(--brass-rgb), 0.28);
     box-shadow:
-        inset 0 1px 0 rgba(234, 230, 218, 0.09),
-        0 0 48px -16px rgba(198, 161, 91, 0.3),
-        0 12px 32px -8px rgba(6, 13, 17, 0.6);
+        inset 0 1px 0 rgba(var(--border-rgb), 0.09),
+        0 0 48px -16px rgba(var(--brass-rgb), 0.3),
+        0 12px 32px -8px rgba(var(--layl-deep-rgb), 0.6);
 }
 
 /* Night scene: containers that are always the night palette,

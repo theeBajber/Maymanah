@@ -34,12 +34,10 @@ function parseSlotKey(key: SlotKey) {
 
 export function RescheduleAvailabilityButton({
   mentorshipId,
-  teacherId,
   teacherAvail,
   autoOpen,
 }: {
   mentorshipId: string;
-  teacherId: string;
   teacherAvail: TeacherAvail[];
   autoOpen?: boolean;
 }) {
@@ -51,6 +49,7 @@ export function RescheduleAvailabilityButton({
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (autoOpen) setOpen(true);
   }, [autoOpen]);
 
@@ -61,7 +60,6 @@ export function RescheduleAvailabilityButton({
   const preDragSelectedRef = useRef<Set<SlotKey> | null>(null);
 
   const FIRST_HOUR = HOURS[0];
-  const ROWS = HOURS.length * MINUTES.length;
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -77,7 +75,7 @@ export function RescheduleAvailabilityButton({
     return () => window.removeEventListener("mouseup", handleMouseUp);
   }, []);
 
-  function isTeacherAvailable(day: number, start: string, end: string): boolean {
+  const isTeacherAvailable = useCallback((day: number, start: string, end: string): boolean => {
     const startMin = parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]);
     const endMin = parseInt(end.split(":")[0]) * 60 + parseInt(end.split(":")[1]);
     return teacherAvail.some((a) => {
@@ -86,9 +84,9 @@ export function RescheduleAvailabilityButton({
       const aEnd = parseInt(a.endTime.split(":")[0]) * 60 + parseInt(a.endTime.split(":")[1]);
       return startMin >= aStart && endMin <= aEnd;
     });
-  }
+  }, [teacherAvail]);
 
-  function getCellKey(row: number, day: number): SlotKey {
+  const getCellKey = useCallback((row: number, day: number): SlotKey => {
     const hourOffset = Math.floor(row / MINUTES.length);
     const minOffset = (row % MINUTES.length) * (60 / MINUTES.length);
     const hour = FIRST_HOUR + hourOffset;
@@ -98,14 +96,14 @@ export function RescheduleAvailabilityButton({
     const endHour = min === 0 ? hour : hour + 1;
     const end = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
     return toSlotKey(day, start, end);
-  }
+  }, [FIRST_HOUR]);
 
-  function getRectKeys(
+  const getRectKeys = useCallback((
     anchorRow: number,
     anchorDay: number,
     currentRow: number,
     currentDay: number,
-  ): Set<SlotKey> {
+  ): Set<SlotKey> => {
     const minRow = Math.min(anchorRow, currentRow);
     const maxRow = Math.max(anchorRow, currentRow);
     const minDay = Math.min(anchorDay, currentDay);
@@ -117,7 +115,7 @@ export function RescheduleAvailabilityButton({
       }
     }
     return keys;
-  }
+  }, [getCellKey]);
 
   const handleCellMouseDown = useCallback(
     (row: number, day: number) => {
@@ -142,7 +140,7 @@ export function RescheduleAvailabilityButton({
         return next;
       });
     },
-    [selected, teacherAvail],
+    [selected, getCellKey, isTeacherAvailable],
   );
 
   const handleCellMouseEnter = useCallback(
@@ -155,7 +153,6 @@ export function RescheduleAvailabilityButton({
         day,
       );
 
-      // Filter out unavailable cells from the rect
       const filteredKeys = new Set<SlotKey>();
       for (const k of newRectKeys) {
         const { day: d, start, end } = parseSlotKey(k);
@@ -172,7 +169,7 @@ export function RescheduleAvailabilityButton({
         return;
       }
       prevRectKeysRef.current = filteredKeys as unknown as Set<string>;
-      setSelected((prev) => {
+      setSelected(() => {
         const base = preDragSelectedRef.current!;
         if (dragActionRef.current === "add") {
           const next = new Set(base);
@@ -185,7 +182,7 @@ export function RescheduleAvailabilityButton({
         }
       });
     },
-    [teacherAvail],
+    [getRectKeys, isTeacherAvailable],
   );
 
   async function handleSave() {
