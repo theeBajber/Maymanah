@@ -30,49 +30,68 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    const enrollment = await safeQuery(() =>
-      prisma.enrollment.findUnique({
+    // Check if certificate already exists — if so, allow download immediately
+    const existing = await safeQuery(() =>
+      prisma.ijazah.findUnique({
         where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
-        select: { status: true, progress: true },
       }),
     );
 
-    const isComplete =
-      enrollment?.status === "COMPLETED" || (enrollment?.progress ?? 0) >= 100;
-
-    if (!enrollment || !isComplete) {
-      return NextResponse.json(
-        { error: "Complete every module in this course to unlock your certificate." },
-        { status: 403 },
-      );
-    }
-
-    // Find-or-create so the certificate ID and issue date stay stable
-    // across repeated downloads.
-    const ijazah = await safeQuery(() =>
-      prisma.ijazah.upsert({
-        where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
-        create: {
-          userId: session.user.id,
-          courseId: course.id,
-          issuedBy: "SYSTEM",
-        },
-        update: {},
-      }),
-    );
+    let ijazah = existing;
 
     if (!ijazah) {
-      return NextResponse.json(
-        { error: "Could not issue certificate. Please try again." },
-        { status: 500 },
+      // No certificate yet — require completed enrollment before issuing
+      const enrollment = await safeQuery(() =>
+        prisma.enrollment.findUnique({
+          where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
+          select: { status: true, progress: true },
+        }),
       );
+
+      const isComplete =
+        enrollment?.status === "COMPLETED" || (enrollment?.progress ?? 0) >= 100;
+
+      if (!enrollment || !isComplete) {
+        return NextResponse.json(
+          { error: "Complete every module in this course to unlock your certificate." },
+          { status: 403 },
+        );
+      }
+
+      // Issue certificate now
+      ijazah = await safeQuery(() =>
+        prisma.ijazah.upsert({
+          where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
+          create: {
+            userId: session.user.id,
+            courseId: course.id,
+            issuedBy: "SYSTEM",
+          },
+          update: {},
+        }),
+      );
+
+      if (!ijazah) {
+        return NextResponse.json(
+          { error: "Could not issue certificate. Please try again." },
+          { status: 500 },
+        );
+      }
     }
+
+    // issuedBy stores the teacher name for mentorship-based courses (set by
+    // issueCertificate in progress.ts) — use it as teacherName when present
+    const teacherName =
+      ijazah.issuedBy && ijazah.issuedBy !== "SYSTEM"
+        ? ijazah.issuedBy
+        : undefined;
 
     const pdfBuffer = await renderCertificatePdf({
       studentName: session.user.name || "Student",
       courseTitle: course.title,
       issuedAt: ijazah.issuedAt,
       certificateId: ijazah.id,
+      teacherName,
     });
 
     const fileName = `Maymanah-Certificate-${course.title.replace(/[^a-z0-9]+/gi, "-")}.pdf`;

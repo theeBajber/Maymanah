@@ -140,7 +140,19 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     textAlign: "center",
     marginTop: 4,
-    marginBottom: 16,
+    marginBottom: 4,
+  },
+  teacherLine: {
+    fontSize: 11,
+    color: COLORS.sage,
+    textAlign: "center",
+    marginBottom: 14,
+  },
+  teacherName: {
+    fontFamily: "El Messiri",
+    fontWeight: 600,
+    fontSize: 11,
+    color: COLORS.brass,
   },
   footerRow: {
     flexDirection: "row",
@@ -204,9 +216,10 @@ export type CertificateData = {
   courseTitle: string;
   issuedAt: Date;
   certificateId: string;
+  teacherName?: string;
 };
 
-function CertificateDocument({ studentName, courseTitle, issuedAt, certificateId }: CertificateData) {
+function CertificateDocument({ studentName, courseTitle, issuedAt, certificateId, teacherName }: CertificateData) {
   const dateLabel = issuedAt.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -252,6 +265,12 @@ function CertificateDocument({ studentName, courseTitle, issuedAt, certificateId
               has successfully completed the course
             </Text>
             <Text style={styles.courseName}>{courseTitle}</Text>
+
+            {teacherName && (
+              <Text style={styles.teacherLine}>
+                Under the guidance of <Text style={styles.teacherName}>{teacherName}</Text>
+              </Text>
+            )}
 
             <View style={styles.footerRow}>
               <View style={styles.footerBlock}>

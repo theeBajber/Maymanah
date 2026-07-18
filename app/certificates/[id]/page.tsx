@@ -1,11 +1,24 @@
 import { notFound } from "next/navigation";
 import { prisma, safeQuery } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { elMessiri } from "@/components/ui/fonts";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faAward, faShield, faDownload } from "@fortawesome/free-solid-svg-icons";
-import { amiri } from "@/components/ui/fonts";
+import { faDownload } from "@fortawesome/free-solid-svg-icons";
 
 export const dynamic = "force-dynamic";
+
+function Diamond({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" className={`size-4 ${className}`}>
+      <path
+        d="M8,0 L16,8 L8,16 L0,8 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
 
 export default async function CertificateViewPage({
   params,
@@ -19,7 +32,7 @@ export default async function CertificateViewPage({
       where: { id },
       include: {
         user: { select: { name: true } },
-        course: { select: { title: true } },
+        course: { select: { title: true, slug: true } },
       },
     }),
   );
@@ -35,65 +48,134 @@ export default async function CertificateViewPage({
     day: "numeric",
   });
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-elevated to-bg-secondary flex items-center justify-center p-6">
-      <div className="w-full max-w-3xl">
-        <div className="relative bg-bg-card border-2 border-primary/20 rounded-2xl overflow-hidden shadow-2xl">
-          {/* Decorative borders */}
-          <div className="absolute inset-0 border-[6px] border-primary/10 rounded-2xl pointer-events-none" />
-          <div className="absolute inset-[12px] border border-primary/5 rounded-xl pointer-events-none" />
+  const shortId = certificate.id.slice(-10).toUpperCase();
 
-          {/* Header ornament */}
-          <div className="text-center pt-12 pb-2">
-            <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <FontAwesomeIcon icon={faAward} className="size-8 text-primary" />
+  const teacherName =
+    certificate.issuedBy && certificate.issuedBy !== "SYSTEM"
+      ? certificate.issuedBy
+      : undefined;
+
+  return (
+    <div className="min-h-screen bg-bg-primary flex items-center justify-center p-6">
+      <div className="w-full max-w-4xl">
+        {/* Certificate */}
+        <div className="relative bg-[#FBF8F1] rounded-sm shadow-2xl overflow-hidden">
+          {/* Outer border */}
+          <div className="absolute inset-0 border-[3px] border-[#8A6A34] pointer-events-none" />
+          {/* Inner border */}
+          <div className="absolute inset-[8px] border border-[#C6A15B] pointer-events-none" />
+
+          {/* Corner diamonds */}
+          <Diamond className="absolute top-5 left-5 text-[#8A6A34]" />
+          <Diamond className="absolute top-5 right-5 text-[#8A6A34]" />
+          <Diamond className="absolute bottom-5 left-5 text-[#8A6A34]" />
+          <Diamond className="absolute bottom-5 right-5 text-[#8A6A34]" />
+
+          {/* Content */}
+          <div className="relative px-20 py-16 flex flex-col items-center text-center">
+            {/* Eyebrow */}
+            <p className="text-[11px] tracking-[0.3em] uppercase text-[#8A6A34] mb-4">
+              A Global Quranic Sanctuary
+            </p>
+
+            {/* Brand */}
+            <div className="flex items-center gap-2.5 mb-6">
+              <Diamond className="text-[#8A6A34]" />
+              <span className={`${elMessiri.className} text-xl font-semibold tracking-wider text-[#0B151B]`}>
+                Maymanah
+              </span>
             </div>
-            <h1 className={`${amiri.className} text-4xl font-bold text-primary mb-2`}>
+
+            {/* Title */}
+            <h1 className={`${elMessiri.className} text-4xl font-bold text-[#0B151B] mb-3`}>
               Certificate of Completion
             </h1>
-            <p className="text-text-muted text-sm">Maymanah Institute</p>
-          </div>
 
-          {/* Body */}
-          <div className="px-12 py-8 text-center">
-            <p className="text-text-secondary text-sm mb-2">This certifies that</p>
-            <h2 className={`${amiri.className} text-3xl font-bold text-text-primary mb-4`}>
+            {/* Subtitle */}
+            <p className="text-[11px] tracking-[0.25em] uppercase text-[#4B5A5D] mb-8">
+              Issued in recognition of dedicated study
+            </p>
+
+            {/* Body */}
+            <p className="text-sm text-[#4B5A5D] mb-3">This certifies that</p>
+
+            <h2 className={`${elMessiri.className} text-[2rem] font-bold text-[#8A6A34] mb-3`}>
               {certificate.user.name || "Student"}
             </h2>
-            <p className="text-text-secondary text-sm mb-1">has successfully completed the course</p>
-            <h3 className={`${amiri.className} text-2xl font-semibold text-text-primary mb-6`}>
-              {certificate.course.title}
-            </h3>
 
-            <div className="flex items-center justify-center gap-8 text-xs text-text-muted mb-8">
-              <span>Issued: {issuedDate}</span>
-              {certificate.verificationCode && (
-                <span className="flex items-center gap-1">
-                  <FontAwesomeIcon icon={faShield} className="size-3 text-success" />
-                  Verified
+            <div className="w-56 h-px bg-[#C6A15B] mb-5" />
+
+            <p className="text-[13px] text-[#0B151B] mb-2">
+              has successfully completed the course
+            </p>
+
+            <p className={`${elMessiri.className} text-lg font-semibold text-[#0B151B] mb-2`}>
+              {certificate.course.title}
+            </p>
+
+            {teacherName && (
+              <p className="text-[11px] text-[#4B5A5D] mb-4">
+                Under the guidance of{" "}
+                <span className={`${elMessiri.className} font-semibold text-[#8A6A34]`}>
+                  {teacherName}
                 </span>
-              )}
-              <span>ID: {certificate.verificationCode || certificate.id.slice(0, 8)}</span>
+              </p>
+            )}
+
+            {/* Footer row */}
+            <div className="flex items-start justify-between w-full max-w-lg mt-6">
+              {/* Date */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold text-[#0B151B] mb-1">{issuedDate}</span>
+                <div className="w-32 h-px bg-[#4B5A5D] mb-1.5" />
+                <span className="text-[8px] tracking-[0.2em] uppercase text-[#4B5A5D]">
+                  Date Issued
+                </span>
+              </div>
+
+              {/* Seal */}
+              <div className="flex flex-col items-center -mt-1">
+                <svg viewBox="0 0 44 44" className="size-10">
+                  <path
+                    d="M22,4 L40,22 L22,40 L4,22 Z"
+                    fill="none"
+                    stroke="#8A6A34"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M22,12 L32,22 L22,32 L12,22 Z"
+                    fill="none"
+                    stroke="#C6A15B"
+                    strokeWidth="1"
+                  />
+                </svg>
+              </div>
+
+              {/* Certificate ID */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold text-[#0B151B] mb-1">MYM-{shortId}</span>
+                <div className="w-32 h-px bg-[#4B5A5D] mb-1.5" />
+                <span className="text-[8px] tracking-[0.2em] uppercase text-[#4B5A5D]">
+                  Certificate ID
+                </span>
+              </div>
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="border-t border-border px-12 py-4 flex items-center justify-between">
-            <p className="text-xs text-text-muted">
-              Verify at maymanah.org/verify/certificate/{certificate.verificationCode || certificate.id}
-            </p>
-            {isOwner && (
-              <a
-                href={`/api/certificates/${certificate.id}/pdf`}
-                download
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-text-inverse text-sm font-medium hover:bg-primary-dark transition-colors"
-              >
-                <FontAwesomeIcon icon={faDownload} className="size-3" />
-                Download PDF
-              </a>
-            )}
-          </div>
         </div>
+
+        {/* Download button */}
+        {isOwner && (
+          <div className="mt-6 flex justify-center">
+            <a
+              href={`/api/courses/${certificate.course.slug}/certificate`}
+              download
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-text-inverse text-sm font-medium hover:bg-primary-dark transition-colors"
+            >
+              <FontAwesomeIcon icon={faDownload} className="size-3.5" />
+              Download PDF
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
