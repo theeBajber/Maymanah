@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  faBookOpen,
   faCheck,
   faChevronLeft,
   faChevronRight,
@@ -59,7 +58,12 @@ export default function SessionPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [inCall, setInCall] = useState(false);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const syncMediaStream = (stream: MediaStream | null) => {
+    mediaStreamRef.current = stream;
+    setMediaStream(stream);
+  };
 
   const [sessionPlan, setSessionPlan] = useState<SessionPlan>({
     fromSurah: 1, fromVerse: 1, toSurah: 1, toVerse: 1,
@@ -67,7 +71,9 @@ export default function SessionPage() {
   const [planSaving, setPlanSaving] = useState(false);
 
   useEffect(() => {
-    if (joinData?.plan) setSessionPlan(joinData.plan);
+    if (joinData?.plan)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSessionPlan(joinData.plan);
   }, [joinData]);
 
   async function savePlan() {
@@ -125,7 +131,7 @@ export default function SessionPage() {
         setError(err.message);
         setLoading(false);
       });
-  }, [authStatus, appointmentId, router]);
+  }, [authStatus, appointmentId, router, isTest]);
 
   const isTeacher = joinData?.appointment.isTeacher ?? false;
 
@@ -164,15 +170,16 @@ export default function SessionPage() {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      mediaStreamRef.current = stream;
+      syncMediaStream(stream);
       setInCall(true);
-    } catch (e: any) {
-      if (e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError") {
+    } catch (e: unknown) {
+      const err = e as { name?: string; message?: string } | null;
+      if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
         toast({ title: "Camera and microphone access denied", description: "Please allow permissions in your browser settings.", variant: "error" });
-      } else if (e?.name === "NotFoundError") {
+      } else if (err?.name === "NotFoundError") {
         toast({ title: "No camera or microphone found", variant: "error" });
       } else {
-        toast({ title: e?.message || "Could not access camera/microphone", variant: "error" });
+        toast({ title: err?.message || "Could not access camera/microphone", variant: "error" });
       }
     }
   }, [toast]);
@@ -275,10 +282,10 @@ export default function SessionPage() {
                 <VideoRoom
                   liveKitUrl={joinData.liveKitUrl}
                   token={joinData.token}
-                  mediaStream={mediaStreamRef.current}
+                  mediaStream={mediaStream}
                   onLeave={() => {
-                    mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-                    mediaStreamRef.current = null;
+                    mediaStream?.getTracks().forEach((t) => t.stop());
+                    syncMediaStream(null);
                     if (joinData && !isTeacher) {
                       savePlan();
                     }

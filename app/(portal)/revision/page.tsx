@@ -141,7 +141,7 @@ export default function RevisionPage() {
       if (!response.ok) {
         throw new Error('Failed to save session');
       }
-    } catch (error) {
+    } catch {
       toast({ title: 'Failed to save your revision session. Please try again.', variant: 'error' });
     } finally {
       setIsSubmitting(false);

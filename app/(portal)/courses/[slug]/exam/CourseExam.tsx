@@ -45,6 +45,7 @@ type SubmissionData = {
   status: string;
   totalScore: number | null;
   attemptNumber: number;
+  startedAt: string;
   answers: AnswerData[];
 };
 
@@ -134,21 +135,34 @@ export function CourseExam({
   // Timer
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const handleSubmitRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     if (started && submissionId && !submitted) {
+      const inProgress = submissions.find((s) => s.id === submissionId);
+      const serverStarted = inProgress?.startedAt ? new Date(inProgress.startedAt).getTime() : null;
+
       const storedStart = sessionStorage.getItem(`exam_start_${submissionId}`);
-      const startTime = storedStart ? parseInt(storedStart) : Date.now();
-      if (!storedStart) {
+      let startTime: number;
+      if (serverStarted) {
+        startTime = serverStarted;
+        if (!storedStart) {
+          sessionStorage.setItem(`exam_start_${submissionId}`, String(startTime));
+        }
+      } else if (storedStart) {
+        startTime = parseInt(storedStart);
+      } else {
+        startTime = Date.now();
         sessionStorage.setItem(`exam_start_${submissionId}`, String(startTime));
       }
+
       const endTime = startTime + exam.durationMinutes * 60 * 1000;
 
       const tick = () => {
         const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
         setTimeLeft(remaining);
         if (remaining <= 0) {
-          handleSubmit();
+          handleSubmitRef.current();
         }
       };
       tick();
@@ -157,7 +171,7 @@ export function CourseExam({
         if (timerRef.current) clearInterval(timerRef.current);
       };
     }
-  }, [started, submissionId, submitted]);
+  }, [started, submissionId, submitted, exam.durationMinutes, submissions]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -261,6 +275,10 @@ export function CourseExam({
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  });
 
   // Result view
   if (submitted && result) {

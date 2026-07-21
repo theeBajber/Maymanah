@@ -7,7 +7,6 @@ import {
   faPaperPlane,
   faCommentDots,
   faChevronLeft,
-  faCircle,
 } from "@fortawesome/free-solid-svg-icons";
 
 interface Message {

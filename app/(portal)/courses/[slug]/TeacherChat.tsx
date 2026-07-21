@@ -80,6 +80,7 @@ export default function TeacherChat() {
     if (!open && messages && messages.length > 0 && teacherId) {
       const last = messages[messages.length - 1];
       if (last && last.sender.id === teacherId) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUnreadCount((prev) => prev + 1);
       }
     }

@@ -1,10 +1,8 @@
 "use client";
 
 import { ArrowRight, Lock, Mail, User } from "lucide-react";
-import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "@/components/ui/button";
@@ -27,17 +25,17 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"STUDENT" | "TEACHER">("STUDENT");
+  const [role, setRole] = useState<"STUDENT" | "TEACHER">(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("role")?.toUpperCase() === "TEACHER"
+      ? "TEACHER"
+      : "STUDENT",
+  );
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [resending, setResending] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("role")?.toUpperCase() === "TEACHER") setRole("TEACHER");
-  }, []);
 
   const getPasswordStrength = (pwd: string): Strength | null => {
     if (pwd.length === 0) return null;
@@ -148,7 +146,7 @@ export default function Register() {
             Click the link to activate your account.
           </p>
           <p className="text-xs text-sage/60">
-            Didn't get the email? Check your spam folder or{" "}
+            Didn&apos;t get the email? Check your spam folder or{" "}
             <button
               type="button"
               disabled={resending}

@@ -75,7 +75,7 @@ export function Input({
         </span>
       )}
       <input
-        className="w-full min-w-0 bg-transparent text-[15px] text-ivory placeholder:text-sage/40 focus:outline-none"
+        className="w-full min-w-0 bg-transparent text-[15px] text-ivory placeholder:text-sage/40 focus:outline-none focus-visible:outline-none"
         aria-invalid={invalid || undefined}
         {...rest}
       />

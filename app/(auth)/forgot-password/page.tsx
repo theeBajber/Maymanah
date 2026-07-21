@@ -51,7 +51,7 @@ export default function ForgotPassword() {
           <h2 className="text-2xl font-bold text-text-primary">Check your email</h2>
           <p className="text-text-secondary text-sm leading-relaxed max-w-sm mx-auto">
             If an account with <strong className="text-text-primary">{email}</strong> exists,
-            we've sent a password reset link.
+            we&apos;ve sent a password reset link.
           </p>
           <a
             href="/login"
@@ -82,7 +82,7 @@ export default function ForgotPassword() {
 
       <form className="space-y-5" onSubmit={handleSubmit}>
         <p className="text-sm text-text-secondary text-center leading-relaxed">
-          Enter your email address and we'll send you a link to reset your password.
+          Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] uppercase tracking-widest font-bold px-1" htmlFor="email">

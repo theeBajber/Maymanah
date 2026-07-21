@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { prisma, safeQuery } from "@/lib/prisma";
 import { createTodaysAppointment, getTodayHifdhSlot } from "@/lib/mentorship";
 import { NextResponse } from "next/server";
 
@@ -9,7 +10,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const slot = await getTodayHifdhSlot(session.user.id);
+    const profile = await safeQuery(() =>
+      prisma.profile.findUnique({ where: { userId: session.user.id }, select: { timezone: true } }),
+    );
+    const tz = profile?.timezone;
+
+    const slot = await getTodayHifdhSlot(session.user.id, tz);
     if (!slot) {
       return NextResponse.json({ error: "No daily session scheduled for today" }, { status: 400 });
     }

@@ -9,12 +9,10 @@ import { RescheduleAvailabilityButton } from "./RescheduleAvailabilityButton";
 
 export function ScheduleSectionClient({
   mentorshipId,
-  teacherId,
   teacherAvail,
   mismatchNotifications,
 }: {
   mentorshipId: string;
-  teacherId: string;
   teacherAvail: { dayOfWeek: number; startTime: string; endTime: string }[];
   mismatchNotifications: { id: string; body: string | null; metadata: unknown }[];
 }) {

@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast";
 export function DeleteLessonButton({
   lessonId,
   lessonTitle,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   courseId,
 }: {
   lessonId: string;

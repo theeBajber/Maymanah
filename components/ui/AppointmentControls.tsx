@@ -65,12 +65,14 @@ export function UpcomingAppointmentCard({
 
   useEffect(() => {
     if (showReschedulePicker && studentId && teacherId && date) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchSlots(date, studentId, teacherId);
     }
   }, [showReschedulePicker, studentId, teacherId, date, fetchSlots]);
 
   useEffect(() => {
     if (showReschedulePicker) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDate(startTime.toISOString().split("T")[0]);
     }
   }, [showReschedulePicker, startTime]);

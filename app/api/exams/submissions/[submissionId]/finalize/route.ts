@@ -13,11 +13,20 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
     const { submissionId } = await params;
 
     const submission = await safeQuery(() =>
-      prisma.submission.findUnique({ where: { id: submissionId } }),
+      prisma.submission.findUnique({
+        where: { id: submissionId },
+        include: { exam: { select: { durationMinutes: true } } },
+      }),
     );
     if (!submission) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
     if (submission.studentId !== session.user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     if (submission.status !== "IN_PROGRESS") return NextResponse.json({ error: "Already finalized" }, { status: 400 });
+
+    const elapsed = Date.now() - submission.startedAt.getTime();
+    const maxMs = submission.exam.durationMinutes * 60 * 1000;
+    if (elapsed > maxMs + 30_000) {
+      return NextResponse.json({ error: "Time expired" }, { status: 410 });
+    }
 
     await safeQuery(() =>
       prisma.submission.update({

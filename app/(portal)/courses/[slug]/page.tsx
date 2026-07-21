@@ -41,9 +41,13 @@ async function getCourse(slug: string) {
 
 export default async function CourseDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const sp = searchParams ? await searchParams : {};
+  const isTest = sp.test === "1" || sp.test === "true";
   const session = await auth();
   if (session?.user?.role === "TEACHER") redirect("/dashboard");
   const { slug } = await params;
@@ -211,6 +215,7 @@ export default async function CourseDetailPage({
     teacher: { id: string; name: string | null; image: string | null } | null;
   }[] = [];
   let pastSessions: typeof allAppointments = [];
+  let totalPastCount: number | undefined;
 
   let recurringSlots: {
     type: string;
@@ -253,6 +258,14 @@ export default async function CourseDetailPage({
       mentorshipId = mentorship.id;
       recurringSlots = mentorship.recurringSlots;
 
+      const studentProfile = await safeQuery(() =>
+        prisma.profile.findUnique({
+          where: { userId },
+          select: { timezone: true },
+        }),
+      );
+      const studentTz = studentProfile?.timezone ?? "Africa/Nairobi";
+
       teacherAvail = (await safeQuery(() =>
         prisma.availability.findMany({
           where: { userId: teacherId!, isRecurring: true },
@@ -274,16 +287,29 @@ export default async function CourseDetailPage({
           }),
         ).catch(() => [])) ?? [];
 
-      const today = new Date();
-      const dayOfWeek = today.getDay();
+      const ref = new Date();
+      const tzParts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: studentTz,
+        weekday: "long",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false,
+      }).formatToParts(ref);
+      const get = (tp: string) => parseInt(tzParts.find(p => p.type === tp)!.value, 10);
+      const dayMap: Record<string, number> = {
+        Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6,
+      };
+      const localDayOfWeek = dayMap[tzParts.find(p => p.type === "weekday")!.value];
+      const localH = get("hour"), localMi = get("minute");
+
       const daily = recurringSlots.find(
-        (s) => s.type === "DAILY_HIFDH" && s.dayOfWeek === dayOfWeek,
+        (s) => s.type === "DAILY_HIFDH" && s.dayOfWeek === localDayOfWeek,
       );
 
       if (daily) {
-        const [h, m] = daily.startTime.split(":").map(Number);
-        const start = new Date(today);
-        start.setHours(h, m, 0, 0);
+        const [sh, sm] = daily.startTime.split(":").map(Number);
+        const diff = (sh * 60 + sm) - (localH * 60 + localMi);
+        const start = new Date(ref.getTime() + diff * 60000);
         const end = new Date(start.getTime() + daily.duration * 60000);
         dailySlot = {
           startTime: start,
@@ -304,10 +330,11 @@ export default async function CourseDetailPage({
         ).catch(() => [])) ?? [];
 
       if (daily && dailySlot) {
+        const localDateStr = `${get("year")}-${String(get("month")).padStart(2, "0")}-${String(get("day")).padStart(2, "0")}`;
         const todaysAppt = allAppointments.find(
           (a) =>
             a.sessionType === "DAILY_HIFDH" &&
-            a.startTime.toDateString() === today.toDateString() &&
+            a.startTime.toISOString().startsWith(localDateStr) &&
             Math.abs(a.startTime.getTime() - dailySlot!.startTime.getTime()) > 60000,
         );
         if (todaysAppt) {
@@ -319,9 +346,11 @@ export default async function CourseDetailPage({
         }
       }
 
-      pastSessions = allAppointments.filter(
+      const allPastSessions = allAppointments.filter(
         (a) => a.status === "COMPLETED" || new Date(a.startTime) <= new Date(),
       );
+      pastSessions = sp.show === "all" ? allPastSessions : allPastSessions.slice(0, 5);
+      totalPastCount = allPastSessions.length;
     }
   }
 
@@ -450,7 +479,7 @@ export default async function CourseDetailPage({
           {isEnrolled && recurringSlots.length === 0 && (
             <SetAvailabilityForPairing />
           )}
-          {dailySlot && (
+          {(dailySlot || isTest) && (
             <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-bg-elevated p-6 shadow-raise">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -459,18 +488,21 @@ export default async function CourseDetailPage({
                     Today&apos;s Daily Session
                   </div>
                   <p className="text-2xl font-bold text-text-primary">
-                    {dailySlot.startTime.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {dailySlot
+                      ? dailySlot.startTime.toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "Test Mode"}
                   </p>
                   <p className="text-sm text-text-secondary mt-1">
-                    {dailySlot.duration} min session
+                    {dailySlot ? `${dailySlot.duration} min session` : "Force-start a session for testing"}
                   </p>
                 </div>
                 <DailySessionButton
-                  startTime={dailySlot.startTime.toISOString()}
-                  endTime={dailySlot.endTime.toISOString()}
+                  startTime={dailySlot ? dailySlot.startTime.toISOString() : new Date().toISOString()}
+                  endTime={dailySlot ? dailySlot.endTime.toISOString() : new Date(new Date().getTime() + 900000).toISOString()}
+                  isTest={isTest}
                 />
               </div>
             </div>
@@ -539,7 +571,6 @@ export default async function CourseDetailPage({
               {mentorshipId && teacherId && (
                 <ScheduleSectionClient
                   mentorshipId={mentorshipId}
-                  teacherId={teacherId}
                   teacherAvail={teacherAvail}
                   mismatchNotifications={mismatchNotifications}
                 />
@@ -549,10 +580,33 @@ export default async function CourseDetailPage({
 
           {pastSessions.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
-                <span className="size-2 rounded-full bg-text-muted" />
-                Past Sessions
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-text-muted" />
+                  Past Sessions
+                  {totalPastCount !== undefined && (
+                    <span className="text-xs font-normal text-text-muted normal-case tracking-normal">
+                      ({pastSessions.length}{totalPastCount > pastSessions.length ? ` of ${totalPastCount}` : ""})
+                    </span>
+                  )}
+                </h3>
+                {totalPastCount !== undefined && totalPastCount > pastSessions.length && (
+                  <Link
+                    href={`/courses/${slug}?show=all`}
+                    className="text-xs font-medium text-primary hover:text-primary-light transition-colors"
+                  >
+                    View all {totalPastCount} sessions →
+                  </Link>
+                )}
+                {sp.show === "all" && totalPastCount !== undefined && totalPastCount > 5 && (
+                  <Link
+                    href={`/courses/${slug}`}
+                    className="text-xs font-medium text-primary hover:text-primary-light transition-colors"
+                  >
+                    ← Show latest
+                  </Link>
+                )}
+              </div>
               <div className="space-y-2">
                 {pastSessions.map((a) => (
                   <div

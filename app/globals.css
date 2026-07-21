@@ -10,20 +10,20 @@
    surface that is deliberately "night" regardless of theme.
    ============================================================ */
 :root {
-    --layl: #0B151B;
-    --layl-deep: #060D11;
-    --brass: #C6A15B;
-    --lapis: #8FA9D0;
-    --ivory: #EAE6DA;
-    --sage: #93A5A8;
+    --layl: #0b151b;
+    --layl-deep: #060d11;
+    --brass: #c6a15b;
+    --lapis: #8fa9d0;
+    --ivory: #eae6da;
+    --sage: #93a5a8;
     --layl-deep-rgb: 6, 13, 17;
     --ivory-rgb: 234, 230, 218;
     --brass-rgb: 198, 161, 91;
 
     /* semantic states tuned for the night palette */
-    --night-success: #8FBF9A;
-    --night-warning: #D9A441;
-    --night-danger: #E08A7E;
+    --night-success: #8fbf9a;
+    --night-warning: #d9a441;
+    --night-danger: #e08a7e;
 }
 
 /* Qandeel light — ivory-paper ground, Layl ink, same brass/lapis accents.
@@ -219,7 +219,7 @@
     margin-bottom: 1rem;
 }
 .lesson-content h2::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -509,6 +509,12 @@ button {
     outline-offset: 2px;
 }
 
+/* Suppress native focus-visible on custom Input wrapper elements — the parent div handles focus indication */
+.night-scene input:focus-visible,
+.night-scene textarea:focus-visible {
+    outline: none;
+}
+
 /* --- Entry + ambient motion (gated behind motion preference) --- */
 @media (prefers-reduced-motion: no-preference) {
     @keyframes fade-up {
@@ -524,14 +530,30 @@ button {
     .stagger-fade > * {
         animation: fade-up 0.55s var(--ease-qandeel) both;
     }
-    .stagger-fade > *:nth-child(1) { animation-delay: 0.05s; }
-    .stagger-fade > *:nth-child(2) { animation-delay: 0.12s; }
-    .stagger-fade > *:nth-child(3) { animation-delay: 0.19s; }
-    .stagger-fade > *:nth-child(4) { animation-delay: 0.26s; }
-    .stagger-fade > *:nth-child(5) { animation-delay: 0.33s; }
-    .stagger-fade > *:nth-child(6) { animation-delay: 0.4s; }
-    .stagger-fade > *:nth-child(7) { animation-delay: 0.47s; }
-    .stagger-fade > *:nth-child(8) { animation-delay: 0.54s; }
+    .stagger-fade > *:nth-child(1) {
+        animation-delay: 0.05s;
+    }
+    .stagger-fade > *:nth-child(2) {
+        animation-delay: 0.12s;
+    }
+    .stagger-fade > *:nth-child(3) {
+        animation-delay: 0.19s;
+    }
+    .stagger-fade > *:nth-child(4) {
+        animation-delay: 0.26s;
+    }
+    .stagger-fade > *:nth-child(5) {
+        animation-delay: 0.33s;
+    }
+    .stagger-fade > *:nth-child(6) {
+        animation-delay: 0.4s;
+    }
+    .stagger-fade > *:nth-child(7) {
+        animation-delay: 0.47s;
+    }
+    .stagger-fade > *:nth-child(8) {
+        animation-delay: 0.54s;
+    }
 
     /* General-purpose staggered entrance for lists of any length —
        set style={{ "--i": index }} per item instead of relying on
@@ -583,6 +605,32 @@ button {
     .girih-drift {
         animation: girih-drift 120s linear infinite alternate;
     }
+}
+
+/* ─── Qandeel-themed scrollbars ─── */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-clip: content-box;
+    background-color: var(--border);
+    border: 2px solid transparent;
+    border-radius: 6px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: #c6a15b;
 }
 
 /* --- Reduced motion: kill all animation and transitions --- */

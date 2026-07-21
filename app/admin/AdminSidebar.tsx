@@ -6,7 +6,6 @@ import {
   faBookOpen,
   faChalkboardUser,
   faUsers,
-  faChartBar,
   faAward,
   faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
@@ -18,7 +17,6 @@ const links = [
   { name: "Teachers", href: "/admin/teachers", icon: faChalkboardUser },
   { name: "Users", href: "/admin/users", icon: faUsers },
   { name: "Certificates", href: "/admin/certificates", icon: faAward },
-  { name: "Analytics", href: "/admin/analytics", icon: faChartBar },
 ];
 
 export function AdminSidebar() {

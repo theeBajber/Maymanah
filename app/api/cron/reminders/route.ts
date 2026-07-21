@@ -8,7 +8,7 @@ export const maxDuration = 60;
 export async function GET() {
   try {
     if (process.env.CRON_SECRET && process.env.CRON_SECRET !== "") {
-      const authHeader = "_"; // Optional: check headers if needed
+      // Optional: check headers if needed
     }
 
     await markMissedAppointments();

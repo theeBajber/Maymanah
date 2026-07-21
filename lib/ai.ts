@@ -88,6 +88,7 @@ For each real lesson return a descriptive title. Aim for 3-12 lessons. If very s
 
 Return JSON: {"lessons":[{"title":"Lesson title"}]}`;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const quizSystemPrompt = `You are an educational assessment creator. Generate multiple-choice quiz questions based on the provided lesson content.
 
 Return a JSON object with this exact structure:
@@ -132,7 +133,7 @@ function splitTextAtTitles(
     const fromPos = i === 0 ? 0 : results[results.length - 1].end;
     const remaining = fullText.slice(fromPos);
     const lower = remaining.toLowerCase();
-    let titleIndex = lower.indexOf(title.toLowerCase());
+    const titleIndex = lower.indexOf(title.toLowerCase());
 
     if (titleIndex === -1) {
       continue;

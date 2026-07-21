@@ -101,7 +101,7 @@ export async function getTeachers() {
   await requireAdmin();
   return safeQuery(() =>
     prisma.user.findMany({
-      where: { role: "TEACHER" },
+      where: { role: "TEACHER", ustadhProfile: { isNot: null } },
       include: {
         ustadhProfile: true,
         _count: {
@@ -302,7 +302,7 @@ export async function getAnalytics() {
       prisma.donation.aggregate({ where: { status: "COMPLETED" }, _sum: { amount: true } }),
     ),
     safeQuery(() =>
-      prisma.ustadhProfile.count({ where: { isApproved: false } }),
+      prisma.ustadhProfile.count({ where: { isApproved: false, rejectedAt: null } }),
     ),
     safeQuery(() => prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } })),
     safeQuery(() =>

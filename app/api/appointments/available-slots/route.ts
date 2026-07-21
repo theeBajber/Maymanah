@@ -2,19 +2,32 @@ import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
-function timeToMinutes(t: string) {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
+function localTimeToUTC(dateStr: string, timeStr: string, tz: string): Date {
+  const [h, m] = timeStr.split(":").map(Number);
+  const ref = new Date(dateStr + "T12:00:00Z");
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(ref);
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)!.value, 10);
+  const localH = get("hour"), localMi = get("minute");
+  const diff = (h * 60 + m) - (localH * 60 + localMi);
+  return new Date(ref.getTime() + diff * 60000);
 }
 
-function minutesToTime(m: number) {
-  const h = Math.floor(m / 60);
-  const min = m % 60;
-  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+function getLocalDayOfWeek(dateStr: string, tz: string): number {
+  const ref = new Date(dateStr + "T12:00:00Z");
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    weekday: "long",
+  }).formatToParts(ref);
+  const dayMap: Record<string, number> = {
+    Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6,
+  };
+  return dayMap[parts.find(p => p.type === "weekday")!.value];
 }
-
-const BLOCK = 30;
-const MAX_PER_BLOCK = 2;
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,8 +38,6 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const teacherId = searchParams.get("teacherId");
-    const studentId = searchParams.get("studentId");
-    const mentorshipId = searchParams.get("mentorshipId");
     const dateStr = searchParams.get("date");
     const sessionType = searchParams.get("sessionType") ?? "DAILY_HIFDH";
 
@@ -34,13 +45,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing required params" }, { status: 400 });
     }
 
-    const date = new Date(dateStr + "T00:00:00Z");
-    const dayOfWeek = date.getUTCDay();
+    const tzProfile = await safeQuery(() =>
+      prisma.profile.findUnique({ where: { userId: teacherId }, select: { timezone: true } }),
+    );
+    const tz = tzProfile?.timezone ?? "Africa/Nairobi";
 
-    const userId = studentId ?? teacherId;
+    const dayOfWeek = getLocalDayOfWeek(dateStr, tz);
+
     const sourceAvail = await safeQuery(() =>
       prisma.availability.findMany({
-        where: { userId, isRecurring: true, dayOfWeek },
+        where: { userId: teacherId, isRecurring: true, dayOfWeek },
         orderBy: { startTime: "asc" },
       }),
     );
@@ -49,66 +63,62 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ slots: [] });
     }
 
-    const dayStart = new Date(date);
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setUTCHours(23, 59, 59, 999);
+    const dayStart = localTimeToUTC(dateStr, "00:00", tz);
+    const dayEnd = new Date(dayStart.getTime() + 86400000);
 
     const existingAppts = await safeQuery(() =>
       prisma.appointment.findMany({
         where: {
           teacherId,
-          startTime: { gte: dayStart, lte: dayEnd },
+          startTime: { gte: dayStart, lt: dayEnd },
           status: { not: "CANCELLED" },
         },
         select: { startTime: true, endTime: true },
       }),
     );
 
-    function countOverlapping(start: Date, end: Date) {
-      return (existingAppts ?? []).filter((apt) => {
+    function hasConflict(start: Date, end: Date) {
+      return (existingAppts ?? []).some((apt) => {
         const aptStart = new Date(apt.startTime);
         const aptEnd = new Date(apt.endTime ?? aptStart.getTime() + 3600000);
         return start < aptEnd && end > aptStart;
-      }).length;
-    }
-
-    const allBlocks: { start: Date; end: Date; key: string }[] = [];
-
-    for (const avail of sourceAvail) {
-      const startMin = timeToMinutes(avail.startTime);
-      const endMin = timeToMinutes(avail.endTime);
-      for (let m = startMin; m + BLOCK <= endMin; m += BLOCK) {
-        const blockStart = new Date(date);
-        blockStart.setUTCHours(0, Math.floor(m / 60) * 60 + (m % 60), 0, 0);
-        const blockEnd = new Date(blockStart.getTime() + BLOCK * 60000);
-        const key = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-        allBlocks.push({ start: blockStart, end: blockEnd, key });
-      }
+      });
     }
 
     const slots: { startTime: string; endTime: string; type: string }[] = [];
 
     if (sessionType === "MURAJA") {
-      for (let i = 0; i < allBlocks.length - 1; i++) {
-        const b1 = allBlocks[i];
-        const b2 = allBlocks[i + 1];
-        if (countOverlapping(b1.start, b1.end) < MAX_PER_BLOCK &&
-            countOverlapping(b2.start, b2.end) < MAX_PER_BLOCK) {
-          const startTime = b1.start.toISOString();
-          const endTime = b2.end.toISOString();
-          slots.push({ startTime, endTime, type: "MURAJA" });
+      const duration = 60;
+      for (const avail of sourceAvail) {
+        const startMin = timeToMinutes(avail.startTime);
+        const endMin = timeToMinutes(avail.endTime);
+        for (let m = startMin; m + duration <= endMin; m += 15) {
+          const slotStart = localTimeToUTC(dateStr, minutesToTime(m), tz);
+          const slotEnd = new Date(slotStart.getTime() + duration * 60000);
+          if (!hasConflict(slotStart, slotEnd)) {
+            slots.push({
+              startTime: slotStart.toISOString(),
+              endTime: slotEnd.toISOString(),
+              type: "MURAJA",
+            });
+          }
         }
       }
     } else {
-      for (const block of allBlocks) {
-        if (countOverlapping(block.start, block.end) < MAX_PER_BLOCK) {
-          const slotEnd = new Date(block.start.getTime() + 15 * 60000);
-          slots.push({
-            startTime: block.start.toISOString(),
-            endTime: slotEnd.toISOString(),
-            type: "DAILY_HIFDH",
-          });
+      const duration = 15;
+      for (const avail of sourceAvail) {
+        const startMin = timeToMinutes(avail.startTime);
+        const endMin = timeToMinutes(avail.endTime);
+        for (let m = startMin; m + duration <= endMin; m += 15) {
+          const slotStart = localTimeToUTC(dateStr, minutesToTime(m), tz);
+          const slotEnd = new Date(slotStart.getTime() + duration * 60000);
+          if (!hasConflict(slotStart, slotEnd)) {
+            slots.push({
+              startTime: slotStart.toISOString(),
+              endTime: slotEnd.toISOString(),
+              type: "DAILY_HIFDH",
+            });
+          }
         }
       }
     }
@@ -118,4 +128,15 @@ export async function GET(req: NextRequest) {
     console.error("Available slots error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+function timeToMinutes(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(m: number) {
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }

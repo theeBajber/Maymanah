@@ -40,16 +40,36 @@ export default async function PortalLayout({
   }
 
   if (session.user.role === "TEACHER") {
-    let profile;
+    let ustadhProfile;
     try {
-      profile = await prisma.ustadhProfile.findUnique({
+      ustadhProfile = await prisma.ustadhProfile.findUnique({
         where: { userId: session.user.id },
       });
     } catch {
-      // Table doesn't exist yet (pre-migration) — treat as unapproved
+      // Table doesn't exist yet (pre-migration) — treat as incomplete
     }
 
-    if (!profile?.isApproved) {
+    if (!ustadhProfile) {
+      redirect("/onboarding");
+    }
+
+    if (!ustadhProfile.isApproved) {
+      if (ustadhProfile.rejectedAt) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+            <div className="max-w-md text-center p-8">
+              <h1 className="text-2xl font-bold text-danger mb-4">
+                Application Not Approved
+              </h1>
+              <p className="text-text-secondary">
+                Your teacher application was not approved. You will receive an
+                email with more information. If you have questions, please
+                contact our support team.
+              </p>
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="min-h-screen flex items-center justify-center bg-bg-primary">
           <div className="max-w-md text-center p-8">
