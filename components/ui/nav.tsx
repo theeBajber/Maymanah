@@ -1,14 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  BookOpen,
-  HandHeart,
-  Home,
-  Info,
-  Menu,
-  X,
-} from "lucide-react";
+import { BookOpen, HandHeart, Home, Info, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -53,7 +46,7 @@ export function TopNav({ className = "" }: { className?: string }) {
           height={339}
         />
         <span
-          className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+          className={`${elMessiri.className} text-2xl font-semibold text-ivory leading-none !mt-2`}
         >
           Maymanah
         </span>
@@ -145,7 +138,10 @@ export function MobileNav({
         onClick={(e) => e.stopPropagation()}
         className="glass-pane animate-slide-in fixed bottom-0 right-0 z-50 flex h-dvh w-[85%] max-w-100 flex-col gap-6 overflow-hidden rounded-l-2xl p-6"
       >
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-20">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-20"
+        >
           <GirihField
             className="absolute inset-0"
             opacity={0.08}
