@@ -46,16 +46,13 @@ function DonationSkeleton() {
   );
 }
 
-/* Rough impact framing derived from the cost table below:
-   video streaming ($1,200/mo) ≈ $40/day of live classrooms. */
 function impactLine(amount: number, currency: DonationCurrency) {
   const usd = currency === "USD" ? amount : amount / 130;
-  if (usd <= 0) return "Every amount helps keep the sanctuary open.";
-  if (usd < 10) return "Covers hours of live classroom streaming.";
-  if (usd < 25) return "Keeps a student's live sessions running for a week.";
-  if (usd < 70)
-    return "Funds a full day of live classrooms for the whole platform.";
-  return "Carries days of the entire sanctuary's infrastructure.";
+  if (usd <= 0) return "Every amount helps keep the platform free.";
+  if (usd < 10) return "Covers nearly a day of the full platform.";
+  if (usd < 25) return "Covers about 2 days of the full platform.";
+  if (usd < 80) return "Covers about a week of the full platform.";
+  return "Covers the platform for more than a week.";
 }
 
 function DonatePageContent() {
@@ -504,24 +501,24 @@ function TransparencyPanel() {
         </div>
         <div className="flex flex-col">
           <CostRow
-            title="Server Hosting"
-            subtitle="High-availability cloud infrastructure"
-            amount="$450/mo"
+            title="Hosting"
+            subtitle="Keeping the platform online"
+            amount="$40/mo"
+          />
+          <CostRow
+            title="Database"
+            subtitle="Storing accounts, content, and progress"
+            amount="$50/mo"
           />
           <CostRow
             title="Video Streaming API"
-            subtitle="Real-time classroom connectivity"
-            amount="$1,200/mo"
+            subtitle="Real-time Quran class streaming"
+            amount="$200/mo"
           />
           <CostRow
-            title="Platform Maintenance"
-            subtitle="Security patches and updates"
-            amount="$300/mo"
-          />
-          <CostRow
-            title="Administrative Costs"
-            subtitle="Support and coordination"
-            amount="$150/mo"
+            title="AI Features"
+            subtitle="AI tutor (coming soon)"
+            amount="$90/mo"
             last
           />
         </div>
@@ -530,14 +527,12 @@ function TransparencyPanel() {
             <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sage">
               Monthly goal progress
             </span>
-            <span className="text-sm font-semibold text-brass">65%</span>
+            <span className="text-sm font-semibold text-brass">40%</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-ivory/10">
-            <div className="h-full w-[65%] rounded-full bg-linear-to-r from-[#A9854B] to-brass" />
+            <div className="h-full w-[40%] rounded-full bg-linear-to-r from-[#A9854B] to-brass" />
           </div>
-          <p className="text-sm text-sage">
-            $1,365 of $2,100 raised this month.
-          </p>
+          <p className="text-sm text-sage">$152 of $380 raised this month.</p>
         </div>
       </div>
 
@@ -553,9 +548,9 @@ function TransparencyPanel() {
           إِذَا مَاتَ الْإِنْسَانُ انْقَطَعَ عَمَلُهُ إِلَّا مِنْ ثَلَاثٍ
         </p>
         <p className="text-sm leading-relaxed text-sage">
-          &ldquo;When a person dies, his deeds come to an end except for
-          three: ongoing charity (Sadaqah Jariyah), knowledge which is
-          beneficial, or a righteous child who prays for him.&rdquo;
+          &ldquo;When a person dies, his deeds come to an end except for three:
+          ongoing charity (Sadaqah Jariyah), knowledge which is beneficial, or a
+          righteous child who prays for him.&rdquo;
         </p>
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sage/70">
           Sahih Muslim

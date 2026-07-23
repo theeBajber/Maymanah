@@ -1,4 +1,4 @@
-import { CardSkeleton, StatSkeleton } from "@/components/ui/Skeleton";
+import { CardSkeleton } from "@/components/ui/Skeleton";
 
 export default function CoursesLoading() {
   return (

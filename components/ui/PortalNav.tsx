@@ -300,24 +300,17 @@ export function TopNav() {
 
   return (
     <header className="glass-veil fixed left-0 right-0 top-0 z-50 h-16">
-      <div className="flex h-full items-center justify-between gap-4 px-6">
+      <div className="flex h-full items-center justify-between gap-4 px-6 border-b border-border">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Image
             src="/logo.png"
             alt=""
-            className="h-8 md:h-9 w-auto dark:hidden"
-            width={413}
-            height={279}
-          />
-          <Image
-            src="/logo-ivory.png"
-            alt=""
-            className="h-8 md:h-9 w-auto hidden dark:block"
+            className="h-8 md:h-9 w-auto"
             width={413}
             height={279}
           />
           <span
-            className={`${elMessiri.className} hidden text-lg font-semibold text-text-primary sm:inline`}
+            className={`${elMessiri.className} hidden text-lg font-semibold text-text-primary sm:inline leading-none !pt-1`}
           >
             Maymanah
           </span>

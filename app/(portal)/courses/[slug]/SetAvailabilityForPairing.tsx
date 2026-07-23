@@ -10,8 +10,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useToast } from "@/components/ui/toast";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const HOURS = Array.from({ length: 16 }, (_, i) => i + 6);
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const HOURS = Array.from({ length: 18 }, (_, i) => i + 5);
 const MINUTES = [0, 30];
 
 type SlotKey = `${number}-${string}-${string}`;

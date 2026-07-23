@@ -11,7 +11,7 @@ const updateProfileSchema = z.object({
   country: z.string().max(100).optional(),
   timezone: z.string().max(50).optional(),
   quranLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
-  image: z.string().url().or(z.literal("")).optional(),
+  image: z.string().or(z.literal("")).optional(),
   gender: z.string().max(10).optional(),
 });
 

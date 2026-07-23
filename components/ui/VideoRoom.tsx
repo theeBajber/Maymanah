@@ -146,16 +146,16 @@ function CallControlsBar({
         try {
           await localParticipant.setCameraEnabled(true);
           setCamOn(true);
-        } catch (e: any) {
-          const msg = e?.message || "Camera access denied";
+        } catch (e: unknown) {
+          const msg = (e as Error)?.message || "Camera access denied";
           setCamError(msg);
           logToServer("error", `Camera failed: ${msg}`);
         }
         try {
           await localParticipant.setMicrophoneEnabled(true);
           setMicOn(true);
-        } catch (e: any) {
-          const msg = e?.message || "Microphone access denied";
+        } catch (e: unknown) {
+          const msg = (e as Error)?.message || "Microphone access denied";
           setMicError(msg);
           logToServer("error", `Microphone failed: ${msg}`);
         }
@@ -173,8 +173,8 @@ function CallControlsBar({
       } else {
         await localParticipant.unpublishTrack(track);
       }
-    } catch (e: any) {
-      const msg = e?.message || "Access denied";
+    } catch (e: unknown) {
+      const msg = (e as Error)?.message || "Access denied";
       if (track.kind === "video") setCamError(msg);
       else setMicError(msg);
       logToServer("error", `${track.kind} toggle failed: ${msg}`);
@@ -223,7 +223,6 @@ function CallControlsBar({
 
   const buttonBase = "flex items-center justify-center transition-all active:scale-90 rounded-full";
   const bgMuted = "bg-zinc-700 hover:bg-zinc-600 text-white";
-  const bgDanger = "bg-danger hover:bg-danger/80";
   const bgAmber = "bg-warning/15 text-warning";
 
   return (

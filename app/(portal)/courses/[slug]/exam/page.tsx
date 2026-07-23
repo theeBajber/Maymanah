@@ -198,6 +198,15 @@ export default async function FinalExamPage({
       },
     }),
   );
+  const rawSubmissions = submissions.map((s) => ({
+    ...s,
+    startedAt: s.startedAt.toISOString(),
+    submittedAt: s.submittedAt?.toISOString() ?? null,
+    answers: s.answers.map((a) => ({
+      ...a,
+      answeredAt: a.answeredAt.toISOString(),
+    })),
+  }));
 
   const examData = {
     id: exam.id,
@@ -229,7 +238,7 @@ export default async function FinalExamPage({
       <CourseExam
         exam={examData}
         questions={questions}
-        submissions={submissions}
+        submissions={rawSubmissions}
         courseSlug={slug}
       />
     </div>

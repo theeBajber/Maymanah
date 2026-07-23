@@ -88,7 +88,7 @@ export default function OnboardingPage() {
   const [availableForTeaching, setAvailableForTeaching] = useState(false);
   const [phone, setPhone] = useState("");
   const [country, setCountry] = useState("");
-  const [timezone, setTimezone] = useState("Africa/Nairobi");
+  const [timezone, setTimezone] = useState("");
   const [quranLevel, setQuranLevel] = useState("beginner");
 
   const timezoneOptions = useMemo(
@@ -127,6 +127,8 @@ export default function OnboardingPage() {
     switch (step) {
       case 0:
         return gender !== "";
+      case 2:
+        return timezone !== "";
       default:
         return true;
     }
@@ -171,7 +173,7 @@ export default function OnboardingPage() {
         }
       }
 
-      await update();
+      await update({ gender: gender || undefined });
 
       window.location.href = "/dashboard";
     } catch (e) {
@@ -450,24 +452,15 @@ export default function OnboardingPage() {
 
               <div className="flex items-center gap-3">
                 {step < STEPS.length - 1 ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleSubmit}
-                      className="text-[10px] uppercase tracking-widest text-text-muted hover:text-text-secondary transition-colors font-bold"
-                    >
-                      Skip & Finish
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep((s) => s + 1)}
-                      disabled={!canProceed()}
-                      className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-bold text-sm hover:shadow-glow-brass hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                    >
-                      Continue
-                      <ChevronRight className="size-3" />
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    onClick={() => setStep((s) => s + 1)}
+                    disabled={!canProceed()}
+                    className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-bold text-sm hover:shadow-glow-brass hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  >
+                    Continue
+                    <ChevronRight className="size-3" />
+                  </button>
                 ) : (
                   <button
                     type="button"

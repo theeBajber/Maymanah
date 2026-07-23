@@ -55,6 +55,21 @@ export async function GET(req: NextRequest) {
       ...receivedIds.map((m) => m.senderId),
     ]);
 
+    const mentorships = await prisma.mentorship.findMany({
+      where: {
+        OR: [
+          { teacherId: session.user.id },
+          { studentId: session.user.id },
+        ],
+        status: "ACTIVE",
+      },
+      select: { teacherId: true, studentId: true },
+    });
+
+    for (const m of mentorships) {
+      partnerIds.add(m.teacherId === session.user.id ? m.studentId : m.teacherId);
+    }
+
     const conversations = await Promise.all(
       Array.from(partnerIds).map(async (partnerId) => {
         const lastMessage = await prisma.message.findFirst({

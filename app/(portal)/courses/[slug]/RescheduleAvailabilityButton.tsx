@@ -12,7 +12,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 
 const DAYS_LABEL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const HOURS = Array.from({ length: 16 }, (_, i) => i + 6);
+const HOURS = Array.from({ length: 18 }, (_, i) => i + 5);
 const MINUTES = [0, 30];
 
 type SlotKey = `${number}-${string}-${string}`;

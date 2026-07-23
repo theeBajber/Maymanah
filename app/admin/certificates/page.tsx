@@ -1,7 +1,7 @@
 import { prisma, safeQuery } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faAward, faDownload, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import { faAward, faDownload } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";

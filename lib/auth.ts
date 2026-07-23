@@ -96,7 +96,7 @@ const { handlers: _handlers, auth: _auth, signIn: _signIn, signOut: _signOut } =
           ?? "unknown";
         const userAgent = headerStore.get("user-agent") ?? "unknown";
 
-        await prisma.loginSession.create({
+        const loginSession = await prisma.loginSession.create({
           data: {
             userId: user.id,
             deviceName: userAgent,
@@ -111,6 +111,7 @@ const { handlers: _handlers, auth: _auth, signIn: _signIn, signOut: _signOut } =
           image: user.image,
           role: user.role,
           gender: user.gender,
+          loginSessionId: loginSession.id,
         };
       },
     }),
@@ -121,6 +122,7 @@ const { handlers: _handlers, auth: _auth, signIn: _signIn, signOut: _signOut } =
         token.id = user.id!;
         token.role = user.role;
         token.gender = user.gender;
+        token.loginSessionId = user.loginSessionId;
       }
       if (trigger === "update" && updateData) {
         if (updateData.name) token.name = updateData.name;
@@ -136,6 +138,16 @@ const { handlers: _handlers, auth: _auth, signIn: _signIn, signOut: _signOut } =
         session.user.gender = token.gender as string | undefined;
       }
       return session;
+    },
+  },
+  events: {
+    async signOut(message) {
+      const token = "token" in message ? message.token : null;
+      if (!token?.loginSessionId) return;
+      await prisma.loginSession.updateMany({
+        where: { id: token.loginSessionId, isActive: true },
+        data: { isActive: false },
+      }).catch(() => {});
     },
   },
 });

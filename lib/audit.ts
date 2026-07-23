@@ -1,4 +1,4 @@
-import { prisma, safeQuery } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
 export type AuditAction =

@@ -2,7 +2,6 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { elMessiri } from "@/components/ui/fonts";
 import { GirihField } from "@/components/ui/girih";
-import { AyahText } from "@/components/ui/ayah";
 
 type AuthPanelProps = {
   /** Short line under the wordmark — also the page's h1. */
@@ -33,10 +32,7 @@ export function AuthPanel({ heading, wide = false, children }: AuthPanelProps) {
       </div>
 
       <div className="relative mb-8 flex flex-col items-center gap-3 text-center">
-        <AyahText size="sm" gilded className="pt-1">
-          بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
-        </AyahText>
-        <div className="mt-1 flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <Image
             src="/logo.png"
             alt=""

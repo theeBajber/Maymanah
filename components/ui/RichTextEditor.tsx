@@ -15,7 +15,6 @@ import {
   Italic,
   Underline as UnderlineIcon,
   Strikethrough,
-  Heading1,
   Heading2,
   Heading3,
   List,
@@ -209,6 +208,7 @@ export function RichTextEditor({ content, onChange }: Props) {
           <LinkIcon className="size-4" />
         </ToolbarButton>
         <ToolbarButton onClick={addImage} label="Image">
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image className="size-4" />
         </ToolbarButton>
         <ToolbarButton onClick={addTable} label="Table">
