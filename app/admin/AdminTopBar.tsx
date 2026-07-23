@@ -4,22 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { elMessiri } from "@/components/ui/fonts";
-import { LogOut, User, Bell } from "lucide-react";
-import type { UserRole } from "@prisma/client";
-
-type AdminUser = {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-  role: UserRole;
-};
+import { LogOut, Bell } from "lucide-react";
 
 export function AdminTopBar({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   user,
   pendingApprovals,
 }: {
-  user: AdminUser;
+  user: { id: string; name?: string | null; email?: string | null; image?: string | null };
   pendingApprovals?: number;
 }) {
   return (

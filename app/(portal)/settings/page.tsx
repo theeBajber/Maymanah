@@ -8,34 +8,20 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import Image from "next/image";
 import {
   Settings as SettingsIcon,
-  Lock,
-  Bell,
   Palette,
-  LogOut,
-  Trash2,
   ShieldCheck,
   Save,
   X,
   Menu,
   GraduationCap,
   Pen,
-  CalendarRange,
   type LucideIcon,
 } from "lucide-react";
-import { PortalHeader } from "@/components/ui/portal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useDrawerBehavior } from "@/lib/useDrawer";
 import { OtpInput } from "@/components/ui/OtpInput";
 
-type TabType =
-  | "profile"
-  | "security"
-  | "notifications"
-  | "interface"
-  | "availability"
-  | "sessions"
-  | "danger"
-  | "ustadh";
+type TabType = "profile" | "preferences" | "account" | "teacher";
 
 interface SettingsTab {
   id: TabType;
@@ -45,12 +31,8 @@ interface SettingsTab {
 
 const baseTabs: SettingsTab[] = [
   { id: "profile", label: "Profile", icon: SettingsIcon },
-  { id: "security", label: "Security", icon: Lock },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "interface", label: "Interface", icon: Palette },
-  { id: "availability", label: "Availability", icon: CalendarRange },
-  { id: "sessions", label: "Sessions", icon: LogOut },
-  { id: "danger", label: "Danger Zone", icon: Trash2 },
+  { id: "preferences", label: "Preferences", icon: Palette },
+  { id: "account", label: "Account", icon: ShieldCheck },
 ];
 
 export default function SettingsPage() {
@@ -61,12 +43,8 @@ export default function SettingsPage() {
 
   const tabs: SettingsTab[] =
     session?.user?.role === "TEACHER"
-      ? [
-          { id: "ustadh", label: "Ustadh", icon: GraduationCap },
-          { id: "availability", label: "Availability", icon: CalendarRange },
-          ...baseTabs.filter((t) => t.id !== "availability"),
-        ]
-      : baseTabs.filter((t) => t.id !== "availability");
+      ? [...baseTabs, { id: "teacher", label: "Teacher", icon: GraduationCap }]
+      : baseTabs;
 
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full">
@@ -146,15 +124,11 @@ export default function SettingsPage() {
           <div className="w-5" />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div key={activeTab} className="flex-1 overflow-y-auto p-4 md:p-8">
           {activeTab === "profile" && <ProfileSettings />}
-          {activeTab === "security" && <SecuritySettings />}
-          {activeTab === "notifications" && <NotificationsSettings />}
-          {activeTab === "interface" && <InterfaceSettings />}
-          {activeTab === "availability" && <AvailabilitySettings />}
-          {activeTab === "sessions" && <SessionsSettings />}
-          {activeTab === "danger" && <DangerZoneSettings />}
-          {activeTab === "ustadh" && <UstadhSettings />}
+          {activeTab === "preferences" && <PreferencesSettings />}
+          {activeTab === "account" && <AccountSettings />}
+          {activeTab === "teacher" && <TeacherSettings />}
         </div>
       </main>
     </div>
@@ -171,8 +145,6 @@ function ProfileSettings() {
     bio: "",
     phone: "",
     country: "",
-    timezone: "Africa/Nairobi",
-    quranLevel: "beginner",
     portrait: "/portraits/pattern-6.png",
   });
   const [loading, setLoading] = useState(false);
@@ -196,13 +168,12 @@ function ProfileSettings() {
         if (data?.name) {
           setFormData((prev) => ({
             ...prev,
+            gender: data.gender ?? prev.gender,
             name: data.name ?? prev.name,
             email: data.email ?? prev.email,
             bio: data.bio ?? "",
             phone: data.phone ?? "",
             country: data.country ?? "",
-            timezone: data.timezone ?? "Africa/Nairobi",
-            quranLevel: data.quranLevel ?? "beginner",
             portrait: data.image ?? prev.portrait,
           }));
         }
@@ -442,36 +413,6 @@ function ProfileSettings() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div>
-            <Dropdown
-              label="Timezone"
-              options={[
-                { value: "Africa/Nairobi", label: "Africa/Nairobi" },
-                { value: "Africa/Cairo", label: "Africa/Cairo" },
-                { value: "Asia/Dubai", label: "Asia/Dubai" },
-                { value: "Europe/London", label: "Europe/London" },
-                { value: "America/New York", label: "America/New York" },
-                { value: "Asia/Kolkata", label: "Asia/Kolkata" },
-              ]}
-              value={formData.timezone}
-              onChange={(v) => setFormData((prev) => ({ ...prev, timezone: v }))}
-            />
-          </div>
-          <div>
-            <Dropdown
-              label="Quran Level"
-              options={[
-                { value: "beginner", label: "Beginner" },
-                { value: "intermediate", label: "Intermediate" },
-                { value: "advanced", label: "Advanced" },
-              ]}
-              value={formData.quranLevel}
-              onChange={(v) => setFormData((prev) => ({ ...prev, quranLevel: v }))}
-            />
-          </div>
-        </div>
-
         <button
           type="submit"
           disabled={loading}
@@ -481,6 +422,120 @@ function ProfileSettings() {
           {loading ? "Saving..." : "Save Changes"}
         </button>
       </form>
+    </div>
+  );
+}
+
+function TimezoneSetting() {
+  const { toast } = useToast();
+  const [timezone, setTimezone] = useState("Africa/Nairobi");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/update-profile")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.timezone) setTimezone(data.timezone);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/user/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone }),
+      });
+      if (res.ok) {
+        toast({ title: "Timezone saved", variant: "success" });
+      } else {
+        const data = await res.json();
+        toast({ title: data.error || "Failed to save", variant: "error" });
+      }
+    } catch {
+      toast({ title: "Failed to save", variant: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <h2 className="text-2xl font-bold text-text-primary mb-6">Timezone</h2>
+      <p className="text-sm text-text-secondary mb-4">
+        Set your local timezone for accurate session scheduling.
+      </p>
+      <div className="flex items-end gap-3">
+        <div className="flex-1">
+          <Dropdown
+            label="Timezone"
+            options={[
+              { value: "Africa/Nairobi", label: "Africa/Nairobi" },
+              { value: "Africa/Cairo", label: "Africa/Cairo" },
+              { value: "Asia/Dubai", label: "Asia/Dubai" },
+              { value: "Europe/London", label: "Europe/London" },
+              { value: "America/New_York", label: "America/New York" },
+              { value: "Asia/Kolkata", label: "Asia/Kolkata" },
+            ]}
+            value={timezone}
+            onChange={(v) => setTimezone(v)}
+          />
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass shrink-0"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PreferencesSettings() {
+  return (
+    <div className="space-y-10">
+      <section>
+        <TimezoneSetting />
+      </section>
+      <section>
+        <InterfaceSettings />
+      </section>
+      <section>
+        <NotificationsSettings />
+      </section>
+    </div>
+  );
+}
+
+function AccountSettings() {
+  return (
+    <div className="space-y-10">
+      <section>
+        <SecuritySettings />
+      </section>
+      <section>
+        <SessionsSettings />
+      </section>
+      <section>
+        <DangerZoneSettings />
+      </section>
+    </div>
+  );
+}
+
+function TeacherSettings() {
+  return (
+    <div className="space-y-10">
+      <section>
+        <AvailabilitySettings />
+        <div className="mt-6">
+          <UstadhSettings />
+        </div>
+      </section>
     </div>
   );
 }
@@ -1197,6 +1252,30 @@ function AvailabilitySettings() {
   );
 }
 
+function timeAgo(date: string | Date): string {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(date).toLocaleDateString();
+}
+
+function friendlyDevice(ua: string): string {
+  if (!ua || ua === "unknown") return "Unknown device";
+  const match = ua.match(/\(([^)]+)\)/);
+  const os = match ? match[1].split(";")[0].trim() : "";
+  let browser = "Browser";
+  if (ua.includes("Edg")) browser = "Edge";
+  else if (ua.includes("Chrome")) browser = "Chrome";
+  else if (ua.includes("Firefox")) browser = "Firefox";
+  else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+  return os ? `${browser} — ${os}` : browser;
+}
+
 function SessionsSettings() {
   const { toast } = useToast();
   const [sessions, setSessions] = useState<
@@ -1205,6 +1284,7 @@ function SessionsSettings() {
       deviceName: string;
       ipAddress: string;
       lastActivity: string;
+      createdAt: string;
     }[]
   >([]);
   const [loading, setLoading] = useState(true);
@@ -1247,6 +1327,9 @@ function SessionsSettings() {
       <h2 className="text-2xl font-bold text-text-primary mb-6">
         Active Sessions
       </h2>
+      <p className="text-sm text-text-secondary mb-6">
+        Sessions older than 7 days are automatically removed from this list.
+      </p>
 
       {loading ? (
         <div className="space-y-3">
@@ -1268,16 +1351,22 @@ function SessionsSettings() {
           {sessions.map((s) => (
             <div
               key={s.id}
-              className="p-5 rounded-2xl border border-border bg-bg-elevated flex items-center justify-between gap-3"
+              className="p-5 rounded-2xl border border-border bg-bg-elevated flex items-start justify-between gap-3"
             >
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold text-text-primary truncate" title={s.deviceName}>
-                  {s.deviceName}
+                  {friendlyDevice(s.deviceName)}
                 </h3>
-                <p className="text-sm text-text-secondary">IP: {s.ipAddress}</p>
-                <p className="text-xs text-text-muted mt-1">
-                  Last activity: {new Date(s.lastActivity).toLocaleString()}
-                </p>
+                <p className="text-sm text-text-secondary mt-1">IP: {s.ipAddress}</p>
+                <div className="flex items-center gap-3 text-xs text-text-muted mt-1.5">
+                  <span>Active {timeAgo(s.lastActivity)}</span>
+                  {s.createdAt && (
+                    <>
+                      <span className="text-border">·</span>
+                      <span>Started {timeAgo(s.createdAt)}</span>
+                    </>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => handleLogoutSession(s.id)}
@@ -1392,14 +1481,15 @@ function DangerZoneSettings() {
   );
 }
 
-function ToggleSwitch({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+function ToggleSwitch({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={() => onChange(!value)}
+      disabled={disabled}
       className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ${
         value ? "bg-primary" : "bg-border"
-      }`}
+      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       role="switch"
       aria-checked={value}
     >
@@ -1414,10 +1504,6 @@ function ToggleSwitch({ value, onChange }: { value: boolean; onChange: (v: boole
 
 function UstadhSettings() {
   const { toast } = useToast();
-  const [bio, setBio] = useState("");
-  const [qualifications, setQualifications] = useState("");
-  const [ijazah, setIjazah] = useState("");
-  const [qiraah, setQiraah] = useState("");
   const [availableForTeaching, setAvailableForTeaching] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1427,10 +1513,6 @@ function UstadhSettings() {
     fetch("/api/ustadh/settings")
       .then((r) => r.json())
       .then((data) => {
-        setBio(data.bio ?? "");
-        setQualifications(data.qualifications ?? "");
-        setIjazah(data.ijazah ?? "");
-        setQiraah(data.qiraah ?? "");
         setAvailableForTeaching(data.availableForTeaching ?? false);
         setIsApproved(data.isApproved ?? false);
         setLoaded(true);
@@ -1438,35 +1520,32 @@ function UstadhSettings() {
       .catch(() => setLoaded(true));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleToggle = async () => {
     setLoading(true);
+    const newValue = !availableForTeaching;
     try {
       const res = await fetch("/api/ustadh/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bio, qualifications, ijazah, qiraah, availableForTeaching }),
+        body: JSON.stringify({ availableForTeaching: newValue }),
       });
       if (res.ok) {
-        toast({ title: "Ustadh profile updated successfully.", variant: "success" });
+        setAvailableForTeaching(newValue);
+        toast({ title: newValue ? "Now accepting students" : "No longer accepting students", variant: "success" });
       } else {
         const data = await res.json();
         toast({ title: data.error ?? "Failed to update.", variant: "error" });
       }
     } catch {
-      toast({ title: "Failed to update settings.", variant: "error" });
+      toast({ title: "Failed to update.", variant: "error" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl">
-      <h2 className="text-2xl font-bold text-text-primary mb-6">
-        Ustadh Profile
-      </h2>
-
-      <div className="mb-6 p-4 rounded-2xl border border-border bg-bg-elevated shadow-raise">
+    <div>
+      <div className="mb-4 p-4 rounded-2xl border border-border bg-bg-elevated shadow-raise">
         <p className="text-sm text-text-secondary mb-1">Approval Status</p>
         <span
           className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${
@@ -1481,84 +1560,19 @@ function UstadhSettings() {
       </div>
 
       {!loaded ? (
-        <div className="space-y-5">
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-12 w-full rounded-xl" />
-          <Skeleton className="h-12 w-full rounded-xl" />
-        </div>
+        <Skeleton className="h-16 w-full rounded-xl" />
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-bg-elevated">
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">
-              Bio
-            </label>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={500}
-              rows={3}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
-              placeholder="Tell us about yourself..."
-            />
-            <p className="text-xs text-text-muted text-right mt-1">{bio.length}/500</p>
+            <p className="font-semibold text-sm text-text-primary">Available for Teaching</p>
+            <p className="text-xs text-text-muted mt-0.5">Toggle on to accept new mentorship requests</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">
-              Qualifications
-            </label>
-            <textarea
-              value={qualifications}
-              onChange={(e) => setQualifications(e.target.value)}
-              maxLength={1000}
-              rows={3}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
-              placeholder="List your degrees, certifications, and teaching credentials."
-            />
-            <p className="text-xs text-text-muted text-right mt-1">{qualifications.length}/1000</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">
-              Ijazah
-            </label>
-            <textarea
-              value={ijazah}
-              onChange={(e) => setIjazah(e.target.value)}
-              maxLength={1000}
-              rows={3}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
-              placeholder="Provide details of your Ijazah — who issued it, what it covers..."
-            />
-            <p className="text-xs text-text-muted text-right mt-1">{ijazah.length}/1000</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">
-              Qiraah Specialization
-            </label>
-            <input
-              type="text"
-              value={qiraah}
-              onChange={(e) => setQiraah(e.target.value)}
-              placeholder="e.g. Hafs, Warsh, Qalun, etc."
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-            />
-          </div>
-          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-bg-elevated">
-            <div>
-              <p className="font-semibold text-sm text-text-primary">Available for Teaching</p>
-              <p className="text-xs text-text-muted mt-0.5">Toggle on to accept new mentorship requests</p>
-            </div>
-            <ToggleSwitch value={availableForTeaching} onChange={setAvailableForTeaching} />
-          </div>
-          <button
-            type="submit"
+          <ToggleSwitch
+            value={availableForTeaching}
+            onChange={handleToggle}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
-          >
-            <Save className="size-4" />
-            {loading ? "Saving..." : "Save Changes"}
-          </button>
-        </form>
+          />
+        </div>
       )}
     </div>
   );

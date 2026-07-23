@@ -40,7 +40,6 @@ export function RescheduleDialog({
     return d.toISOString().split("T")[0];
   });
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
-  const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -64,7 +63,9 @@ export function RescheduleDialog({
   }, [teacherId, mentorshipId, sessionType]);
 
   useEffect(() => {
-    if (date) fetchSlots(date);
+    if (date)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchSlots(date);
   }, [date, fetchSlots]);
 
   async function handleReschedule() {

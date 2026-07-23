@@ -72,6 +72,7 @@ export async function PUT(
           where: { userId: id },
           data: {
             isApproved: true,
+            rejectedAt: null,
             ...(reliabilityScore !== undefined ? { reliabilityScore } : {}),
           },
         }),
@@ -92,7 +93,7 @@ export async function PUT(
       await safeQuery(() =>
         prisma.ustadhProfile.update({
           where: { userId: id },
-          data: { isApproved: false },
+          data: { isApproved: false, rejectedAt: new Date() },
         }),
       );
 

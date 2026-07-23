@@ -11,7 +11,7 @@ type TeacherWithProfile = User & {
   _count: { teachings: number; appointments: number };
 };
 
-type FilterTab = "all" | "pending" | "approved";
+type FilterTab = "all" | "pending" | "approved" | "rejected";
 
 export function TeachersList({ teachers }: { teachers: TeacherWithProfile[] }) {
   const router = useRouter();
@@ -23,9 +23,13 @@ export function TeachersList({ teachers }: { teachers: TeacherWithProfile[] }) {
   const filtered = useMemo(() => {
     let result = teachers;
     if (filter === "pending") {
-      result = result.filter((t) => !t.ustadhProfile?.isApproved);
+      result = result.filter(
+        (t) => !t.ustadhProfile?.isApproved && !t.ustadhProfile?.rejectedAt,
+      );
     } else if (filter === "approved") {
       result = result.filter((t) => t.ustadhProfile?.isApproved);
+    } else if (filter === "rejected") {
+      result = result.filter((t) => !!t.ustadhProfile?.rejectedAt);
     }
     if (search) {
       const q = search.toLowerCase();
@@ -76,8 +80,23 @@ export function TeachersList({ teachers }: { teachers: TeacherWithProfile[] }) {
   }
 
   const tabs: { key: FilterTab; label: string; count: number }[] = [
-    { key: "pending", label: "Pending", count: teachers.filter((t) => !t.ustadhProfile?.isApproved).length },
-    { key: "approved", label: "Approved", count: teachers.filter((t) => t.ustadhProfile?.isApproved).length },
+    {
+      key: "pending",
+      label: "Pending",
+      count: teachers.filter(
+        (t) => !t.ustadhProfile?.isApproved && !t.ustadhProfile?.rejectedAt,
+      ).length,
+    },
+    {
+      key: "approved",
+      label: "Approved",
+      count: teachers.filter((t) => t.ustadhProfile?.isApproved).length,
+    },
+    {
+      key: "rejected",
+      label: "Rejected",
+      count: teachers.filter((t) => !!t.ustadhProfile?.rejectedAt).length,
+    },
     { key: "all", label: "All", count: teachers.length },
   ];
 
@@ -121,7 +140,9 @@ export function TeachersList({ teachers }: { teachers: TeacherWithProfile[] }) {
               ? "No pending teacher applications"
               : filter === "approved"
                 ? "No approved teachers yet"
-                : "No teachers registered"}
+                : filter === "rejected"
+                  ? "No rejected teachers"
+                  : "No teachers registered"}
           </p>
         </div>
       ) : (
@@ -173,7 +194,30 @@ export function TeachersList({ teachers }: { teachers: TeacherWithProfile[] }) {
                   <td className="py-3 px-4 text-text-secondary">{teacher._count.teachings}</td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {!teacher.ustadhProfile?.isApproved ? (
+                      {teacher.ustadhProfile?.isApproved ? (
+                        <button
+                          onClick={() => handleReject(teacher.id)}
+                          disabled={loadingId === teacher.id}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-danger/10 text-danger hover:bg-danger/20 transition-colors disabled:opacity-50"
+                        >
+                          <UserX className="size-3.5" />
+                          Revoke
+                        </button>
+                      ) : teacher.ustadhProfile?.rejectedAt ? (
+                        <button
+                          onClick={() => handleApprove(teacher.id)}
+                          disabled={loadingId === teacher.id}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-success/10 text-success hover:bg-success/20 transition-colors disabled:opacity-50"
+                        >
+                          <UserCheck className="size-3.5" />
+                          Re-Approve
+                        </button>
+                    ) : teacher.ustadhProfile?.rejectedAt ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">
+                        <span className="size-1.5 rounded-full bg-current" />
+                        Rejected
+                      </span>
+                    ) : (
                         <>
                           <button
                             onClick={() => handleApprove(teacher.id)}
@@ -192,15 +236,6 @@ export function TeachersList({ teachers }: { teachers: TeacherWithProfile[] }) {
                             Reject
                           </button>
                         </>
-                      ) : (
-                        <button
-                          onClick={() => handleReject(teacher.id)}
-                          disabled={loadingId === teacher.id}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-danger/10 text-danger hover:bg-danger/20 transition-colors disabled:opacity-50"
-                        >
-                          <UserX className="size-3.5" />
-                          Revoke
-                        </button>
                       )}
                     </div>
                   </td>

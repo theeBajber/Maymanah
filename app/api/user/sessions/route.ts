@@ -22,10 +22,13 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
     const sessions = await prisma.loginSession.findMany({
       where: {
         userId: user.id,
         isActive: true,
+        lastActivity: { gte: sevenDaysAgo },
       },
       orderBy: { lastActivity: "desc" },
     });

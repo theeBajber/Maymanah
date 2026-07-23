@@ -13,7 +13,10 @@ export function ThemeToggle() {
   // rendering theme-dependent UI before mount causes a hydration mismatch.
   // Render the same neutral state on server and first client paint, then
   // swap to the real icon once mounted.
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const currentTheme = theme === "system" ? resolvedTheme : theme;
   const isDark = mounted && currentTheme === "dark";

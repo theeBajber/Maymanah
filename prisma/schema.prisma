@@ -115,6 +115,7 @@ model UstadhProfile {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   isApproved        Boolean  @default(false)
   reliabilityScore  Float?   // computed from session join rate
+  rejectedAt        DateTime?
   bio               String?
   qualifications    String?
   ijazah            String?   // Ijazah certification details

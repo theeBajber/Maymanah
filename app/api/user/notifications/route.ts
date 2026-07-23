@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/prisma";
 
@@ -35,7 +35,7 @@ export async function GET() {
 }
 
 /** Mark every notification for the current user as read. */
-export async function PATCH(_req: NextRequest) {
+export async function PATCH() {
   try {
     const session = await auth();
     if (!session?.user?.id) {

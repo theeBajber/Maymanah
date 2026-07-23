@@ -86,7 +86,7 @@ export function TeacherDetail({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: isApproved ? "approve" : "reject",
+          action: "approve",
           reliabilityScore: reliabilityScore ?? undefined,
         }),
       });
@@ -123,6 +123,10 @@ export function TeacherDetail({
                   </h1>
                   {isApproved ? (
                     <BadgeCheck className="size-6 text-success" />
+                  ) : profile?.rejectedAt ? (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">
+                      Rejected
+                    </span>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">
                       Pending
@@ -133,7 +137,25 @@ export function TeacherDetail({
               </div>
 
               <div className="flex items-center gap-2">
-                {!isApproved ? (
+                {isApproved ? (
+                  <button
+                    onClick={() => setShowRejectDialog(true)}
+                    disabled={updating}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-danger/10 text-danger hover:bg-danger/20 transition-colors disabled:opacity-50"
+                  >
+                    <UserX className="size-4" />
+                    Revoke Approval
+                  </button>
+                ) : profile?.rejectedAt ? (
+                  <button
+                    onClick={handleApprove}
+                    disabled={updating}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-success text-white hover:bg-success/90 transition-colors disabled:opacity-50"
+                  >
+                    <UserCheck className="size-4" />
+                    Re-Approve
+                  </button>
+                ) : (
                   <>
                     <button
                       onClick={handleApprove}
@@ -152,15 +174,6 @@ export function TeacherDetail({
                       Reject
                     </button>
                   </>
-                ) : (
-                  <button
-                    onClick={() => setShowRejectDialog(true)}
-                    disabled={updating}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-danger/10 text-danger hover:bg-danger/20 transition-colors disabled:opacity-50"
-                  >
-                    <UserX className="size-4" />
-                    Revoke Approval
-                  </button>
                 )}
               </div>
             </div>

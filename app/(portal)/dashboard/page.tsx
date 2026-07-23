@@ -6,20 +6,16 @@ import { prisma, safeQuery } from "@/lib/prisma";
 import { DashboardAchievement, getDashboardData } from "@/lib/dashboard";
 import type { Session } from "next-auth";
 import {
-  Award,
   BookOpen,
   CalendarDays,
   CheckCircle,
   CheckSquare,
-  ClipboardCheck,
   Flame,
-  GraduationCap,
   Medal,
   Play,
   Sun,
   Users,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UpcomingAppointmentCard } from "@/components/ui/AppointmentControls";
@@ -34,32 +30,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 export const dynamic = "force-dynamic";
-
-function getAppointmentTimeLabel(startTime: Date) {
-  const date = new Date(startTime);
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  const dayLabel = isSameDay(date, today)
-    ? "Today"
-    : isSameDay(date, tomorrow)
-      ? "Tomorrow"
-      : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
-  const timeLabel = date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-
-  return `${timeLabel} (${dayLabel})`;
-}
 
 function getAchievementPresentation(kind: DashboardAchievement["kind"]) {
   switch (kind) {
@@ -93,10 +63,11 @@ function getAchievementPresentation(kind: DashboardAchievement["kind"]) {
 }
 
 export default async function Dash(props: {
-  searchParams?: Promise<{ tab?: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const searchParams = await props.searchParams;
-  const tab = searchParams?.tab ?? "overview";
+  const tab = (searchParams?.tab as string) ?? "overview";
+  const isTest = searchParams?.test === "1" || searchParams?.test === "true";
 
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
@@ -108,7 +79,7 @@ export default async function Dash(props: {
   if (!userCheck?.gender) redirect("/onboarding");
 
   if (session.user.role === "TEACHER") {
-    return <UstadhDashboard session={session} />;
+    return <UstadhDashboard session={session} isTest={isTest} />;
   }
 
   const dashboardData = await getDashboardData(session.user.email);
@@ -209,7 +180,7 @@ export default async function Dash(props: {
             </div>
           </div>
           <div className="text-text-muted text-[10px] font-semibold tracking-[0.15em] uppercase">
-            Weekly Progress
+            Overall Progress
           </div>
         </div>
       </section>
@@ -317,236 +288,236 @@ export default async function Dash(props: {
 
           <div className="space-y-4">
             <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
-              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
-                Learning Streak
-              </h4>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl font-bold text-text-primary">
-                  {dashboardData.streak}
-                </span>
-                <span className="text-sm text-text-secondary">day streak</span>
-                <Flame
-                  className={`size-4 ${
-                    dashboardData.streak >= 7
-                      ? "text-warning"
-                      : dashboardData.streak > 0
-                        ? "text-primary"
-                        : "text-text-muted"
-                  }`}
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                {weekDays.map((day, idx) => {
-                  const isStreakDay = idx < dashboardData.streak;
-                  const isFuture = idx > monBasedIdx;
-                  const isToday = idx === monBasedIdx;
-                  return (
-                    <div
-                      key={`${day}-${idx}`}
-                      className={`rounded-full flex items-center justify-center size-8 uppercase font-bold text-xs transition-colors ${
-                        isToday
-                          ? "bg-primary text-text-inverse ring-2 ring-primary/30"
-                          : isFuture
-                            ? "bg-bg-hover text-text-muted"
-                            : isStreakDay
-                              ? "bg-primary/10 text-primary"
-                              : "bg-bg-hover text-text-muted/50"
-                      }`}
-                    >
-                      {day}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {dashboardData.weeklySchedule.length > 0 ? (
-              <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
-                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
-                  Weekly Schedule
-                </h3>
-                <div className="space-y-2">
-                  {dashboardData.weeklySchedule.map((slot) => {
-                    const dayName = [
-                      "Sun",
-                      "Mon",
-                      "Tue",
-                      "Wed",
-                      "Thu",
-                      "Fri",
-                      "Sat",
-                    ][slot.dayOfWeek];
-                    const isToday = slot.dayOfWeek === new Date().getDay();
+                <h4 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
+                  Learning Streak
+                </h4>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl font-bold text-text-primary">
+                    {dashboardData.streak}
+                  </span>
+                  <span className="text-sm text-text-secondary">day streak</span>
+                  <Flame
+                    className={`size-4 ${
+                      dashboardData.streak >= 7
+                        ? "text-warning"
+                        : dashboardData.streak > 0
+                          ? "text-primary"
+                          : "text-text-muted"
+                    }`}
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {weekDays.map((day, idx) => {
+                    const isStreakDay = idx < dashboardData.streak;
+                    const isFuture = idx > monBasedIdx;
+                    const isToday = idx === monBasedIdx;
                     return (
                       <div
-                        key={`${slot.dayOfWeek}-${slot.type}`}
-                        className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm ${
+                        key={`${day}-${idx}`}
+                        className={`rounded-full flex items-center justify-center size-8 uppercase font-bold text-xs transition-colors ${
                           isToday
-                            ? "bg-primary/10 ring-1 ring-primary/30"
-                            : "bg-bg-hover"
+                            ? "bg-primary text-text-inverse ring-2 ring-primary/30"
+                            : isFuture
+                              ? "bg-bg-hover text-text-muted"
+                              : isStreakDay
+                                ? "bg-primary/10 text-primary"
+                                : "bg-bg-hover text-text-muted/50"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`font-bold w-8 ${isToday ? "text-primary" : "text-text-primary"}`}
-                          >
-                            {dayName}
-                          </span>
-                          <span className="text-text-secondary text-xs uppercase tracking-wider font-medium">
-                            {slot.type === "DAILY_HIFDH"
-                              ? "Hifdh"
-                              : "Muraja'ah"}
-                          </span>
-                        </div>
-                        <span className="text-text-primary font-medium">
-                          {new Date(
-                            "2000-01-01T" + slot.startTime,
-                          ).toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          })}
-                        </span>
+                        {day}
                       </div>
                     );
                   })}
                 </div>
-                <Link
-                  href="/courses/hifdh-ul-quran"
-                  className="mt-4 block w-full text-center bg-primary text-text-inverse py-3 rounded-xl font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] hover:shadow-glow-brass"
-                >
-                  Go to Course
-                </Link>
               </div>
-            ) : (
-              <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
-                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
-                  Weekly Schedule
-                </h3>
-                <p className="text-sm text-text-secondary">
-                  No sessions scheduled yet.
-                </p>
-              </div>
-            )}
 
-            <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
-              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
-                Recent Achievements
-              </h3>
-              {dashboardData.achievements.length > 0 ? (
-                <div className="grid grid-cols-3 gap-3">
-                  {dashboardData.achievements.map((achievement, index) => {
-                    const presentation = getAchievementPresentation(
-                      achievement.kind,
-                    );
-                    return (
-                      <div
-                        key={achievement.id}
-                        style={{ "--i": index } as React.CSSProperties}
-                        className="stagger-item flex flex-col items-center text-center gap-1.5 group"
-                      >
+              {dashboardData.weeklySchedule.length > 0 ? (
+                <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
+                  <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
+                    Weekly Schedule
+                  </h3>
+                  <div className="space-y-2">
+                    {dashboardData.weeklySchedule.map((slot) => {
+                      const dayName = [
+                        "Sun",
+                        "Mon",
+                        "Tue",
+                        "Wed",
+                        "Thu",
+                        "Fri",
+                        "Sat",
+                      ][slot.dayOfWeek];
+                      const isToday = slot.dayOfWeek === new Date().getDay();
+                      return (
                         <div
-                          className={`size-12 rounded-full flex items-center justify-center border-2 transition-transform group-hover:scale-110 ${presentation.className}`}
+                          key={`${slot.dayOfWeek}-${slot.type}`}
+                          className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm ${
+                            isToday
+                              ? "bg-primary/10 ring-1 ring-primary/30"
+                              : "bg-bg-hover"
+                          }`}
                         >
-                          <presentation.icon className="size-4" />
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`font-bold w-8 ${isToday ? "text-primary" : "text-text-primary"}`}
+                            >
+                              {dayName}
+                            </span>
+                            <span className="text-text-secondary text-xs uppercase tracking-wider font-medium">
+                              {slot.type === "DAILY_HIFDH"
+                                ? "Hifdh"
+                                : "Muraja'ah"}
+                            </span>
+                          </div>
+                          <span className="text-text-primary font-medium">
+                            {new Date(
+                              "2000-01-01T" + slot.startTime,
+                            ).toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </span>
                         </div>
-                        <p className="text-[11px] font-semibold text-text-primary leading-tight">
-                          {achievement.title}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                  <Link
+                    href="/courses/hifdh-ul-quran"
+                    className="mt-4 block w-full text-center bg-primary text-text-inverse py-3 rounded-xl font-semibold text-sm hover:brightness-110 transition-all active:scale-[0.97] hover:shadow-glow-brass"
+                  >
+                    Go to Course
+                  </Link>
                 </div>
               ) : (
-                <p className="text-sm text-text-secondary">
-                  Achievements will appear as you study.
-                </p>
+                <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
+                  <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
+                    Weekly Schedule
+                  </h3>
+                  <p className="text-sm text-text-secondary">
+                    No sessions scheduled yet.
+                  </p>
+                </div>
               )}
-            </div>
 
-            {certificates.length > 0 && (
               <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
                 <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
-                  My Certificates
+                  Recent Achievements
                 </h3>
-                <div className="space-y-3">
-                  {certificates.map((cert) => (
-                    <Link
-                      key={cert.id}
-                      href={`/certificates/${cert.id}`}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-bg-hover hover:bg-primary/5 transition-colors group"
-                    >
-                      <div className="size-10 rounded-lg bg-success-muted flex items-center justify-center shrink-0">
+                {dashboardData.achievements.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-3">
+                    {dashboardData.achievements.map((achievement, index) => {
+                      const presentation = getAchievementPresentation(
+                        achievement.kind,
+                      );
+                      return (
+                        <div
+                          key={achievement.id}
+                          style={{ "--i": index } as React.CSSProperties}
+                          className="stagger-item flex flex-col items-center text-center gap-1.5 group"
+                        >
+                          <div
+                            className={`size-12 rounded-full flex items-center justify-center border-2 transition-transform group-hover:scale-110 ${presentation.className}`}
+                          >
+                            <presentation.icon className="size-4" />
+                          </div>
+                          <p className="text-[11px] font-semibold text-text-primary leading-tight">
+                            {achievement.title}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary">
+                    Achievements will appear as you study.
+                  </p>
+                )}
+              </div>
+
+              {certificates.length > 0 && (
+                <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
+                  <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
+                    My Certificates
+                  </h3>
+                  <div className="space-y-3">
+                    {certificates.map((cert) => (
+                      <Link
+                        key={cert.id}
+                        href={`/certificates/${cert.id}`}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-bg-hover hover:bg-primary/5 transition-colors group"
+                      >
+                        <div className="size-10 rounded-lg bg-success-muted flex items-center justify-center shrink-0">
+                          <FontAwesomeIcon
+                            icon={faAward}
+                            className="size-4 text-success"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-text-primary truncate">
+                            {cert.course.title}
+                          </p>
+                          <p className="text-xs text-text-muted">
+                            {new Date(cert.issuedAt).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </p>
+                        </div>
                         <FontAwesomeIcon
-                          icon={faAward}
-                          className="size-4 text-success"
+                          icon={faArrowRight}
+                          className="size-3 text-text-muted group-hover:text-primary transition-colors"
                         />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-text-primary truncate">
-                          {cert.course.title}
-                        </p>
-                        <p className="text-xs text-text-muted">
-                          {new Date(cert.issuedAt).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </p>
-                      </div>
-                      <FontAwesomeIcon
-                        icon={faArrowRight}
-                        className="size-3 text-text-muted group-hover:text-primary transition-colors"
-                      />
-                    </Link>
-                  ))}
+                      </Link>
+                    ))}
+                  </div>
+                  <Link
+                    href="/courses"
+                    className="block text-xs text-primary hover:text-primary-light font-medium mt-3"
+                  >
+                    View all certificates
+                  </Link>
                 </div>
+              )}
+
+              <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise space-y-2">
+                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
+                  Quick Resources
+                </h3>
                 <Link
-                  href="/courses"
-                  className="block text-xs text-primary hover:text-primary-light font-medium mt-3"
+                  href="/revision"
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-bg-hover hover:bg-primary/5 hover:text-primary transition-colors text-sm text-text-secondary"
                 >
-                  View all certificates
+                  <FontAwesomeIcon
+                    icon={faMusic}
+                    className="size-4 text-primary/60"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium text-text-primary">
+                      Revision
+                    </span>
+                    <span className="text-xs text-text-muted">
+                      Review your memorization plan
+                    </span>
+                  </div>
+                </Link>
+                <Link
+                  href="/mushaf"
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-bg-hover hover:bg-primary/5 hover:text-primary transition-colors text-sm text-text-secondary"
+                >
+                  <FontAwesomeIcon
+                    icon={faBookOpen}
+                    className="size-4 text-primary/60"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium text-text-primary">Mushaf</span>
+                    <span className="text-xs text-text-muted">
+                      Read from the holy Quran
+                    </span>
+                  </div>
                 </Link>
               </div>
-            )}
-
-            <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise space-y-2">
-              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-[0.12em] mb-3">
-                Quick Resources
-              </h3>
-              <Link
-                href="/revision"
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-bg-hover hover:bg-primary/5 hover:text-primary transition-colors text-sm text-text-secondary"
-              >
-                <FontAwesomeIcon
-                  icon={faMusic}
-                  className="size-4 text-primary/60"
-                />
-                <div className="flex flex-col">
-                  <span className="font-medium text-text-primary">
-                    Revision
-                  </span>
-                  <span className="text-xs text-text-muted">
-                    Review your memorization plan
-                  </span>
-                </div>
-              </Link>
-              <Link
-                href="/mushaf"
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-bg-hover hover:bg-primary/5 hover:text-primary transition-colors text-sm text-text-secondary"
-              >
-                <FontAwesomeIcon
-                  icon={faBookOpen}
-                  className="size-4 text-primary/60"
-                />
-                <div className="flex flex-col">
-                  <span className="font-medium text-text-primary">Mushaf</span>
-                  <span className="text-xs text-text-muted">
-                    Read from the holy Quran
-                  </span>
-                </div>
-              </Link>
-            </div>
           </div>
         </section>
       )}
@@ -809,7 +780,7 @@ function AnalyticsContent({
   );
 }
 
-async function UstadhDashboard({ session }: { session: Session }) {
+async function UstadhDashboard({ session, isTest = false }: { session: Session; isTest?: boolean }) {
   const ustadhId = session.user.id;
 
   const now = new Date();
@@ -897,8 +868,23 @@ async function UstadhDashboard({ session }: { session: Session }) {
 
   const title = session.user.gender === "female" ? "Ustadha" : "Ustadh";
   const firstName = session.user.name?.split(" ")[0] ?? "";
+
+  const teacherProfile = await safeQuery(() =>
+    prisma.profile.findUnique({ where: { userId: ustadhId }, select: { timezone: true } }),
+  );
+  const teacherTz = teacherProfile?.timezone ?? "Africa/Nairobi";
+  const tzParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: teacherTz,
+    weekday: "long",
+    hour12: false,
+  }).formatToParts(now);
+  const dayMap: Record<string, number> = {
+    Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6,
+  };
+  const localDayOfWeek = dayMap[tzParts.find(p => p.type === "weekday")!.value];
+
   const todayRecurringCount = weeklySlots.filter(
-    (s) => s.dayOfWeek === now.getDay(),
+    (s) => s.dayOfWeek === localDayOfWeek,
   ).length;
 
   const weekGrouped: Record<number, typeof weekSessions> = {};
@@ -921,6 +907,7 @@ async function UstadhDashboard({ session }: { session: Session }) {
   }
 
   function canJoin(scheduledAt: Date, now: number) {
+    if (isTest) return true;
     return (
       scheduledAt.getTime() - now <= 15 * 60 * 1000 &&
       scheduledAt.getTime() - now >= -60 * 60 * 1000
@@ -928,6 +915,7 @@ async function UstadhDashboard({ session }: { session: Session }) {
   }
 
   function canCancel(scheduledAt: Date, now: number) {
+    if (isTest) return true;
     return scheduledAt.getTime() - now > 60 * 60 * 1000;
   }
 

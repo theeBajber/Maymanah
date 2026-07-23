@@ -7,9 +7,11 @@ import { useToast } from "@/components/ui/toast";
 export function DailySessionButton({
   startTime,
   endTime,
+  isTest = false,
 }: {
   startTime: string;
   endTime: string;
+  isTest?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -21,7 +23,6 @@ export function DailySessionButton({
     return () => clearInterval(id);
   }, []);
 
-  const isTest = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("test");
   const start = new Date(startTime);
   const end = new Date(endTime);
   const canJoin = isTest || (now >= start && now <= end);
@@ -69,7 +70,7 @@ export function DailySessionButton({
       disabled={loading || !canJoin}
       className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-text-inverse rounded-xl font-semibold text-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97] hover:shadow-glow-brass"
     >
-      {loading ? "Starting..." : canJoin ? "Start Session" : "Session ended"}
+      {loading ? "Starting..." : canJoin ? (isTest ? "Force Start" : "Start Session") : "Session ended"}
     </button>
   );
 }

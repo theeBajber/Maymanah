@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, safeQuery } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SideNav, TopNav } from "@/components/ui/PortalNav";
@@ -20,16 +20,13 @@ export default async function PortalLayout({
   const session = await auth();
   if (!session) redirect("/login");
 
-  let hasProfile = false;
-  try {
-    const p = await prisma.profile.findUnique({
+  const p = await safeQuery(() =>
+    prisma.profile.findUnique({
       where: { userId: session.user.id },
       select: { id: true },
-    });
-    hasProfile = !!p;
-  } catch {
-    // Profile table might not exist; allow through
-  }
+    })
+  );
+  const hasProfile = !!p;
 
   if (!hasProfile) {
     redirect("/onboarding");
@@ -40,16 +37,33 @@ export default async function PortalLayout({
   }
 
   if (session.user.role === "TEACHER") {
-    let profile;
-    try {
-      profile = await prisma.ustadhProfile.findUnique({
+    const ustadhProfile = await safeQuery(() =>
+      prisma.ustadhProfile.findUnique({
         where: { userId: session.user.id },
-      });
-    } catch {
-      // Table doesn't exist yet (pre-migration) — treat as unapproved
+      })
+    );
+
+    if (!ustadhProfile) {
+      redirect("/onboarding");
     }
 
-    if (!profile?.isApproved) {
+    if (!ustadhProfile.isApproved) {
+      if (ustadhProfile.rejectedAt) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+            <div className="max-w-md text-center p-8">
+              <h1 className="text-2xl font-bold text-danger mb-4">
+                Application Not Approved
+              </h1>
+              <p className="text-text-secondary">
+                Your teacher application was not approved. You will receive an
+                email with more information. If you have questions, please
+                contact our support team.
+              </p>
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="min-h-screen flex items-center justify-center bg-bg-primary">
           <div className="max-w-md text-center p-8">

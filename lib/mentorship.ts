@@ -3,13 +3,7 @@ import { prisma, safeQuery } from "@/lib/prisma";
 const DAILY_DURATION = 15;
 const MURAJA_DURATION = 60;
 
-const DAYS = [0, 1, 2, 3, 4, 5, 6];
-const WEEKDAYS = [1, 2, 3, 4, 5];
-
-function timeToMinutes(t: string) {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
+const WEEKDAYS = [1, 2, 3, 4, 5, 6];
 
 function minutesToTime(m: number) {
   const h = Math.floor(m / 60);
@@ -17,20 +11,53 @@ function minutesToTime(m: number) {
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
-function overlapMinutes(a: string, b: string, aEnd: string, bEnd: string) {
-  const start = Math.max(timeToMinutes(a), timeToMinutes(b));
-  const end = Math.min(timeToMinutes(aEnd), timeToMinutes(bEnd));
-  return Math.max(0, end - start);
+function getTimezoneOffset(tz: string): number {
+  const now = new Date();
+  const noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(noon);
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)!.value, 10);
+  const tzMs = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return (tzMs - noon.getTime()) / 60000;
 }
 
-function intersection(
-  aStart: string, aEnd: string,
-  bStart: string, bEnd: string,
-) {
-  const start = Math.max(timeToMinutes(aStart), timeToMinutes(bStart));
-  const end = Math.min(timeToMinutes(aEnd), timeToMinutes(bEnd));
-  if (end - start < 15) return null;
-  return { start: minutesToTime(start), end: minutesToTime(end) };
+function localSlotToUTCMinutes(dayOfWeek: number, time: string, tz: string): number {
+  const [h, m] = time.split(":").map(Number);
+  const offset = getTimezoneOffset(tz);
+  const localMinutes = dayOfWeek * 1440 + h * 60 + m;
+  return ((localMinutes - offset) % 10080 + 10080) % 10080;
+}
+
+function normalizeRange(startMin: number, endMin: number): { start: number; end: number }[] {
+  if (startMin <= endMin) {
+    return [{ start: startMin, end: endMin }];
+  }
+  return [{ start: startMin, end: 10080 }, { start: 0, end: endMin }];
+}
+
+function rangesOverlap(a: { start: number; end: number }, b: { start: number; end: number }): boolean {
+  return a.start < b.end && b.start < a.end;
+}
+
+function overlapMinutes(aStart: number, aEnd: number, bStart: number, bEnd: number): number {
+  return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
+}
+
+function findFreeWindow(
+  occupied: { start: number; end: number }[],
+  overlapStart: number,
+  overlapEnd: number,
+  duration: number,
+): number | null {
+  for (let t = overlapStart; t + duration <= overlapEnd; t += 15) {
+    const conflict = occupied.some(s => t < s.end && t + duration > s.start);
+    if (!conflict) return t;
+  }
+  return null;
 }
 
 export async function autoPairHifdhStudent(studentId: string) {
@@ -51,12 +78,26 @@ export async function autoPairHifdhStudent(studentId: string) {
     );
     if (!student) return null;
 
+    const studentProfile = await safeQuery(() =>
+      prisma.profile.findUnique({ where: { userId: studentId }, select: { timezone: true } }),
+    );
+    const studentTz = studentProfile?.timezone ?? "Africa/Nairobi";
+
     const studentAvail = await safeQuery(() =>
       prisma.availability.findMany({
         where: { userId: studentId, isRecurring: true },
       }),
     );
     if (studentAvail.length === 0) return null;
+
+    const studentUtcRanges = studentAvail.flatMap(sa =>
+      normalizeRange(
+        localSlotToUTCMinutes(sa.dayOfWeek, sa.startTime, studentTz),
+        localSlotToUTCMinutes(sa.dayOfWeek, sa.endTime, studentTz),
+      ),
+    );
+
+    const MAX_STUDENTS_PER_TEACHER = 10;
 
     const teachers = await safeQuery(() =>
       prisma.user.findMany({
@@ -70,130 +111,212 @@ export async function autoPairHifdhStudent(studentId: string) {
     );
     if (teachers.length === 0) return null;
 
-    const dayOverlapCounts: { teacherId: string; overlap: number; studentCount: number }[] = [];
-    for (const t of teachers) {
-      const tAvail = await safeQuery(() =>
-        prisma.availability.findMany({
-          where: { userId: t.id, isRecurring: true },
+    const teacherIds = teachers.map(t => t.id);
+
+    const [profiles, allAvail, studentCounts] = await Promise.all([
+      safeQuery(() =>
+        prisma.profile.findMany({
+          where: { userId: { in: teacherIds } },
+          select: { userId: true, timezone: true },
         }),
+      ),
+      safeQuery(() =>
+        prisma.availability.findMany({
+          where: { userId: { in: teacherIds }, isRecurring: true },
+        }),
+      ),
+      safeQuery(() =>
+        prisma.mentorship.groupBy({
+          by: ["teacherId"],
+          where: { teacherId: { in: teacherIds }, status: "ACTIVE" },
+          _count: true,
+        }),
+      ),
+    ]);
+
+    const tzMap = new Map(profiles.map(p => [p.userId, p.timezone ?? "Africa/Nairobi"]));
+    const availMap = new Map<string, typeof allAvail>();
+    for (const a of allAvail) {
+      if (!availMap.has(a.userId)) availMap.set(a.userId, []);
+      availMap.get(a.userId)!.push(a);
+    }
+    const studentCountMap = new Map(studentCounts.map(s => [s.teacherId, s._count]));
+
+    const candidates: { teacherId: string; overlap: number; studentCount: number }[] = [];
+    for (const tId of teacherIds) {
+      const tz = tzMap.get(tId) ?? "Africa/Nairobi";
+      const tAvail = availMap.get(tId) ?? [];
+      const sc = studentCountMap.get(tId) ?? 0;
+
+      if (sc >= MAX_STUDENTS_PER_TEACHER) continue;
+
+      const tUtcRanges = tAvail.flatMap(ta =>
+        normalizeRange(
+          localSlotToUTCMinutes(ta.dayOfWeek, ta.startTime, tz),
+          localSlotToUTCMinutes(ta.dayOfWeek, ta.endTime, tz),
+        ),
       );
 
       let totalOverlap = 0;
-      for (const sa of studentAvail) {
-        for (const ta of tAvail) {
-          if (sa.dayOfWeek !== ta.dayOfWeek) continue;
-          totalOverlap += overlapMinutes(sa.startTime, ta.startTime, sa.endTime, ta.endTime);
+      for (const sr of studentUtcRanges) {
+        for (const tr of tUtcRanges) {
+          totalOverlap += overlapMinutes(sr.start, sr.end, tr.start, tr.end);
         }
       }
-      const studentCount = (await safeQuery(() =>
-        prisma.mentorship.count({ where: { teacherId: t.id, status: "ACTIVE" } }),
-      )) ?? 0;
+
       if (totalOverlap >= 15) {
-        dayOverlapCounts.push({ teacherId: t.id, overlap: totalOverlap, studentCount });
+        candidates.push({ teacherId: tId, overlap: totalOverlap, studentCount: sc });
       }
     }
 
-    if (dayOverlapCounts.length === 0) return null;
+    if (candidates.length === 0) return null;
 
-    dayOverlapCounts.sort((a, b) => a.studentCount - b.studentCount);
+    candidates.sort((a, b) => a.studentCount - b.studentCount || b.overlap - a.overlap);
+    const bestTeacherId = candidates[0].teacherId;
+    const teacherTz = tzMap.get(bestTeacherId) ?? "Africa/Nairobi";
 
-  const bestTeacherId = dayOverlapCounts[0].teacherId;
-
-  const teacherAvail = await safeQuery(() =>
-    prisma.availability.findMany({
-      where: { userId: bestTeacherId, isRecurring: true },
-      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-    }),
-  );
-
-  const mentorship = existing ?? await safeQuery(() =>
-    prisma.mentorship.create({
-      data: { teacherId: bestTeacherId, studentId, status: "ACTIVE" },
-    }),
-  );
-
-  const existingStudents = await safeQuery(() =>
-    prisma.mentorship.findMany({
-      where: { teacherId: bestTeacherId, status: "ACTIVE" },
-      include: {
-        recurringSlots: { where: { type: "MURAJA" } },
-      },
-    }),
-  );
-
-  const usedMurajaDays = new Set(
-    existingStudents.flatMap((m) =>
-      m.recurringSlots.map((s) => s.dayOfWeek),
-    ),
-  );
-
-  const daysWithOverlap = new Set<number>();
-  const daySlots: { day: number; start: string; end: string }[] = [];
-  for (const sa of studentAvail) {
-    for (const ta of teacherAvail) {
-      if (sa.dayOfWeek !== ta.dayOfWeek) continue;
-      const inter = intersection(sa.startTime, sa.endTime, ta.startTime, ta.endTime);
-      if (inter) {
-        daysWithOverlap.add(sa.dayOfWeek);
-        daySlots.push({ day: sa.dayOfWeek, start: inter.start, end: inter.end });
-      }
-    }
-  }
-
-  daySlots.sort((a, b) => a.day - b.day || timeToMinutes(a.start) - timeToMinutes(b.start));
-
-  const weekdaySlots = daySlots.filter((s) => WEEKDAYS.includes(s.day));
-
-  if (daySlots.length > 0) {
-    await safeQuery(() =>
-      prisma.recurringSlot.deleteMany({ where: { mentorshipId: mentorship.id } }),
+    const teacherAvail = availMap.get(bestTeacherId) ?? [];
+    const teacherUtcRanges = teacherAvail.flatMap(ta =>
+      normalizeRange(
+        localSlotToUTCMinutes(ta.dayOfWeek, ta.startTime, teacherTz),
+        localSlotToUTCMinutes(ta.dayOfWeek, ta.endTime, teacherTz),
+      ),
     );
 
-    const seenDays = new Set<number>();
-    for (const slot of weekdaySlots) {
-      if (seenDays.has(slot.day)) continue;
-      seenDays.add(slot.day);
+    const mentorship = existing ?? await safeQuery(() =>
+      prisma.mentorship.create({
+        data: { teacherId: bestTeacherId, studentId, status: "ACTIVE" },
+      }),
+    );
+
+    const existingStudents = await safeQuery(() =>
+      prisma.mentorship.findMany({
+        where: { teacherId: bestTeacherId, status: "ACTIVE" },
+        include: { recurringSlots: { where: { type: "MURAJA" } } },
+      }),
+    );
+
+    const usedMurajaDays = new Set(
+      existingStudents.flatMap(m =>
+        m.recurringSlots.map(s => s.dayOfWeek),
+      ),
+    );
+
+    const daysWithOverlap = new Set<number>();
+    const daySlots: { day: number; start: number; end: number }[] = [];
+    for (const sr of studentUtcRanges) {
+      for (const tr of teacherUtcRanges) {
+        if (!rangesOverlap(sr, tr)) continue;
+        const start = Math.max(sr.start, tr.start);
+        const end = Math.min(sr.end, tr.end);
+        if (end - start < 15) continue;
+        const utcDay = Math.floor(start / 1440);
+        daysWithOverlap.add(utcDay);
+        daySlots.push({ day: utcDay, start, end });
+      }
+    }
+
+    daySlots.sort((a, b) => a.day - b.day || a.start - b.start);
+    const weekdaySlots = daySlots.filter(s => WEEKDAYS.includes(s.day));
+
+    const existingTeacherDailySlots = await safeQuery(() =>
+      prisma.recurringSlot.findMany({
+        where: {
+          mentorship: { teacherId: bestTeacherId, status: "ACTIVE" },
+          type: "DAILY_HIFDH",
+        },
+        select: { dayOfWeek: true, startTime: true, duration: true },
+      }),
+    );
+
+    const occupiedByDay: Record<number, { start: number; end: number }[]> = {};
+    for (const s of existingTeacherDailySlots) {
+      const utcStart = localSlotToUTCMinutes(s.dayOfWeek, s.startTime, teacherTz);
+      const utcEnd = utcStart + s.duration;
+      const ranges = normalizeRange(utcStart, utcEnd);
+      for (const r of ranges) {
+        const day = Math.floor(r.start / 1440);
+        if (!occupiedByDay[day]) occupiedByDay[day] = [];
+        occupiedByDay[day].push({ start: r.start, end: r.end });
+      }
+    }
+
+    if (daySlots.length > 0) {
+      await safeQuery(() =>
+        prisma.recurringSlot.deleteMany({ where: { mentorshipId: mentorship.id } }),
+      );
+
+      const seenDays = new Set<number>();
+      for (const slot of weekdaySlots) {
+        if (seenDays.has(slot.day)) continue;
+
+        const existing = occupiedByDay[slot.day] ?? [];
+        const freeStart = findFreeWindow(existing, slot.start, slot.end, DAILY_DURATION);
+        if (freeStart === null) continue;
+
+        seenDays.add(slot.day);
+        await safeQuery(() =>
+          prisma.recurringSlot.create({
+            data: {
+              mentorshipId: mentorship.id,
+              type: "DAILY_HIFDH",
+              dayOfWeek: slot.day,
+              startTime: minutesToTime(freeStart),
+              duration: DAILY_DURATION,
+            },
+          }),
+        );
+      }
+
+      if (usedMurajaDays.size >= 7) return null;
+
+      let murajaDay = [...daysWithOverlap].sort().find(d => !usedMurajaDays.has(d));
+      if (murajaDay === undefined) {
+        murajaDay = weekdaySlots.length > 0 ? weekdaySlots[0].day : daySlots[0].day;
+      }
+      const murajaSlot = daySlots.find(s => s.day === murajaDay) ?? daySlots[0];
+      const murajaOffset = murajaSlot.start % 1440;
       await safeQuery(() =>
         prisma.recurringSlot.create({
           data: {
             mentorshipId: mentorship.id,
-            type: "DAILY_HIFDH",
-            dayOfWeek: slot.day,
-            startTime: slot.start,
-            duration: DAILY_DURATION,
+            type: "MURAJA",
+            dayOfWeek: murajaDay,
+            startTime: minutesToTime(murajaOffset),
+            duration: MURAJA_DURATION,
           },
         }),
       );
     }
 
-    let murajaDay = [...daysWithOverlap].sort().find((d) => !usedMurajaDays.has(d));
-    if (murajaDay === undefined) {
-      murajaDay = weekdaySlots.length > 0 ? weekdaySlots[0].day : daySlots[0].day;
-    }
-    const murajaSlot = daySlots.find((s) => s.day === murajaDay) ?? daySlots[0];
-    await safeQuery(() =>
-      prisma.recurringSlot.create({
-        data: {
-          mentorshipId: mentorship.id,
-          type: "MURAJA",
-          dayOfWeek: murajaDay,
-          startTime: murajaSlot.start,
-          duration: MURAJA_DURATION,
-        },
-      }),
-    );
-  }
-
-  return mentorship;
+    return mentorship;
   } catch (e) {
     console.error("autoPairHifdhStudent error:", e);
     return null;
   }
 }
 
-export async function getTodayHifdhSlot(studentId: string) {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
+export async function getTodayHifdhSlot(studentId: string, tz?: string) {
+  if (!tz) {
+    const profile = await safeQuery(() =>
+      prisma.profile.findUnique({ where: { userId: studentId }, select: { timezone: true } }),
+    );
+    tz = profile?.timezone ?? "Africa/Nairobi";
+  }
+
+  const ref = new Date();
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    weekday: "long",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(ref);
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)!.value, 10);
+  const dayMap: Record<string, number> = {
+    Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6,
+  };
+  const dayOfWeek = dayMap[parts.find(p => p.type === "weekday")!.value];
 
   const mentorship = await safeQuery(() =>
     prisma.mentorship.findFirst({
@@ -210,12 +333,13 @@ export async function getTodayHifdhSlot(studentId: string) {
   );
   if (!slot) return null;
 
-  const todaySlot = today;
-  const [h, m] = slot.startTime.split(":").map(Number);
-  todaySlot.setHours(h, m, 0, 0);
-  const todayEnd = new Date(todaySlot.getTime() + slot.duration * 60000);
+  const localH = get("hour"), localMi = get("minute");
+  const [sh, sm] = slot.startTime.split(":").map(Number);
+  const diff = (sh * 60 + sm) - (localH * 60 + localMi);
+  const startTime = new Date(ref.getTime() + diff * 60000);
+  const endTime = new Date(startTime.getTime() + slot.duration * 60000);
 
-  return { startTime: todaySlot, endTime: todayEnd, duration: slot.duration };
+  return { startTime, endTime, duration: slot.duration };
 }
 
 export async function createTodaysAppointment(studentId: string) {
@@ -394,6 +518,6 @@ export async function getReliabilityScore(userId: string): Promise<number> {
 
   if (appointments.length === 0) return 100;
 
-  const joined = appointments.filter((a) => a.joinedAt !== null).length;
+  const joined = appointments.filter(a => a.joinedAt !== null).length;
   return Math.round((joined / appointments.length) * 100);
 }

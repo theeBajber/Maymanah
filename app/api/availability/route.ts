@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-const DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
-
 const slotSchema = z.object({
   dayOfWeek: z.number().int().min(0).max(6),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),

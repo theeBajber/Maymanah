@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { prisma, safeQuery } from "@/lib/prisma";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAward, faShield, faTimesCircle, faSearch } from "@fortawesome/free-solid-svg-icons";

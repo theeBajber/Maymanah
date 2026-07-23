@@ -63,7 +63,6 @@ export default function Curriculum() {
     <main className="flex w-full flex-col items-center gap-16 pb-24">
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(coursesJsonLd) }}
       />
       <PageHeader

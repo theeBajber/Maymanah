@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useCallback } from "react";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { useToast } from "@/components/ui/toast";
 
@@ -13,18 +13,14 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [token, setToken] = useState("");
+  const initialToken = searchParams.get("token") ?? "";
+  const token = initialToken;
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [needsOTP, setNeedsOTP] = useState(false);
   const [otpCode, setOtpCode] = useState("");
-
-  useEffect(() => {
-    const t = searchParams.get("token");
-    if (t) setToken(t);
-  }, [searchParams]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();

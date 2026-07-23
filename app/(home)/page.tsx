@@ -57,9 +57,9 @@ function Hero() {
           </h1>
 
           <p className="max-w-md text-balance text-base leading-relaxed text-sage md:text-lg">
-            Maymanah connects expert volunteer teachers with dedicated
-            students worldwide, transcending geography to bring Quranic
-            excellence to every home.
+            Maymanah connects expert volunteer teachers with dedicated students
+            worldwide, transcending geography to bring Quranic excellence to
+            every home.
           </p>
 
           <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row">
@@ -78,8 +78,6 @@ function Hero() {
               Apply to teach
             </Link>
           </div>
-
-          <AvatarStack />
         </div>
 
         <WorldPanel />
@@ -92,60 +90,44 @@ function Hero() {
    live-session plaque, replacing a stock hero photo. */
 function WorldPanel() {
   return (
-    <div className="stagger-item relative w-full" style={{ "--i": 4 } as React.CSSProperties}>
+    <div
+      className="stagger-item relative w-full"
+      style={{ "--i": 4 } as React.CSSProperties}
+    >
       <div className="glass-still relative aspect-square w-full overflow-hidden rounded-3xl sm:aspect-4/3">
         <Image
           src="/map.png"
           alt="A world map marking Maymanah's global network of students and teachers"
           fill
           sizes="(min-width: 1024px) 45vw, 90vw"
-          className="object-cover opacity-80"
+          className="object-cover opacity-80 grayscale brightness-75"
           priority
         />
         <div
           aria-hidden
-          className="absolute inset-0 bg-linear-to-t from-layl-deep/60 via-transparent to-layl-deep/10"
+          className="absolute inset-0 bg-brass/20 mix-blend-color"
         />
       </div>
-      <div className="glass-pane absolute bottom-6 left-1/2 flex w-[calc(100%-2.5rem)] max-w-xs -translate-x-1/2 items-center gap-4 rounded-xl px-5 py-3 sm:left-auto sm:right-6 sm:w-auto sm:-translate-x-0">
-        <span className="relative flex size-2.5 shrink-0">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-night-success/60" />
-          <span className="relative inline-flex size-2.5 rounded-full bg-night-success" />
-        </span>
-        <div className="flex flex-col text-left">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-brass">
-            Live session
+      <div
+        aria-hidden
+        className="absolute inset-0 flex justify-center items-center"
+      >
+        <div className="glass-pane flex w-[calc(100%-2.5rem)] max-w-xs items-center gap-4 rounded-xl px-5 py-3 sm:w-auto">
+          <span className="relative flex size-2.5 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-night-success/60" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-night-success" />
           </span>
-          <span className="text-sm font-medium text-ivory">
-            Ustadh Issa
-            <span className="text-sage"> — Cairo, Egypt</span>
-          </span>
+          <div className="flex flex-col text-left">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-brass">
+              Live session
+            </span>
+            <span className="text-sm font-medium text-ivory">
+              Ustadh Issa
+              <span className="text-sage"> — Cairo, Egypt</span>
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function AvatarStack() {
-  const portraits = [
-    "/portraits/yasser.jpg",
-    "/portraits/sudais.png",
-    "/portraits/maher.jpg",
-    "/portraits/balushi.jpg",
-  ];
-  return (
-    <div className="stagger-item flex -space-x-3" style={{ "--i": 5 } as React.CSSProperties}>
-      {portraits.map((src) => (
-        <span
-          key={src}
-          className="relative size-9 overflow-hidden rounded-full ring-2 ring-layl-deep"
-        >
-          <Image src={src} alt="" fill sizes="36px" className="object-cover" />
-        </span>
-      ))}
-      <span className="relative flex size-9 items-center justify-center rounded-full bg-brass/15 text-[11px] font-semibold text-brass ring-2 ring-layl-deep">
-        15K+
-      </span>
     </div>
   );
 }
@@ -173,7 +155,10 @@ function Quote() {
             it.&rdquo;
           </p>
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
-            Prophet Muhammad <span lang="ar" className="text-sm">ﷺ</span>
+            Prophet Muhammad{" "}
+            <span lang="ar" className="text-sm">
+              ﷺ
+            </span>
           </p>
         </div>
         <span
@@ -328,7 +313,10 @@ function Support() {
       <section className="mx-auto w-full max-w-6xl px-6 md:px-8">
         <div className="glass-still relative flex flex-col items-start gap-8 overflow-hidden rounded-3xl px-6 py-10 sm:px-10 md:flex-row md:items-center md:justify-between md:py-12">
           {/* lattice light entering from the panel's edge */}
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-56">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-56"
+          >
             <GirihField
               className="absolute inset-0"
               opacity={0.07}
@@ -358,7 +346,11 @@ function Support() {
 
           <Link
             href="/donate"
-            className={buttonClasses("primary", "lg", "relative w-full shrink-0 sm:w-auto")}
+            className={buttonClasses(
+              "primary",
+              "lg",
+              "relative w-full shrink-0 sm:w-auto",
+            )}
           >
             <ButtonSheen />
             Donate
