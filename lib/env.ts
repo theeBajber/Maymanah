@@ -20,6 +20,8 @@ const serverEnvSchema = z.object({
   AUTH_SECRET: z
     .string()
     .min(32, "AUTH_SECRET must be at least 32 characters; generate one with `openssl rand -base64 32`"),
+  /** Origin used to build links in transactional email. */
+  APP_URL: z.url("APP_URL must be an absolute origin, for example https://maymanah.org").default("http://localhost:3000"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
