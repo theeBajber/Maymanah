@@ -5,3 +5,103 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum VerificationPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+/// An account. Every account authenticates with an email address and a
+/// password; there is no third-party sign-in, so no account or session table
+/// is needed to store identities from an external provider.
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String
+  role          UserRole  @default(STUDENT)
+
+  /// Whether this account must supply a one-time code in addition to its
+  /// password. The code itself lives in TwoFactorCode.
+  twoFactorEnabled Boolean @default(false)
+
+  image  String?
+  gender String?
+  xp     Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  twoFactorCodes TwoFactorCode[]
+  loginSessions  LoginSession[]
+
+  @@index([role])
+}
+
+/// A single-use secret sent to an email address, either to confirm the address
+/// belongs to the person registering or to authorise a password reset.
+///
+/// Only the hash is stored. A database disclosure then yields no usable token,
+/// because the plaintext exists solely in the recipient's inbox.
+model VerificationToken {
+  id         String              @id @default(cuid())
+  email      String
+  tokenHash  String
+  purpose    VerificationPurpose
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime            @default(now())
+
+  @@unique([email, purpose, tokenHash])
+  @@index([email, purpose])
+  @@index([expiresAt])
+}
+
+/// A one-time code for two-factor authentication.
+///
+/// `attempts` is incremented on every check, and the code is dead once the cap
+/// is reached. Guessing is therefore bounded by the cap rather than by the
+/// expiry window alone: a six-digit code has a million possibilities, which is
+/// few enough to enumerate within ten minutes.
+model TwoFactorCode {
+  id         String    @id @default(cuid())
+  userId     String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt])
+  @@index([expiresAt])
+}
+
+/// A record of one signed-in device.
+///
+/// Session cookies are self-contained, so revoking one in the database would
+/// have no effect unless every request checks it. This table is what makes
+/// "sign out this device" actually end that session instead of merely removing
+/// it from a list.
+model LoginSession {
+  id         String   @id @default(cuid())
+  userId     String
+  deviceName String
+  ipAddress  String
+  isActive   Boolean  @default(true)
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+}
