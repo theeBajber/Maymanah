@@ -105,3 +105,22 @@ model LoginSession {
   @@index([userId])
   @@index([isActive])
 }
+
+/// A fixed-window request counter, one row per limit key.
+///
+/// Counters live in the database because a serverless runtime discards process
+/// memory between invocations, so an in-memory map would reset on every request
+/// and limit nothing. Each attempt costs one write, which is the trade for not
+/// requiring a separate cache service to be provisioned and paid for.
+///
+/// Rows are removed by `expiresAt` once their window can no longer be counted,
+/// so the table stays proportional to recent activity rather than growing
+/// without bound.
+model RateLimitBucket {
+  key             String   @id
+  count           Int      @default(0)
+  windowStartedAt DateTime @default(now())
+  expiresAt       DateTime
+
+  @@index([expiresAt])
+}
