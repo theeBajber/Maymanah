@@ -15,6 +15,7 @@ export interface CurrentUser {
   emailVerified: Date | null;
   twoFactorEnabled: boolean;
   image: string | null;
+  xp: number;
 }
 
 interface SessionLike {
@@ -46,6 +47,7 @@ export const getCurrentUser = cache(async (session: SessionLike | null): Promise
       emailVerified: true,
       twoFactorEnabled: true,
       image: true,
+      xp: true,
     },
   });
 
