@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { mailer, oneTimeCodeEmailContent } from "@/lib/mailer";
 import { hashOneTimeCode, verifyOneTimeCode, verifyPassword } from "@/lib/password";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { revokeLoginSession } from "@/lib/session";
 import { evaluateTwoFactorCode } from "@/lib/two-factor";
 import { generateOneTimeCode, ONE_TIME_CODE_MAX_ATTEMPTS, ONE_TIME_CODE_TTL_MS } from "@/lib/tokens";
 import { loginSchema } from "@/lib/validation";
@@ -169,6 +170,20 @@ async function openLoginSession(user: CredentialUser) {
 
 const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  events: {
+    /**
+     * Ends the device that signed out.
+     *
+     * The cookie is self-contained, so clearing it in the browser is not enough
+     * to stop the session being presented again. Marking the device record
+     * inactive means the next request that carries that cookie is refused.
+     */
+    async signOut(message) {
+      const loginSessionId = (message as { token?: { loginSessionId?: string } }).token?.loginSessionId;
+      if (!loginSessionId) return;
+      await revokeLoginSession(loginSessionId);
+    },
+  },
   providers: [
     Credentials({
       name: "credentials",
