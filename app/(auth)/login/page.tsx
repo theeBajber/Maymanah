@@ -1,35 +1,186 @@
-import { Suspense } from "react";
-import type { Metadata } from "next";
+"use client";
+import { ArrowRight, Lock, Mail } from "lucide-react";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { OtpInput } from "@/app/ui/OtpInput";
+import { useToast } from "@/app/ui/toast";
+import { Input, PasswordInput, Field } from "@/app/ui/input";
+import { Button } from "@/app/ui/button";
+import { AuthPanel } from "../AuthPanel";
 
-import { AltLink, AuthCard } from "@/app/ui/form";
-import { LoginForm } from "./LoginForm";
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"credentials" | "otp">("credentials");
+  const [otpCode, setOtpCode] = useState("");
 
-export const metadata: Metadata = {
-  title: "Sign in",
-  description: "Sign in to your Maymanah account.",
-  robots: { index: false, follow: true },
-};
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      toast({ title: "Email verified! You can now sign in.", variant: "success" });
+    }
+  }, [searchParams, toast]);
 
-export default function LoginPage() {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+
+    setLoading(true);
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+    setLoading(false);
+
+    if (result?.code === "otp_required") {
+      setStep("otp");
+      return;
+    }
+
+    if (result?.code === "email_not_verified") {
+      toast({ title: "Please verify your email before signing in.", variant: "error" });
+      return;
+    }
+
+    if (result?.error) {
+      toast({ title: "Invalid email or password", variant: "error" });
+      setPassword("");
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+  }, [email, password, toast, router]);
+
+  const handleOtpSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otpCode.length !== 6) return;
+
+    setLoading(true);
+    const result = await signIn("credentials", {
+      email,
+      password,
+      otpCode,
+      redirect: false,
+    });
+    setLoading(false);
+
+    if (result?.error) {
+      toast({ title: "Invalid code. Try again.", variant: "error" });
+      setOtpCode("");
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+  }, [email, password, otpCode, toast, router]);
+
   return (
-    <AuthCard
-      title="Welcome back"
-      subtitle="Sign in to reach your lessons and sessions."
-      footer={
-        <>
-          <p>
-            No account yet? <AltLink href="/register">Create one</AltLink>
+    <AuthPanel heading={step === "otp" ? "Enter verification code" : "Continue your journey"}>
+      {step === "credentials" ? (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <Field label="Email address" htmlFor="email">
+            <Input
+              id="email"
+              type="email"
+              icon={<Mail />}
+              placeholder="you@example.com"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </Field>
+          <Field
+            label="Password"
+            htmlFor="password"
+            trailing={
+              <Link
+                href="/forgot-password"
+                className="text-[11px] font-semibold uppercase tracking-[0.18em] text-lapis transition-colors hover:text-ivory"
+              >
+                Forgot password?
+              </Link>
+            }
+          >
+            <PasswordInput
+              id="password"
+              icon={<Lock />}
+              placeholder="Your password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </Field>
+          <Button
+            type="submit"
+            size="lg"
+            loading={loading}
+            disabled={!email || !password}
+            className="mt-1 w-full"
+          >
+            {loading ? "Signing in" : "Sign in"}
+            {!loading && (
+              <ArrowRight className="size-4 transition-transform motion-safe:group-hover:translate-x-1" />
+            )}
+          </Button>
+          <p className="text-center text-sm text-sage">
+            New here?{" "}
+            <Link
+              href="/register"
+              className="font-medium text-lapis transition-colors hover:text-ivory"
+            >
+              Create an account
+            </Link>
           </p>
-          <p>
-            <AltLink href="/forgot-password">Forgotten your password?</AltLink>
+        </form>
+      ) : (
+        <form onSubmit={handleOtpSubmit} className="flex flex-col gap-5">
+          <p className="text-sm text-sage text-center leading-relaxed">
+            A verification code was sent to <strong className="text-ivory">{email}</strong>
           </p>
-        </>
-      }
-    >
-      {/* useSearchParams needs a boundary during prerender. */}
-      <Suspense fallback={<div className="h-64" />}>
-        <LoginForm />
-      </Suspense>
-    </AuthCard>
+          <div className="flex flex-col gap-2 items-center">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage" htmlFor="otp">
+              Verification Code
+            </label>
+            <OtpInput value={otpCode} onChange={setOtpCode} disabled={loading} />
+          </div>
+          <Button
+            type="submit"
+            size="lg"
+            loading={loading}
+            disabled={otpCode.length !== 6}
+            className="mt-1 w-full"
+          >
+            {loading ? "Verifying" : "Verify"}
+          </Button>
+          <button
+            type="button"
+            className="text-center text-sm text-lapis transition-colors hover:text-ivory"
+            onClick={() => {
+              setStep("credentials");
+              setOtpCode("");
+            }}
+          >
+            ← Back to login
+          </button>
+        </form>
+      )}
+    </AuthPanel>
+  );
+}
+
+export default function LogIn() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

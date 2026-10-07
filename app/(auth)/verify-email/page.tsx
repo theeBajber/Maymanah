@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 import { verifyEmailToken } from "@/lib/account-recovery";
-import { AltLink, AuthCard, FormNotice } from "@/app/ui/form";
+import { AuthPanel } from "../AuthPanel";
 
 export const metadata: Metadata = {
   title: "Confirm your email",
@@ -23,12 +25,13 @@ export default async function VerifyEmailPage({
 
   if (!token) {
     return (
-      <AuthCard title="Confirm your email">
-        <FormNotice tone="danger">That confirmation link is not valid.</FormNotice>
-        <p className="text-center text-sm">
-          <AltLink href="/dashboard">Continue to your account</AltLink>
-        </p>
-      </AuthCard>
+      <AuthPanel heading="Confirm your email">
+        <Outcome
+          icon={<XCircle className="size-9 text-night-danger" />}
+          title="That link is not valid"
+          body="Open the link straight from your email, or ask for a new one from settings."
+        />
+      </AuthPanel>
     );
   }
 
@@ -36,25 +39,56 @@ export default async function VerifyEmailPage({
 
   if (!result.ok) {
     return (
-      <AuthCard title="Confirm your email">
-        <FormNotice tone="danger">
-          {result.reason === "expired"
-            ? "That link has expired. Ask for another from your account."
-            : "That link is not valid or has already been used."}
-        </FormNotice>
-        <p className="text-center text-sm">
-          <AltLink href="/dashboard">Continue to your account</AltLink>
-        </p>
-      </AuthCard>
+      <AuthPanel heading="Confirm your email">
+        <Outcome
+          icon={<XCircle className="size-9 text-night-danger" />}
+          title={result.reason === "expired" ? "That link has expired" : "That link cannot be used"}
+          body={
+            result.reason === "expired"
+              ? "Confirmation links last a day. Ask for another from settings."
+              : "It may already have been used. Ask for a new one from settings if you need it."
+          }
+        />
+      </AuthPanel>
     );
   }
 
   return (
-    <AuthCard title="Email confirmed" subtitle={`${result.value} is now confirmed.`}>
-      <FormNotice tone="success">Thank you. Your address is confirmed.</FormNotice>
-      <p className="text-center text-sm">
-        <AltLink href="/dashboard">Continue to your account</AltLink>
-      </p>
-    </AuthCard>
+    <AuthPanel heading="Email confirmed">
+      <Outcome
+        icon={<CheckCircle2 className="size-9 text-night-success" />}
+        title={`${result.value} is confirmed`}
+        body="You can recover your account if you lose your password now."
+        cta
+      />
+    </AuthPanel>
+  );
+}
+
+function Outcome({
+  icon,
+  title,
+  body,
+  cta = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  cta?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-5 text-center">
+      {icon}
+      <div className="flex flex-col gap-2">
+        <p className="text-base font-semibold text-ivory">{title}</p>
+        <p className="text-sm text-sage">{body}</p>
+      </div>
+      <Link
+        href="/dashboard"
+        className="inline-flex h-11 items-center justify-center rounded-[10px] bg-brass px-6 text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+      >
+        {cta ? "Continue to your account" : "Go to your account"}
+      </Link>
+    </div>
   );
 }

@@ -33,21 +33,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   const parsed = registerSchema.safeParse(body);
 
   if (!parsed.success) {
-    // Every problem is reported at once so the form can show all of them,
-    // rather than making the person resubmit to discover the next one.
-    const fields: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const key = String(issue.path[0] ?? "form");
-      fields[key] ??= issue.message;
-    }
-    return problem(422, "Check the highlighted fields", fields);
+    // Every problem is reported at once, so the form can show all of them rather
+    // than making the person resubmit to discover the next one. Reported as an
+    // array of Zod issues because that is the shape the form reads.
+    return NextResponse.json({ error: parsed.error.issues }, { status: 422 });
   }
 
   const result = await registerUser(parsed.data, await clientIp());
 
   if (result.ok) {
     // Deliberately says nothing about the account beyond that it was created.
-    // The identifier is not echoed back; it is never needed by the caller.
+    // The identifier is never needed by the caller.
     return NextResponse.json({ ok: true }, { status: 201 });
   }
 

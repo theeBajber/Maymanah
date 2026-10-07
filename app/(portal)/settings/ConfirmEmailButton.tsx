@@ -43,7 +43,7 @@ export function ConfirmEmailButton({ email }: { email: string }) {
         type="button"
         onClick={send}
         disabled={state.status === "sending"}
-        className="font-semibold text-primary underline underline-offset-4 disabled:opacity-60 text-left"
+        className="font-medium text-lapis transition-colors hover:text-ivory disabled:opacity-50 text-left"
       >
         {state.status === "sending" ? "Sending…" : "Send another confirmation"}
       </button>

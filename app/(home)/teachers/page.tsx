@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export default function TeachersPage() {
   return (
     <MarketingPage
+      arabic="ابحث عن معلم"
       title="Find a teacher"
       lede="Every teacher is reviewed before they are paired with a student. Here is what that involves and how a match is made."
     >

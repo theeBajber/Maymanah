@@ -1,122 +1,301 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-
-import { Callout, DetailList, MarketingPage, Section, Steps } from "@/app/ui/marketing";
+import { amiri, elMessiri } from "@/app/ui/fonts";
+import { PageHeader } from "@/app/ui/page-header";
+import { Reveal } from "@/app/ui/reveal";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Learning path",
+  title: "Curriculum — Tajweed, Hifdh & Arabic Courses",
   description:
-    "How Maymanah teaches Hifdh and Tajweed: one-to-one sessions with a qualified teacher, a structured order, and tracked progress.",
+    "A structured, sanad-based curriculum: master Tajweed and recitation, memorize the Quran through our Hifdh track, and learn classical Arabic — each with a clear path to certification.",
   alternates: { canonical: "/curriculum" },
+  openGraph: {
+    title: "Curriculum — Tajweed, Hifdh & Arabic Courses | Maymanah",
+    description:
+      "A structured journey through Tajweed, Hifdh, and classical Arabic, built on an unbroken chain of transmission (sanad).",
+    url: "/curriculum",
+  },
 };
 
-/**
- * The order students move through.
- *
- * Kept as data rather than written into the markup so the same list can describe
- * a course later without being restated. A stage that is not yet available says
- * so explicitly rather than being quietly omitted, since a person planning their
- * studies needs to know what is coming.
- */
-const STAGES = [
+/* Course JSON-LD — one entry per track, wording matched exactly to the
+   visible copy below per Google's structured-data guidelines. */
+const coursesJsonLd = [
   {
-    name: "Foundations",
-    status: "available",
-    body: "Tajweed fundamentals and the mechanics of recitation, so later work rests on a correct foundation rather than on habits picked up from imitation.",
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "@id": `${SITE_URL}/curriculum#tajweed`,
+    name: "Tajweed & Recitation",
+    description:
+      "Perfect your articulation and master the rules of recitation to read the Quran exactly as it was revealed.",
+    provider: { "@type": "EducationalOrganization", name: SITE_NAME, sameAs: SITE_URL },
+    isAccessibleForFree: true,
+    inLanguage: "ar",
+    educationalLevel: "Beginner to Advanced",
   },
   {
-    name: "Hifdh memorisation",
-    status: "available",
-    body: "Memorisation with weekly review built in. Retention is checked by recitation, not by marking pages as read.",
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "@id": `${SITE_URL}/curriculum#hifdh`,
+    name: "Memorization (Hifdh)",
+    description:
+      "A structured memorization program tailored to your capacity, focusing on retention and precise recall.",
+    provider: { "@type": "EducationalOrganization", name: SITE_NAME, sameAs: SITE_URL },
+    isAccessibleForFree: true,
+    inLanguage: "ar",
+    educationalLevel: "Self-paced",
   },
   {
-    name: "Mudaalliq (connected recitation)",
-    status: "planned",
-    body: "Linking what has been memorised into continuous recitation, with attention to the pauses and transitions that hold meaning.",
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "@id": `${SITE_URL}/curriculum#arabic`,
+    name: "Arabic Language",
+    description:
+      "Bridge the gap between reading and understanding. Learn classical Arabic to comprehend the Quran directly.",
+    provider: { "@type": "EducationalOrganization", name: SITE_NAME, sameAs: SITE_URL },
+    isAccessibleForFree: true,
+    inLanguage: "en",
+    educationalLevel: "Beginner to Advanced",
   },
-  {
-    name: "Advanced Tajweed",
-    status: "planned",
-    body: "The subtler rules, applied to real recitation with a teacher who can hear and correct what a recording cannot.",
-  },
-] as const;
+];
 
-export default function CurriculumPage() {
+export default function Curriculum() {
   return (
-    <MarketingPage
-      title="The learning path"
-      lede="A structured order for Hifdh and Tajweed, taught one to one by a qualified teacher and tracked so progress is real rather than assumed."
+    <main className="flex w-full flex-col items-center gap-16 pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(coursesJsonLd) }}
+      />
+      <PageHeader
+        arabic="سَنَدٌ مُتَّصِلٌ"
+        title="A curriculum built on sanad"
+        lede="A structured, immersive journey through foundational Islamic knowledge. Progress from absolute beginner to advanced fluency in a high-focus environment."
+      />
+      <Tracks />
+    </main>
+  );
+}
+
+/* Each track is a designed learning path — a rail of stations
+   ending at a brass-lit certification node — not a bullet list. */
+
+type Step = {
+  title: string;
+  arabic?: string;
+  detail?: string;
+  final?: boolean;
+};
+
+function PathRail({ steps }: { steps: Step[] }) {
+  return (
+    <ol className="relative mt-2 flex flex-col gap-6">
+      <span
+        aria-hidden
+        className="absolute bottom-3 left-1.25 top-3 w-px bg-linear-to-b from-ivory/10 via-ivory/20 to-brass/60"
+      />
+      {steps.map((step) => (
+        <li key={step.title} className="relative flex flex-col gap-1 ps-8">
+          <span
+            aria-hidden
+            className={`absolute left-0 top-1.75 size-2.75 rotate-45 ${
+              step.final
+                ? "bg-brass shadow-glow-brass"
+                : "border border-brass/50 bg-layl"
+            }`}
+          />
+          <span
+            className={`flex flex-wrap items-baseline gap-2 text-[15px] font-medium ${
+              step.final ? "text-brass" : "text-ivory"
+            }`}
+          >
+            {step.title}
+            {step.arabic && (
+              <span
+                lang="ar"
+                dir="rtl"
+                className={`${amiri.className} text-lg text-sage`}
+              >
+                {step.arabic}
+              </span>
+            )}
+          </span>
+          {step.detail && (
+            <span className="text-[13px] leading-relaxed text-sage">
+              {step.detail}
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function TrackPanel({
+  title,
+  arabic,
+  badge,
+  body,
+  steps,
+  className = "",
+}: {
+  title: string;
+  arabic?: string;
+  badge: string;
+  body: string;
+  steps: Step[];
+  className?: string;
+}) {
+  return (
+    <article
+      className={`glass-still hover-lift relative flex flex-col gap-5 overflow-hidden rounded-2xl p-6 hover:border-brass/30 md:p-8 ${className}`}
     >
-      <Section heading="How a student is taught">
-        <Steps
-          items={[
-            {
-              title: "You tell us where you are",
-              body: "What you have already memorised, how you read, and what you want to reach. This sets the starting point, because two people at the same level often need different work.",
-            },
-            {
-              title: "You are matched with a teacher",
-              body: "Matching accounts for current level, target, and time zone, so sessions land at an hour you are awake for. Video sessions run on the platform, so nothing needs installing.",
-            },
-            {
-              title: "You follow a plan",
-              body: "Each session has an agreed focus. Your teacher prepares against a shared curriculum rather than improvising each week, which is what makes progress traceable.",
-            },
-            {
-              title: "Progress is checked by recitation",
-              body: "Completion is established by reciting correctly under instruction, not by ticking off material. If something is not yet secure, it stays on the list.",
-            },
-          ]}
-        />
-      </Section>
-
-      <Section heading="The stages">
-        <div className="flex flex-col gap-6">
-          {STAGES.map((stage) => (
-            <article
-              key={stage.name}
-              className="flex flex-col gap-2 rounded-3xl border border-border bg-bg-card p-6"
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2
+          className={`${elMessiri.className} flex items-baseline gap-3 text-2xl font-semibold text-ivory sm:text-3xl`}
+        >
+          {title}
+          {arabic && (
+            <span
+              lang="ar"
+              dir="rtl"
+              className={`${amiri.className} text-2xl text-brass`}
             >
-              <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-lg font-bold">{stage.name}</h3>
-                {stage.status === "available" ? (
-                  <span className="rounded-full bg-success-muted px-3 py-1 text-xs font-semibold text-text-secondary">
-                    Available now
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-bg-secondary px-3 py-1 text-xs font-semibold text-text-tertiary">
-                    In development
-                  </span>
-                )}
-              </div>
-              <p>{stage.body}</p>
-            </article>
-          ))}
-        </div>
-      </Section>
+              {arabic}
+            </span>
+          )}
+        </h2>
+        <span className="rounded-full border border-brass/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">
+          {badge}
+        </span>
+      </div>
+      <p className="text-sm leading-relaxed text-sage md:text-[15px]">{body}</p>
+      <PathRail steps={steps} />
+    </article>
+  );
+}
 
-      <Section heading="What you need">
-        <DetailList
-          items={[
-            { term: "Cost", detail: "Nothing. Tuition is paid for by donors, so no student is charged." },
-            { term: "Time", detail: "One to two sessions a week is enough to make steady progress. Your plan is yours to set." },
-            { term: "Equipment", detail: "A phone, tablet, or computer with a camera and a browser. Sessions run in the platform." },
-            { term: "Language", detail: "Teachers teach in English and Arabic. Your preference is recorded when you register." },
-            { term: "Commitment", detail: "Showing up. A missed session is rearranged, not lost." },
+function Tracks() {
+  return (
+    <Reveal className="w-full">
+      <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 px-4 sm:px-6 md:grid-cols-2 md:px-8">
+        <TrackPanel
+          title="Tajweed & Recitation"
+          badge="4 levels"
+          body="Perfect your articulation and master the rules of recitation to read the Quran exactly as it was revealed."
+          steps={[
+            { title: "Foundational Articulation", arabic: "(مخارج)" },
+            { title: "Rules of Noon & Meem Sakinah" },
+            { title: "Advanced Madd & Waqf Rules" },
+            { title: "Ijazah Preparation", final: true },
           ]}
         />
-      </Section>
+        <TrackPanel
+          title="Memorization"
+          arabic="(حفظ)"
+          badge="Self-paced"
+          body="A structured memorization program tailored to your capacity, focusing on retention and precise recall."
+          steps={[
+            { title: "Juz Amma & Tabarak" },
+            { title: "First Third (10 Ajza)" },
+            { title: "Second Third (20 Ajza)" },
+            { title: "Complete Hifdh Certification", final: true },
+          ]}
+        />
+        <ArabicTrack />
+      </section>
+    </Reveal>
+  );
+}
 
-      <Callout>
-        <p className="mb-3">
-          <strong>Still in development.</strong> Stages marked as in development are described so you can see where
-          the path is heading, but the sessions and assessments behind them are not built yet.
+/* Arabic Language spans both columns: the same path, laid horizontally
+   on desktop so the four levels read as stations on one line. */
+function ArabicTrack() {
+  const levels = [
+    {
+      level: "Level 1",
+      title: "Alphabet & Basic Syntax",
+      arabic: undefined as string | undefined,
+      detail:
+        "Mastering the script, vocabulary building, and nominal sentences.",
+      final: false,
+    },
+    {
+      level: "Level 2",
+      title: "Morphology",
+      arabic: "(صرف)",
+      detail: "Understanding verb patterns, root words, and derivations.",
+      final: false,
+    },
+    {
+      level: "Level 3",
+      title: "Grammar",
+      arabic: "(نحو)",
+      detail:
+        "Complex sentence structures, case endings, and verbal sentences.",
+      final: false,
+    },
+    {
+      level: "Level 4",
+      title: "Quranic Analysis",
+      arabic: undefined,
+      detail: "Applying grammar and morphology directly to Quranic texts.",
+      final: true,
+    },
+  ];
+
+  return (
+    <article className="glass-still hover-lift relative flex flex-col gap-6 overflow-hidden rounded-2xl p-6 hover:border-brass/30 md:col-span-2 md:p-8">
+      <div className="flex flex-col gap-3">
+        <h2
+          className={`${elMessiri.className} text-2xl font-semibold text-ivory sm:text-3xl`}
+        >
+          Arabic Language
+        </h2>
+        <p className="max-w-2xl text-sm leading-relaxed text-sage md:text-[15px]">
+          Bridge the gap between reading and understanding. Learn classical
+          Arabic to comprehend the Quran directly.
         </p>
-        <Link href="/register" className="font-semibold text-primary underline underline-offset-4">
-          Create a free account
-        </Link>{" "}
-        and you will be told as each stage opens.
-      </Callout>
-    </MarketingPage>
+      </div>
+      <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        {/* the connecting rail, desktop only */}
+        <span
+          aria-hidden
+          className="absolute left-1 right-6 top-1.25 hidden h-px bg-linear-to-r from-ivory/10 via-ivory/20 to-brass/60 lg:block"
+        />
+        {levels.map((item) => (
+          <div key={item.level} className="relative flex flex-col gap-1.5 lg:pt-6">
+            <span
+              aria-hidden
+              className={`absolute left-0 top-0 hidden size-2.75 rotate-45 lg:block ${
+                item.final
+                  ? "bg-brass shadow-glow-brass"
+                  : "border border-brass/50 bg-layl"
+              }`}
+            />
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                item.final ? "text-brass" : "text-sage/80"
+              }`}
+            >
+              {item.level}
+            </span>
+            <span className="flex items-baseline gap-2 text-[15px] font-medium text-ivory">
+              {item.title}
+              {item.arabic && (
+                <span
+                  lang="ar"
+                  dir="rtl"
+                  className={`${amiri.className} text-lg text-sage`}
+                >
+                  {item.arabic}
+                </span>
+              )}
+            </span>
+            <p className="text-[13px] leading-relaxed text-sage">
+              {item.detail}
+            </p>
+          </div>
+        ))}
+      </div>
+    </article>
   );
 }

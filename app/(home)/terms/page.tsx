@@ -1,70 +1,104 @@
 import type { Metadata } from "next";
-
-import { MarketingPage, Section } from "@/app/ui/marketing";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { elMessiri } from "@/app/ui/fonts";
 
 export const metadata: Metadata = {
-  title: "Terms of service",
-  description: "The terms for using Maymanah, as a student and as a teacher.",
+  title: "Terms of Service",
+  description: "The terms and conditions governing use of Maymanah.",
   alternates: { canonical: "/terms" },
 };
 
-export default function TermsPage() {
+export default function Terms() {
   return (
-    <MarketingPage
-      title="Terms of service"
-      lede="The agreement between you and Maymanah, on both sides of a session."
-    >
-      <Section heading="As a student">
-        <ul className="flex flex-col gap-4">
-          <li>Instruction is free. Donations cover it, and no student is charged.</li>
-          <li>
-            You are responsible for your own progress. The platform gives you a teacher and a plan; the practice is
-            yours.
-          </li>
-          <li>
-            Sessions you have booked are yours to keep or rearrange. Give notice where you can, so the teacher is not
-            left waiting.
-          </li>
-        </ul>
-      </Section>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 pb-24 pt-16 md:pt-20">
+      <header className="flex flex-col gap-3">
+        <h1
+          className={`${elMessiri.className} text-4xl font-semibold text-ivory md:text-5xl`}
+        >
+          Terms and Conditions
+        </h1>
+        <p className="text-sage">Last updated: April 22, 2026</p>
+      </header>
 
-      <Section heading="As a teacher">
-        <ul className="flex flex-col gap-4">
-          <li>
-            You must hold a qualification we recognise. Approval is reviewed, and can be withdrawn if a concern is
-            raised.
-          </li>
-          <li>
-            You agree to teach in good faith, to keep records of what you cover, and to report a student&rsquo;s progress
-            honestly, including when a student is not ready to move on.
-          </li>
-          <li>You are paid for sessions you deliver. Undelivered sessions are not.</li>
-        </ul>
-      </Section>
+      <article className="flex flex-col gap-12 text-[15px] leading-relaxed text-sage md:text-base">
+        <section className="flex flex-col gap-4">
+          <h2
+            className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+          >
+            1. Agreement to terms
+          </h2>
+          <span
+            aria-hidden
+            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+          />
+          <p>
+            By accessing or using Maymanah, you agree to be bound by these
+            Terms and Conditions. If you disagree with any part of the terms,
+            you may not access the service. These terms constitute a legally
+            binding agreement made between you and Maymanah.
+          </p>
+        </section>
 
-      <Section heading="Either side">
-        <ul className="flex flex-col gap-4">
-          <li>
-            <strong className="text-text-primary">Respect.</strong> Harassment or abuse of any kind ends the
-            relationship immediately and may end the account.
-          </li>
-          <li>
-            <strong className="text-text-primary">Your data.</strong> Handled as described in the privacy policy.
-          </li>
-          <li>
-            <strong className="text-text-primary">Changes.</strong> If these terms change in a way that affects you,
-            we will tell you before it takes effect.
-          </li>
-        </ul>
-      </Section>
+        <section className="flex flex-col gap-4">
+          <h2
+            className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+          >
+            2. Educational use
+          </h2>
+          <span
+            aria-hidden
+            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+          />
+          <p>
+            The materials provided on this platform are for educational and
+            spiritual growth purposes. You are granted a limited,
+            non-exclusive, non-transferable license to access and use the
+            curriculum for personal, non-commercial use.
+          </p>
+          <ul className="flex flex-col gap-3">
+            {[
+              "Do not redistribute materials without explicit permission.",
+              "Maintain respect for the sacred nature of the texts provided.",
+              "Account sharing is strictly prohibited and may result in termination.",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <span
+                  aria-hidden
+                  className="mt-2 size-1.5 shrink-0 rotate-45 bg-brass/60"
+                />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-      <Section heading="A note on this draft">
-        <p>
-          This is a working summary rather than a legal document. It describes how the platform is intended to work so
-          that students and teachers know what they are agreeing to. It has not been reviewed by a lawyer and should
-          not be relied on as one.
-        </p>
-      </Section>
-    </MarketingPage>
+        <section className="flex flex-col gap-4">
+          <h2
+            className={`${elMessiri.className} text-2xl font-semibold text-ivory`}
+          >
+            3. User conduct
+          </h2>
+          <span
+            aria-hidden
+            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+          />
+          <p>
+            Users are expected to conduct themselves with adab (etiquette)
+            within community forums and live sessions. Harassment, hate
+            speech, or disruptive behavior will lead to immediate account
+            suspension.
+          </p>
+        </section>
+      </article>
+
+      <Link
+        href="/"
+        className="flex w-fit items-center gap-2 text-sm text-lapis transition-colors hover:text-ivory"
+      >
+        <ArrowLeft className="size-4" />
+        Return to home
+      </Link>
+    </main>
   );
 }

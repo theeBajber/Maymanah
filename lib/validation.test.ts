@@ -17,7 +17,16 @@ function firstIssue(result: { error?: { issues: { message: string; path: Propert
 
 describe("registerSchema", () => {
   it("accepts a well formed registration", () => {
-    expect(registerSchema.parse(valid)).toEqual(valid);
+    // Defaults a missing role to student, so a form that omits the choice works.
+    expect(registerSchema.parse(valid)).toEqual({ ...valid, role: "STUDENT" });
+  });
+
+  it("keeps a chosen role", () => {
+    expect(registerSchema.parse({ ...valid, role: "TEACHER" }).role).toBe("TEACHER");
+  });
+
+  it("refuses any role beyond student or teacher", () => {
+    expect(registerSchema.safeParse({ ...valid, role: "ADMIN" }).success).toBe(false);
   });
 
   it("trims and collapses whitespace in the name", () => {
@@ -53,6 +62,12 @@ describe("registerSchema", () => {
 
   it(`accepts a password of exactly ${PASSWORD_MIN_LENGTH} characters`, () => {
     expect(registerSchema.safeParse({ ...valid, password: "a".repeat(PASSWORD_MIN_LENGTH) }).success).toBe(true);
+  });
+
+  it("states the same minimum the registration form tells people", () => {
+    // The form promises a minimum in its own words. A stricter server than the
+    // form it belongs to rejects a password the person was told was fine.
+    expect(PASSWORD_MIN_LENGTH).toBe(8);
   });
 
   it("accepts a passphrase without digits, capitals or symbols", () => {

@@ -50,10 +50,10 @@ describe("password hashing", () => {
   });
 
   it("verifies against parameters recorded in the hash, not the current defaults", async () => {
-    // Stands in for a password stored before the cost parameters were raised.
-    const stored = await hashPassword("legacy secret");
+    // Stands in for a password stored under a different cost setting.
+    const stored = await hashPassword("an older secret");
 
-    await expect(verifyPassword("legacy secret", stored)).resolves.toBe(true);
+    await expect(verifyPassword("an older secret", stored)).resolves.toBe(true);
     await expect(verifyPassword("wrong", stored)).resolves.toBe(false);
   });
 });

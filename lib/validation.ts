@@ -7,8 +7,12 @@ import { toSingleLine } from "./text";
  * option. There is deliberately no requirement for digits, capitals or symbols:
  * those rules push people towards `Password1!`, which is easier to guess than the
  * long phrase they would otherwise choose.
+ *
+ * This matches the minimum the registration form states. A server stricter than
+ * its own form rejects a password the person was told was acceptable, which
+ * reads as a fault rather than as a rule.
  */
-export const PASSWORD_MIN_LENGTH = 10;
+export const PASSWORD_MIN_LENGTH = 8;
 
 /** Bcrypt and scrypt both take a byte string; anything beyond this is a mistake or an attack. */
 const PASSWORD_MAX_LENGTH = 200;
@@ -59,6 +63,9 @@ export const registerSchema = z
       .string()
       .min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`)
       .max(PASSWORD_MAX_LENGTH, `Must be at most ${PASSWORD_MAX_LENGTH} characters`),
+    // Students and teachers register the same way; the role only decides which
+    // side of the platform they start on. Administrators are never created here.
+    role: z.enum(["STUDENT", "TEACHER"]).default("STUDENT"),
   })
   .superRefine((value, ctx) => {
     const localPart = value.email.split("@")[0] ?? "";

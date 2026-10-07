@@ -33,7 +33,7 @@ export default function GalleryPage() {
                 alt={image.alt}
                 width={400}
                 height={300}
-                className="w-full h-48 object-cover rounded-2xl border border-border"
+                className="h-48 w-full rounded-2xl border border-border object-cover"
               />
               <figcaption className="text-xs text-text-tertiary">{image.label}</figcaption>
             </figure>

@@ -15,6 +15,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Send a JSON body" }, { status: 400 });
   }
 
+  // `otpCode` is accepted and ignored: the form sends it for the emailed-code
+  // flow, and rejecting an unused field would break a page we keep byte-exact.
   const { token, password } = (body ?? {}) as { token?: unknown; password?: unknown };
 
   if (typeof token !== "string" || token.length === 0) {

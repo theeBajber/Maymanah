@@ -45,7 +45,7 @@ export async function registerUser(input: RegisterInput, clientIp: string): Prom
 
   const user = await db.$transaction(async (tx) => {
     const created = await tx.user.create({
-      data: { name: input.name, email: input.email, passwordHash },
+      data: { name: input.name, email: input.email, passwordHash, role: input.role },
       select: { id: true },
     });
 

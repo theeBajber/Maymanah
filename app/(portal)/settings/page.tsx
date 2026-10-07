@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { currentLoginSessionId, getCurrentUser } from "@/lib/session";
+import { PortalHeader } from "@/app/ui/portal";
 import { ConfirmEmailButton } from "./ConfirmEmailButton";
-import { DeviceList } from "./DeviceList";
-import { PasswordPanel } from "./PasswordPanel";
-import { TwoFactorPanel } from "./TwoFactorPanel";
+import { DeviceList, PasswordPanel, TwoFactorPanel } from "./panels";
 
 export const metadata: Metadata = {
-  title: "Your account",
+  title: "Settings",
   robots: { index: false, follow: false },
 };
 
@@ -18,69 +17,55 @@ export default async function SettingsPage() {
   const session = await auth();
   const user = await getCurrentUser(session);
 
-  if (!user) {
-    return (
-      <div className="text-center">
-        <p>Sign in to manage your account.</p>
-        <Link href="/login" className="font-semibold text-primary underline underline-offset-4">
-          Sign in
-        </Link>
-      </div>
-    );
-  }
+  if (!user) redirect("/login");
 
   const currentSessionId = currentLoginSessionId(session);
 
   const devices = await db.loginSession.findMany({
     where: { userId: user.id, isActive: true },
     orderBy: { lastSeenAt: "desc" },
-    select: { id: true, deviceName: true, ipAddress: true, createdAt: true, lastSeenAt: true },
+    select: { id: true, deviceName: true, ipAddress: true, createdAt: true },
   });
 
   return (
-    <div className="flex flex-col gap-16">
-      <header className="flex flex-col gap-2">
-        <p className="text-sm font-semibold uppercase text-text-tertiary">Settings</p>
-        <h1 className="text-3xl font-extrabold tracking-tight">Your account</h1>
-      </header>
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-8">
+      <PortalHeader title="Your account" subtitle="Security, password, and signed-in devices" />
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Email address</h2>
-        <div className="flex flex-col gap-2 rounded-2xl border border-border bg-bg-card p-5">
-          <span className="font-semibold">{user.email}</span>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">Email address</h2>
+        <div className="flex flex-col gap-1.5 rounded-2xl border border-border bg-bg-elevated p-5">
+          <span className="text-sm font-semibold text-text-primary">{user.email}</span>
           {user.emailVerified ? (
-            <span className="text-sm text-success">Confirmed</span>
+            <span className="text-[13px] text-night-success">Confirmed</span>
           ) : (
-            <div className="flex flex-col gap-2">
-              <span className="text-sm text-warning">Not confirmed yet</span>
-              <p className="text-xs text-text-tertiary">
-                Confirming proves the address belongs to you, which lets you reset your password if you lose it.{" "}
-                <ConfirmEmailButton email={user.email} />
+            <>
+              <span className="text-[13px] text-warning">Not confirmed yet</span>
+              <p className="text-[13px] leading-snug text-sage">
+                Confirming proves the address belongs to you, which is what lets you reset your password if you lose
+                it. Sign-in works either way. <ConfirmEmailButton email={user.email} />
               </p>
-            </div>
+            </>
           )}
         </div>
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Two-factor authentication</h2>
-        <div className="rounded-3xl border border-border bg-bg-card p-6">
-          <TwoFactorPanel enabled={user.twoFactorEnabled} />
-        </div>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Two-factor authentication
+        </h2>
+        <TwoFactorPanel enabled={user.twoFactorEnabled} />
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Password</h2>
-        <div className="rounded-3xl border border-border bg-bg-card p-6">
-          <PasswordPanel />
-        </div>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">Password</h2>
+        <PasswordPanel />
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Signed-in devices</h2>
-        <p className="text-sm text-text-secondary">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">Signed-in devices</h2>
+        <p className="text-[13px] leading-snug text-sage">
           A session cookie keeps working on its own, so each device is checked against this list on every request.
-          Signing one out here ends it immediately.
+          Signing one out here ends it immediately rather than whenever its cookie happens to expire.
         </p>
         <DeviceList
           devices={devices.map((device) => ({
@@ -88,7 +73,6 @@ export default async function SettingsPage() {
             deviceName: device.deviceName,
             ipAddress: device.ipAddress,
             createdAt: device.createdAt.toISOString(),
-            lastSeenAt: device.lastSeenAt.toISOString(),
             current: device.id === currentSessionId,
           }))}
         />
