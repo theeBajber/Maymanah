@@ -6,7 +6,6 @@ import { Lock, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, useCallback } from "react";
-import { OtpInput } from "@/app/ui/OtpInput";
 import { useToast } from "@/app/ui/toast";
 
 function ResetPasswordForm() {
@@ -19,8 +18,6 @@ function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [needsOTP, setNeedsOTP] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,17 +39,11 @@ function ResetPasswordForm() {
         body: JSON.stringify({
           token,
           password,
-          otpCode: otpCode || undefined,
         }),
       });
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.error === "2FA_REQUIRED") {
-          setNeedsOTP(true);
-          toast({ title: "Verification code sent to your email.", variant: "info" });
-          return;
-        }
         toast({ title: data.error || "Failed to reset password", variant: "error" });
         return;
       }
@@ -64,7 +55,7 @@ function ResetPasswordForm() {
     } finally {
       setLoading(false);
     }
-  }, [token, password, confirmPassword, otpCode, toast, router]);
+  }, [token, password, confirmPassword, toast, router]);
 
   return (
     <main className="bg-bg-card rounded-xl border border-border shadow-2xl p-10 md:p-14 w-full max-w-xl animate-in fade-in duration-500">
@@ -83,18 +74,6 @@ function ResetPasswordForm() {
       </div>
 
       <form className="space-y-5" onSubmit={handleSubmit}>
-        {needsOTP && (
-          <div className="space-y-3 p-4 rounded-xl bg-bg-primary border border-border">
-            <label className="text-[10px] uppercase tracking-widest font-bold px-1 block text-center text-text-secondary" htmlFor="otp">
-              Verification Code
-            </label>
-            <p className="text-xs text-text-secondary text-center">
-              A code was sent to your email. Enter it below.
-            </p>
-            <OtpInput value={otpCode} onChange={setOtpCode} disabled={loading} />
-          </div>
-        )}
-
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary" htmlFor="password">
             New Password
