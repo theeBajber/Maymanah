@@ -4,7 +4,7 @@ import { KeyRound, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/app/ui/button";
-import { Field, Input, PasswordInput } from "@/app/ui/input";
+import { Field, PasswordInput } from "@/app/ui/input";
 import { OtpInput } from "@/app/ui/OtpInput";
 import { Panel } from "@/app/ui/portal";
 import { PASSWORD_MIN_LENGTH } from "@/lib/validation";
