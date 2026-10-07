@@ -38,13 +38,8 @@ function LoginForm() {
     });
     setLoading(false);
 
-    if (result?.code === "otp_required") {
+    if (result?.code === "two_factor_required") {
       setStep("otp");
-      return;
-    }
-
-    if (result?.code === "email_not_verified") {
-      toast({ title: "Please verify your email before signing in.", variant: "error" });
       return;
     }
 
@@ -66,7 +61,7 @@ function LoginForm() {
     const result = await signIn("credentials", {
       email,
       password,
-      otpCode,
+      code: otpCode,
       redirect: false,
     });
     setLoading(false);
