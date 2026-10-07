@@ -41,6 +41,9 @@ model User {
 
   twoFactorCodes TwoFactorCode[]
   loginSessions  LoginSession[]
+  profile        Profile?
+  ustadhProfile  UstadhProfile?
+  availabilities Availability[]
 
   @@index([role])
 }
@@ -123,4 +126,77 @@ model RateLimitBucket {
   expiresAt       DateTime
 
   @@index([expiresAt])
+}
+
+/// Everything about an account that is not authentication.
+///
+/// Kept apart from User so that signing in never needs to read preferences,
+/// and so that deleting preferences never risks the credentials they sit next
+/// to. A row is created on first save rather than at registration, which means
+/// its absence simply means defaults.
+model Profile {
+  id                 String  @id @default(cuid())
+  userId             String  @unique
+  bio                String?
+  phone              String?
+  country            String?
+  timezone           String  @default("Africa/Nairobi")
+  quranLevel         String?
+  theme              String  @default("system")
+  language           String  @default("en")
+  quranFont          String  @default("default")
+  emailNotifications Boolean @default(true)
+  studyReminders     Boolean @default(true)
+  reminderTime       String  @default("09:00")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A teacher's standing on the platform.
+///
+/// Approval is a human decision recorded here, not a role. A teacher account
+/// exists before it is approved, and an unapproved teacher simply cannot be
+/// paired with students yet. Availability for new pairings is a separate
+/// switch, so an approved teacher can pause without losing their standing.
+model UstadhProfile {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  isApproved           Boolean   @default(false)
+  rejectedAt           DateTime?
+  bio                  String?
+  qualifications       String?
+  ijazah               String?
+  qiraah               String?
+  availableForTeaching Boolean   @default(false)
+  reliabilityScore     Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isApproved])
+}
+
+/// One recurring weekly window in which a user can meet.
+///
+/// Days are numbers with Sunday as zero, and times are 24-hour strings, so a
+/// slot is comparable without parsing dates. Only recurring slots live here;
+/// one-off sessions belong to the scheduling phase with the appointments that
+/// created them.
+model Availability {
+  id           String    @id @default(cuid())
+  userId       String
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  isRecurring  Boolean   @default(true)
+  specificDate DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
