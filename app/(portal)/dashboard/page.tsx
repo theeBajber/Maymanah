@@ -296,6 +296,21 @@ function TeacherDashboard({ name, gender }: { name: string; gender: string | nul
       </section>
 
       <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-bold text-text-primary">This Week&apos;s Sessions</h2>
+        <Panel className="p-5">
+          <div className="grid grid-cols-7 gap-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div key={day} className="flex flex-col gap-2">
+                <span className="text-center text-[11px] font-semibold uppercase text-text-muted">{day}</span>
+                <div className="min-h-16 rounded-xl bg-bg-hover/50" />
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-text-secondary">No sessions this week.</p>
+        </Panel>
+      </section>
+
+      <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-bold text-text-primary">My Students</h2>
           <Link href="/students" className="text-sm font-semibold text-primary hover:underline">
