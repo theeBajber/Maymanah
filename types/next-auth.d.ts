@@ -13,12 +13,14 @@ declare module "next-auth" {
       id: string;
       role: "STUDENT" | "TEACHER" | "ADMIN";
       loginSessionId?: string;
+      gender?: string;
     } & DefaultSession["user"];
   }
 
   /** What a credentials provider returns once a sign-in has been verified. */
   interface User {
     role: "STUDENT" | "TEACHER" | "ADMIN";
+    gender?: string;
     /** Identifies the device row, so it can be revoked server-side. */
     loginSessionId?: string;
   }
@@ -28,6 +30,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     role?: "STUDENT" | "TEACHER" | "ADMIN";
+    gender?: string;
     loginSessionId?: string;
   }
 }

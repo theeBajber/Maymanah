@@ -209,7 +209,7 @@ const { handlers, auth, signIn, signOut } = NextAuth({
 
         const found = await db.user.findUnique({
           where: { email },
-          select: { id: true, name: true, email: true, passwordHash: true, role: true, twoFactorEnabled: true },
+          select: { id: true, name: true, email: true, passwordHash: true, role: true, gender: true, twoFactorEnabled: true },
         });
 
         // Compared even when no account matched, so the time taken does not
@@ -225,6 +225,7 @@ const { handlers, auth, signIn, signOut } = NextAuth({
           name: found.name,
           email: found.email,
           role: found.role,
+          gender: found.gender ?? undefined,
           loginSessionId: await openLoginSession(found),
         };
       },

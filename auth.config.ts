@@ -24,11 +24,19 @@ export const authConfig = {
   // by request interception, which has no use for them.
   providers: [],
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session: updated }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.gender = user.gender;
         token.loginSessionId = user.loginSessionId;
+      }
+      // A profile save refreshes the session so the new name, picture, and
+      // gender reach every page without signing in again.
+      if (trigger === "update" && updated) {
+        if (typeof updated.name === "string") token.name = updated.name;
+        if (typeof updated.image === "string") token.picture = updated.image;
+        if (typeof updated.gender === "string") token.gender = updated.gender;
       }
       return token;
     },
@@ -36,6 +44,7 @@ export const authConfig = {
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as "STUDENT" | "TEACHER" | "ADMIN";
+        session.user.gender = token.gender as string | undefined;
         session.user.loginSessionId = token.loginSessionId as string | undefined;
       }
       return session;
