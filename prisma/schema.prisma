@@ -44,9 +44,14 @@ model User {
   profile             Profile?
   ustadhProfile       UstadhProfile?
   availabilities      Availability[]
-  teacherMentorships  Mentorship[]    @relation("TeacherMentorships")
-  studentMentorships  Mentorship[]    @relation("StudentMentorships")
-  teacherAppointments Appointment[]   @relation("TeacherAppointments")
+  teacherMentorships  Mentorship[]     @relation("TeacherMentorships")
+  studentMentorships  Mentorship[]     @relation("StudentMentorships")
+  teacherAppointments Appointment[]    @relation("TeacherAppointments")
+  enrollments         Enrollment[]
+  lessonProgress      LessonProgress[]
+  submissions         Submission[]
+  courseReviews       CourseReview[]
+  bookmarks           Bookmark[]
 
   @@index([role])
 }
@@ -320,4 +325,272 @@ model SessionPlan {
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@index([appointmentId])
+}
+
+enum CourseCategory {
+  Quran
+  Fiqh
+  History
+  Arabic
+  Aqeedah
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+enum ExamType {
+  QUIZ
+  MIDTERM
+  FINAL
+  ASSIGNMENT
+}
+
+enum QuestionType {
+  MCQ
+  SHORT_ANSWER
+  ESSAY
+}
+
+enum SubmissionStatus {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+}
+
+/// A course: an ordered set of lessons, optionally examined and reviewed.
+///
+/// Visibility is two switches, not one. Published means students can see it;
+/// active means it is currently taught. An unfinished course stays unpublished
+/// while it is written, and a retired one is deactivated without deleting the
+/// records of everyone who took it.
+model Course {
+  id            String         @id @default(cuid())
+  title         String
+  slug          String         @unique
+  description   String?
+  category      CourseCategory
+  image         String?
+  enrollmentKey String?        @unique
+  isPublished   Boolean        @default(true)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  enrollments Enrollment[]
+  lessons     Lesson[]
+  exams       Exam[]
+  reviews     CourseReview[]
+}
+
+/// One unit of teaching inside a course.
+///
+/// Order is an explicit number rather than creation order, so lessons can be
+/// rearranged without recreating them. Content is markdown rendered as
+/// components, never raw HTML, so there is no markup to sanitise.
+model Lesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  content     String?
+  videoUrl    String?
+  audioUrl    String?
+  order       Int
+  duration    Int?
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  course         Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  exam           Exam?
+  lessonProgress LessonProgress[]
+
+  @@index([courseId])
+}
+
+/// One student's passage through a course.
+///
+/// Progress is a cached percentage, recomputed when a lesson completes, so
+/// listing courses never counts lessons per row. One row per student and
+/// course: enrolling twice returns the existing row rather than starting over.
+model Enrollment {
+  id          String           @id @default(cuid())
+  userId      String
+  courseId    String
+  status      EnrollmentStatus @default(ACTIVE)
+  progress    Int              @default(0)
+  enrolledAt  DateTime         @default(now())
+  passedAt    DateTime?
+  completedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+/// One student's completion of one lesson.
+///
+/// One row per student and lesson. Completing twice updates the row rather
+/// than duplicating it, so progress arithmetic always has one value to read.
+model LessonProgress {
+  id          String    @id @default(cuid())
+  studentId   String
+  lessonId    String
+  completed   Boolean   @default(false)
+  score       Float?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+  @@index([studentId])
+  @@index([lessonId])
+}
+
+/// An assessment, attached to a course or to one lesson.
+///
+/// Windows are optional: an untimed quiz has neither, and a missing window
+/// means open rather than closed. Publishing gates visibility separately from
+/// existence, so an exam can be written before it is offered.
+model Exam {
+  id               String    @id @default(cuid())
+  courseId         String
+  lessonId         String?   @unique
+  title            String
+  description      String?
+  examType         ExamType  @default(QUIZ)
+  durationMinutes  Int       @default(60)
+  totalMarks       Float     @default(100)
+  passMark         Float     @default(50)
+  startTime        DateTime?
+  endTime          DateTime?
+  isPublished      Boolean   @default(false)
+  shuffleQuestions Boolean   @default(true)
+  allowReview      Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson      Lesson?      @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  questions   Question[]
+  submissions Submission[]
+
+  @@index([courseId])
+}
+
+/// One question in an exam.
+///
+/// Multiple-choice options are a plain string array, and the correct answer
+/// names the index into it. Short answers and essays carry their expected
+/// answer as text for a human marker, since no automated grading exists.
+model Question {
+  id            String       @id @default(cuid())
+  examId        String
+  questionText  String
+  questionType  QuestionType @default(MCQ)
+  options       Json?
+  correctAnswer String?
+  marks         Float        @default(1)
+  orderIndex    Int          @default(0)
+  explanation   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  exam    Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([examId])
+}
+
+/// One student's attempt at an exam.
+///
+/// Attempts are numbered, so a retake starts a new row rather than overwriting
+/// the old one. Grading happens on submission: choice questions are marked
+/// immediately, written ones wait for a marker.
+model Submission {
+  id            String           @id @default(cuid())
+  examId        String
+  studentId     String
+  status        SubmissionStatus @default(IN_PROGRESS)
+  totalScore    Float?
+  attemptNumber Int              @default(1)
+  startedAt     DateTime         @default(now())
+  submittedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  exam    Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([examId, studentId])
+  @@index([examId])
+  @@index([studentId])
+}
+
+/// One answer inside a submission.
+///
+/// One row per submission and question. Answering twice updates the row, so a
+/// changed mind replaces the earlier answer rather than adding a second one.
+model Answer {
+  id             String   @id @default(cuid())
+  submissionId   String
+  questionId     String
+  answerText     String?
+  selectedOption Int?
+  isCorrect      Boolean?
+  score          Float?
+  answeredAt     DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, questionId])
+  @@index([submissionId])
+  @@index([questionId])
+}
+
+/// One student's rating of a course.
+///
+/// One row per student and course, so re-rating replaces the earlier verdict.
+/// Only someone enrolled can review, since a rating from a stranger measures
+/// nothing.
+model CourseReview {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+/// One saved verse with an optional note.
+///
+/// Unique per user, chapter, and verse, so saving twice returns the existing
+/// row rather than duplicating it.
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  surah     Int
+  ayah      Int
+  note      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, surah, ayah])
+  @@index([userId])
 }
