@@ -22,6 +22,9 @@ const serverEnvSchema = z.object({
     .min(32, "AUTH_SECRET must be at least 32 characters; generate one with `openssl rand -base64 32`"),
   /** Origin used to build links in transactional email. */
   APP_URL: z.url("APP_URL must be an absolute origin, for example https://maymanah.org").default("http://localhost:3000"),
+  LIVEKIT_API_KEY: z.string().min(1, "LIVEKIT_API_KEY is required for video sessions").optional(),
+  LIVEKIT_API_SECRET: z.string().min(1, "LIVEKIT_API_SECRET is required for video sessions").optional(),
+  LIVEKIT_URL: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
