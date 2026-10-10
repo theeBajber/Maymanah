@@ -39,11 +39,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  twoFactorCodes TwoFactorCode[]
-  loginSessions  LoginSession[]
-  profile        Profile?
-  ustadhProfile  UstadhProfile?
-  availabilities Availability[]
+  twoFactorCodes      TwoFactorCode[]
+  loginSessions       LoginSession[]
+  profile             Profile?
+  ustadhProfile       UstadhProfile?
+  availabilities      Availability[]
+  teacherMentorships  Mentorship[]    @relation("TeacherMentorships")
+  studentMentorships  Mentorship[]    @relation("StudentMentorships")
+  teacherAppointments Appointment[]   @relation("TeacherAppointments")
 
   @@index([role])
 }
@@ -199,4 +202,122 @@ model Availability {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+enum MentorshipStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+/// What a session is for. A daily memorisation slot is short; a review
+/// session is long; anything else is booked explicitly.
+enum AppointmentSessionType {
+  DAILY_HIFDH
+  MURAJA
+  EXTRA
+}
+
+/// An ongoing teacher-student pairing.
+///
+/// One active pairing per teacher and student. Sessions are booked against the
+/// pairing rather than against either person directly, so ending the pairing
+/// ends future sessions without touching either account.
+model Mentorship {
+  id        String           @id @default(cuid())
+  teacherId String
+  studentId String
+  status    MentorshipStatus @default(ACTIVE)
+  startedAt DateTime         @default(now())
+  endedAt   DateTime?
+
+  teacher        User            @relation("TeacherMentorships", fields: [teacherId], references: [id], onDelete: Cascade)
+  student        User            @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
+  appointments   Appointment[]
+  recurringSlots RecurringSlot[]
+
+  @@unique([teacherId, studentId])
+  @@index([teacherId])
+  @@index([studentId])
+}
+
+/// One booked session.
+///
+/// Times are absolute rather than relative to a slot, so rescheduling moves
+/// the session without rewriting the pattern it came from. A session belongs
+/// to a pairing, and ending the pairing ends its future sessions.
+model Appointment {
+  id           String                 @id @default(cuid())
+  mentorshipId String
+  teacherId    String
+  title        String?
+  description  String?
+  startTime    DateTime
+  endTime      DateTime?
+  meetingUrl   String?
+  status       AppointmentStatus      @default(SCHEDULED)
+  sessionType  AppointmentSessionType @default(DAILY_HIFDH)
+  startedAt    DateTime?
+  endedAt      DateTime?
+  joinedAt     DateTime?
+  missed       Boolean                @default(false)
+  surahNumber  Int?
+  verseNumber  Int?
+
+  createdAt DateTime @default(now())
+
+  mentorship  Mentorship   @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+  teacher     User         @relation("TeacherAppointments", fields: [teacherId], references: [id], onDelete: Cascade)
+  sessionPlan SessionPlan?
+
+  @@index([mentorshipId])
+  @@index([teacherId])
+  @@index([startTime])
+}
+
+/// One recurring session in a pairing's weekly pattern.
+///
+/// Duration is in minutes: fifteen for a daily memorisation slot, sixty for a
+/// review. Only one slot of each type per day, so two identical sessions can
+/// never be generated for the same morning.
+model RecurringSlot {
+  id           String                 @id @default(cuid())
+  mentorshipId String
+  type         AppointmentSessionType
+  dayOfWeek    Int
+  startTime    String
+  duration     Int
+  createdAt    DateTime               @default(now())
+
+  mentorship Mentorship @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+
+  @@unique([mentorshipId, type, dayOfWeek])
+  @@index([mentorshipId])
+}
+
+/// What a session is meant to cover, as a range of verses.
+///
+/// Set by the teacher before the session. One plan per session, replaced
+/// rather than edited, so the record of what was intended survives even when
+/// the session itself covers something else.
+model SessionPlan {
+  id            String   @id @default(cuid())
+  appointmentId String   @unique
+  fromSurah     Int
+  fromVerse     Int
+  toSurah       Int
+  toVerse       Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
 }
