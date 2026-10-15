@@ -1,5 +1,6 @@
 "use client";
 import {
+  Bell,
   BookOpen,
   Brain,
   GraduationCap,
@@ -10,6 +11,7 @@ import {
   Users,
   CalendarDays,
   Video,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -91,9 +93,66 @@ function ProfileDropdown({
 export function TopNav() {
   const { content } = useTopNavContent();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<
+    { id: string; title: string; body: string | null; isRead: boolean; createdAt: string }[] | null
+  >(null);
 
   const { data: session } = useSession();
   const profileRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/notifications/unread-count")
+      .then(async (response) => {
+        const body = (await response.json().catch(() => ({}))) as { count?: number };
+        if (!cancelled) setUnreadCount(body.count ?? 0);
+      })
+      .catch(() => {});
+    const timer = setInterval(async () => {
+      try {
+        const response = await fetch("/api/notifications/unread-count");
+        const body = (await response.json().catch(() => ({}))) as { count?: number };
+        if (!cancelled) setUnreadCount(body.count ?? 0);
+      } catch {
+        /* the badge keeps its last count rather than flashing to zero */
+      }
+    }, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    let cancelled = false;
+    fetch("/api/notifications")
+      .then(async (response) => {
+        const body = (await response.json().catch(() => ({}))) as {
+          notifications?: { id: string; title: string; body: string | null; isRead: boolean; createdAt: string }[];
+        };
+        if (!cancelled) setNotifications(body.notifications ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setNotifications([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [notifOpen]);
+
+  async function markAllRead() {
+    await fetch("/api/notifications/read", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    }).catch(() => {});
+    setNotifications((prev) => (prev ?? []).map((row) => ({ ...row, isRead: true })));
+    setUnreadCount(0);
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -104,14 +163,17 @@ export function TopNav() {
       ) {
         setProfileOpen(false);
       }
+      if (notifOpen && notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
     };
-    if (profileOpen) {
+    if (profileOpen || notifOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
       };
     }
-  }, [profileOpen]);
+  }, [profileOpen, notifOpen]);
 
   return (
     <header className="glass-veil fixed left-0 right-0 top-0 z-50 h-16">
@@ -137,6 +199,86 @@ export function TopNav() {
 
         <div className="flex items-center gap-1.5 md:gap-2">
           <ThemeToggle />
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => {
+                setNotifOpen((prev) => !prev);
+                setProfileOpen(false);
+              }}
+              className="relative flex size-9 items-center justify-center rounded-xl text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary active:scale-95"
+              aria-label="Notifications"
+              aria-expanded={notifOpen}
+            >
+              {unreadCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-warning ring-1 ring-bg-primary" />
+              )}
+              <Bell className="size-4" />
+            </button>
+            {notifOpen ? (
+              <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-border bg-bg-elevated/95 shadow-xl shadow-black/10 backdrop-blur-xl">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
+                  <div className="flex items-center gap-2">
+                    {(notifications ?? []).some((row) => !row.isRead) ? (
+                      <button
+                        onClick={markAllRead}
+                        className="text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+                      >
+                        Mark all read
+                      </button>
+                    ) : null}
+                    <button
+                      onClick={() => setNotifOpen(false)}
+                      aria-label="Close notifications"
+                      className="flex size-6 items-center justify-center rounded-lg text-text-muted transition-all hover:bg-bg-hover hover:text-text-primary"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                </div>
+                {notifications === null ? (
+                  <p className="p-8 text-center text-sm text-text-muted">Loading…</p>
+                ) : notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-bg-hover">
+                      <Bell className="size-5 text-text-muted" />
+                    </div>
+                    <p className="text-sm font-medium text-text-primary">No notifications yet</p>
+                    <p className="max-w-50 text-xs text-text-muted">We will let you know when something new arrives.</p>
+                  </div>
+                ) : (
+                  <ul className="max-h-80 overflow-y-auto">
+                    {notifications.map((row) => (
+                      <li
+                        key={row.id}
+                        className={`flex items-start gap-3 border-b border-border/50 px-4 py-3 last:border-0 ${
+                          row.isRead ? "" : "bg-primary/5"
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm ${row.isRead ? "text-text-primary" : "font-semibold text-text-primary"}`}>
+                            {row.title}
+                          </p>
+                          {row.body ? (
+                            <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary">{row.body}</p>
+                          ) : null}
+                          <p className="mt-1 text-[10px] text-text-muted">
+                            {new Date(row.createdAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        {row.isRead ? null : <span className="mt-2 size-2 shrink-0 rounded-full bg-primary" />}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </div>
           <div className="relative">
             <button
               className={`flex items-center p-1 rounded-xl transition-all duration-200 ${
