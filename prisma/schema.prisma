@@ -44,14 +44,19 @@ model User {
   profile             Profile?
   ustadhProfile       UstadhProfile?
   availabilities      Availability[]
-  teacherMentorships  Mentorship[]     @relation("TeacherMentorships")
-  studentMentorships  Mentorship[]     @relation("StudentMentorships")
-  teacherAppointments Appointment[]    @relation("TeacherAppointments")
+  teacherMentorships  Mentorship[]        @relation("TeacherMentorships")
+  studentMentorships  Mentorship[]        @relation("StudentMentorships")
+  teacherAppointments Appointment[]       @relation("TeacherAppointments")
   enrollments         Enrollment[]
   lessonProgress      LessonProgress[]
   submissions         Submission[]
   courseReviews       CourseReview[]
   bookmarks           Bookmark[]
+  sentMessages        Message[]           @relation("SentMessages")
+  receivedMessages    Message[]           @relation("ReceivedMessages")
+  notifications       Notification[]
+  quranProgress       QuranProgress?
+  recitationJournals  RecitationJournal[]
 
   @@index([role])
 }
@@ -592,5 +597,85 @@ model Bookmark {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, surah, ayah])
+  @@index([userId])
+}
+
+/// One message from one account to another.
+///
+/// Messages only travel inside an active pairing, enforced when sending rather
+/// than by the shape of the table. Reading marks nothing; a separate call
+/// marks a thread read, so opening a conversation and reading it are distinct.
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+/// One thing worth interrupting someone for.
+///
+/// Created alongside the event, never instead of it: sending a message writes
+/// both the message and its notification, so a notification can never exist
+/// for something that did not happen. Types are plain strings so new kinds
+/// arrive without a migration.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  metadata  Json?    @default("{}")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+/// Where one reader is in the Quran.
+///
+/// Pointers only — chapter, verse, completed parts — never text. The text
+/// itself comes from the recitation API at read time, so this table stays
+/// small no matter how much is read.
+model QuranProgress {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  lastSurah      Int      @default(1)
+  lastVerse      Int      @default(1)
+  completedJuz   Int      @default(0)
+  lastRecitation DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// One recorded recitation practice.
+///
+/// Errors are a JSON array because their shape varies by what was noticed —
+/// a missed rule, a repeated verse, a pronunciation note — and forcing them
+/// into columns would lose whichever detail did not fit.
+model RecitationJournal {
+  id          String   @id @default(cuid())
+  userId      String
+  surahNumber Int
+  fromVerse   Int
+  toVerse     Int
+  errors      Json?
+  accuracy    Float    @default(0)
+  duration    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
