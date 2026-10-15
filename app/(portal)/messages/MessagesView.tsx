@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { EmptyState, PortalHeader } from "@/app/ui/portal";
+import { PortalHeader } from "@/app/ui/portal";
 import { useToast } from "@/app/ui/toast";
 
 interface Partner {
