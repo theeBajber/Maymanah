@@ -1,6 +1,7 @@
 import "server-only";
 
 import { env } from "./env";
+import { createSmtpTransport } from "./smtp";
 
 /**
  * Delivery of transactional messages.
@@ -44,7 +45,37 @@ export function createConsoleTransport(log: (line: string) => void = console.log
   };
 }
 
-export const mailer: MailTransport = createConsoleTransport();
+/**
+ * The transport in use.
+ *
+ * SMTP when a host is configured, the console otherwise. Selected on first
+ * send rather than at import, so loading this module never requires
+ * credentials: tests and builds run without any mail configuration at all.
+ */
+export const mailer: MailTransport = {
+  send: (message) => activeTransport().send(message),
+};
+
+let cached: MailTransport | null = null;
+
+function activeTransport(): MailTransport {
+  if (cached) return cached;
+
+  try {
+    const config = env();
+    cached = config.SMTP_HOST ? createSmtpTransport(config.SMTP_FROM) : createConsoleTransport();
+  } catch {
+    // Missing or invalid environment falls through to the console below,
+    // because a message printed is better than a boot failure for mail.
+    cached = createConsoleTransport();
+  }
+  return cached;
+}
+
+/** For tests, which select their own transport explicitly. */
+export function resetMailer(): void {
+  cached = null;
+}
 
 export interface EmailContent {
   subject: string;

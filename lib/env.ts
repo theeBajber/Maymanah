@@ -25,6 +25,15 @@ const serverEnvSchema = z.object({
   LIVEKIT_API_KEY: z.string().min(1, "LIVEKIT_API_KEY is required for video sessions").optional(),
   LIVEKIT_API_SECRET: z.string().min(1, "LIVEKIT_API_SECRET is required for video sessions").optional(),
   LIVEKIT_URL: z.string().min(1).optional(),
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.string().default("587"),
+  SMTP_SECURE: z
+    .string()
+    .transform((value) => value === "true")
+    .default(false),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().min(1).default("noreply@maymanah.org"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

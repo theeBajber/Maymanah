@@ -58,6 +58,8 @@ model User {
   quranProgress       QuranProgress?
   recitationJournals  RecitationJournal[]
   ijazahs             Ijazah[]
+  donations           Donation[]
+  analytics           UserAnalytics[]
 
   @@index([role])
 }
@@ -600,6 +602,51 @@ model Bookmark {
 
   @@unique([userId, surah, ayah])
   @@index([userId])
+}
+
+/// One contribution, from intent through settlement.
+///
+/// Created the moment a donor starts checkout, updated as the provider
+/// reports back. The reference is the provider's identifier once known, so a
+/// callback that arrives twice updates the same row rather than recording the
+/// money twice. Anonymous donations keep no donor link at all — not even a
+/// nullable one that invites joining — while identified ones do.
+model Donation {
+  id        String   @id @default(cuid())
+  donorId   String?
+  amount    Float
+  currency  String   @default("USD")
+  provider  String
+  status    String   @default("PENDING")
+  reference String?  @unique
+  anonymous Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  donor User? @relation(fields: [donorId], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  @@index([status])
+}
+
+/// One recorded fact about how the platform is used.
+///
+/// Metric types are plain strings — logins, material views, exam attempts —
+/// so new measurements arrive without a migration. Values are numbers with
+/// optional structured context, which is enough for counts, durations, and
+/// scores alike.
+model UserAnalytics {
+  id          String   @id @default(cuid())
+  userId      String
+  metricType  String
+  metricValue Float?
+  courseId    String?
+  metadata    Json?
+  recordedAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([metricType])
 }
 
 /// One message from one account to another.
