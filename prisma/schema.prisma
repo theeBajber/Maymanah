@@ -59,6 +59,7 @@ model User {
   recitationJournals  RecitationJournal[]
   ijazahs             Ijazah[]
   donations           Donation[]
+  analytics           UserAnalytics[]
 
   @@index([role])
 }
@@ -625,6 +626,27 @@ model Donation {
 
   @@index([donorId])
   @@index([status])
+}
+
+/// One recorded fact about how the platform is used.
+///
+/// Metric types are plain strings — logins, material views, exam attempts —
+/// so new measurements arrive without a migration. Values are numbers with
+/// optional structured context, which is enough for counts, durations, and
+/// scores alike.
+model UserAnalytics {
+  id          String   @id @default(cuid())
+  userId      String
+  metricType  String
+  metricValue Float?
+  courseId    String?
+  metadata    Json?
+  recordedAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([metricType])
 }
 
 /// One message from one account to another.
