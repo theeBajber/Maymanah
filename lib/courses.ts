@@ -1,5 +1,6 @@
 import "server-only";
 
+import { issueCertificate } from "./certificate";
 import { db } from "./db";
 import { getCurrentUser, type SessionLike } from "./session";
 
@@ -213,6 +214,12 @@ export async function completeLesson(
     update.completedAt = new Date();
   }
   await db.enrollment.update({ where: { id: enrollment.id }, data: update });
+
+  // Finishing every lesson issues the certificate. Idempotent, so completing
+  // the last lesson twice still yields one certificate.
+  if (progress >= 100) {
+    await issueCertificate(user.id, lesson.courseId);
+  }
 
   return { ok: true, progress };
 }

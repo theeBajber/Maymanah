@@ -57,6 +57,7 @@ model User {
   notifications       Notification[]
   quranProgress       QuranProgress?
   recitationJournals  RecitationJournal[]
+  ijazahs             Ijazah[]
 
   @@index([role])
 }
@@ -388,6 +389,7 @@ model Course {
   lessons     Lesson[]
   exams       Exam[]
   reviews     CourseReview[]
+  ijazahs     Ijazah[]
 }
 
 /// One unit of teaching inside a course.
@@ -677,5 +679,32 @@ model RecitationJournal {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
+
+/// A certificate of completion for a course.
+///
+/// One per student and course: finishing twice does not issue twice. The
+/// verification code is what the public check reads, so it is unique and
+/// assigned at issuance rather than derived later. Who issued it is recorded
+/// — a teacher's name, or the system for automatic issuance — because a
+/// certificate without provenance answers nothing.
+model Ijazah {
+  id                String    @id @default(cuid())
+  userId            String
+  courseId          String?
+  courseTitle       String
+  issuedAt          DateTime  @default(now())
+  issuedBy          String?
+  certificateUrl    String?
+  certificatePdfUrl String?
+  verificationCode  String?   @unique
+  expiresAt         DateTime?
+  isVerified        Boolean   @default(false)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
   @@index([userId])
 }

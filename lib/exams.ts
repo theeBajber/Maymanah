@@ -1,5 +1,6 @@
 import "server-only";
 
+import { issueCertificate } from "./certificate";
 import { db } from "./db";
 import { getCurrentUser, type SessionLike } from "./session";
 
@@ -70,6 +71,9 @@ export async function submitExam(
       id: true,
       courseId: true,
       isPublished: true,
+      examType: true,
+      passMark: true,
+      totalMarks: true,
       startTime: true,
       endTime: true,
       questions: { select: { id: true, questionType: true, options: true, correctAnswer: true, marks: true } },
@@ -138,6 +142,17 @@ export async function submitExam(
     },
     select: { id: true },
   });
+
+  // Passing a final exam finishes the course outright: marks the enrolment
+  // complete and issues the certificate. Anything less than a final leaves
+  // the enrolment alone, since one quiz does not finish a course.
+  if (!hasWritten && exam.examType === "FINAL" && totalScore >= exam.passMark) {
+    await db.enrollment.updateMany({
+      where: { userId: user.id, courseId: exam.courseId, status: "ACTIVE" },
+      data: { status: "COMPLETED", progress: 100, completedAt: new Date(), passedAt: new Date() },
+    });
+    await issueCertificate(user.id, exam.courseId);
+  }
 
   return {
     ok: true,
