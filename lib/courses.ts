@@ -57,6 +57,7 @@ export interface CourseDetail extends CourseSummary {
   lessons: { id: string; title: string; order: number; duration: number | null; completed: boolean }[];
   averageRating: number | null;
   reviewCount: number;
+  certificate: { id: string } | null;
 }
 
 export async function getCourseDetail(
@@ -96,6 +97,13 @@ export async function getCourseDetail(
     : [];
   const done = new Set(completed.map((row) => row.lessonId));
 
+  const certificate = user
+    ? await db.ijazah.findUnique({
+        where: { userId_courseId: { userId: user.id, courseId: course.id } },
+        select: { id: true },
+      })
+    : null;
+
   const ratings = course.reviews.map((review) => review.rating);
 
   return {
@@ -111,6 +119,7 @@ export async function getCourseDetail(
     lessons: course.lessons.map((lesson) => ({ ...lesson, completed: done.has(lesson.id) })),
     averageRating: ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null,
     reviewCount: ratings.length,
+    certificate,
   };
 }
 

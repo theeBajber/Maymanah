@@ -92,6 +92,24 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         ) : null}
       </section>
 
+      {course.certificate ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold text-text-primary">Certificate</h2>
+          <Panel className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-text-primary">Certificate earned</p>
+              <p className="text-sm text-text-secondary">View and download your course certificate.</p>
+            </div>
+            <Link
+              href={`/certificates/${course.certificate.id}`}
+              className="shrink-0 rounded-xl bg-brass px-5 py-2.5 text-sm font-bold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+            >
+              View Certificate
+            </Link>
+          </Panel>
+        </section>
+      ) : null}
+
       {course.enrolled ? (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold text-text-primary">Final Exam</h2>
