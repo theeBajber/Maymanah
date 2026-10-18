@@ -60,6 +60,7 @@ model User {
   ijazahs             Ijazah[]
   donations           Donation[]
   analytics           UserAnalytics[]
+  auditLogs           AuditLog[]
 
   @@index([role])
 }
@@ -626,6 +627,27 @@ model Donation {
 
   @@index([donorId])
   @@index([status])
+}
+
+/// One administrative act, recorded so recent activity can be shown.
+///
+/// Written alongside the change it describes and never allowed to fail it: an
+/// audit row that cannot be written is logged and dropped, because losing the
+/// record is better than blocking the act. Action names are plain strings so
+/// new ones arrive without a migration.
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  userId    String?
+  email     String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 /// One recorded fact about how the platform is used.
