@@ -234,8 +234,8 @@ function Principles() {
               image="/vetted-teachers.jpg"
               title="Vetted Teachers"
               body="Each teacher undergoes rigorous evaluation of recitation and pedagogy to ensure quality."
-              linkHref="/teachers"
-              linkLabel="Find a teacher"
+              linkHref="/register"
+              linkLabel="Get matched"
             />
           </div>
         </div>
