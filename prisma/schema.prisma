@@ -209,8 +209,11 @@ model UstadhProfile {
 model Availability {
   id           String    @id @default(cuid())
   userId       String
+  /// Day of week, 0 = Sunday, as read on the person's own clock.
   dayOfWeek    Int
+  /// Start as "HH:mm" on the person's clock (see Profile.timezone), never UTC.
   startTime    String
+  /// End as "HH:mm" on the person's clock (see Profile.timezone), never UTC.
   endTime      String
   isRecurring  Boolean   @default(true)
   specificDate DateTime?
@@ -308,7 +311,11 @@ model RecurringSlot {
   id           String                 @id @default(cuid())
   mentorshipId String
   type         AppointmentSessionType
+  /// Day of week, 0 = Sunday, in the mentor's time zone (see Profile.timezone).
   dayOfWeek    Int
+  /// Start as "HH:mm" in the mentor's time zone, never UTC. Appointments are
+  /// placed by resolving this against each date's offset, so the time survives
+  /// daylight-saving changes.
   startTime    String
   duration     Int
   createdAt    DateTime               @default(now())
