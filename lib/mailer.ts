@@ -61,6 +61,13 @@ let cached: MailTransport | null = null;
 function activeTransport(): MailTransport {
   if (cached) return cached;
 
+  if (process.env.TEST_MODE === "true") {
+    // The end-to-end suite registers many accounts; delivering those messages
+    // for real would reach strangers' inboxes and slow the run down.
+    cached = createConsoleTransport();
+    return cached;
+  }
+
   try {
     const config = env();
     cached = config.SMTP_HOST ? createSmtpTransport(config.SMTP_FROM) : createConsoleTransport();

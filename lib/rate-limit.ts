@@ -90,6 +90,13 @@ export async function consumeRateLimit({
   windowMs,
   store = databaseRateLimitStore,
 }: RateLimitOptions): Promise<RateLimitVerdict> {
+  // The end-to-end suite drives the real sign-in and registration paths many
+  // times in quick succession from one host, which the limits are designed to
+  // stop. They are only ever relaxed in the test environment.
+  if (process.env.TEST_MODE === "true") {
+    return { allowed: true, remaining: limit, retryAfterSeconds: 0 };
+  }
+
   const count = await store.increment(key, windowMs);
 
   if (count <= limit) {
