@@ -48,6 +48,8 @@ model User {
   studentMentorships  Mentorship[]        @relation("StudentMentorships")
   teacherAppointments Appointment[]       @relation("TeacherAppointments")
   enrollments         Enrollment[]
+  studentNotes        StudentNote[]       @relation("StudentNotes")
+  teacherNotes        StudentNote[]       @relation("TeacherNotes")
   lessonProgress      LessonProgress[]
   submissions         Submission[]
   courseReviews       CourseReview[]
@@ -287,9 +289,10 @@ model Appointment {
 
   createdAt DateTime @default(now())
 
-  mentorship  Mentorship   @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
-  teacher     User         @relation("TeacherAppointments", fields: [teacherId], references: [id], onDelete: Cascade)
+  mentorship  Mentorship    @relation(fields: [mentorshipId], references: [id], onDelete: Cascade)
+  teacher     User          @relation("TeacherAppointments", fields: [teacherId], references: [id], onDelete: Cascade)
   sessionPlan SessionPlan?
+  notes       StudentNote[]
 
   @@index([mentorshipId])
   @@index([teacherId])
@@ -334,6 +337,40 @@ model SessionPlan {
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@index([appointmentId])
+}
+
+/// A teacher's follow-up note about a student.
+///
+/// Written during or after a session, optionally tied to the session it came
+/// from. Notes stay open until the teacher resolves them, so a concern raised
+/// in one session is not lost by the next. A note is scoped to the teacher who
+/// wrote it, so two teachers mentoring the same student keep separate lists.
+model StudentNote {
+  id            String       @id @default(cuid())
+  studentId     String
+  teacherId     String
+  appointmentId String?
+  content       String
+  priority      NotePriority @default(MEDIUM)
+  resolved      Boolean      @default(false)
+  resolvedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  student     User         @relation("StudentNotes", fields: [studentId], references: [id], onDelete: Cascade)
+  teacher     User         @relation("TeacherNotes", fields: [teacherId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([resolved])
+  @@index([appointmentId])
+}
+
+enum NotePriority {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 enum CourseCategory {

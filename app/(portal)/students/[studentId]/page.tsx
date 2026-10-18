@@ -7,7 +7,9 @@ import { amiri } from "@/app/ui/fonts";
 import { EmptyState, Panel, StatTile } from "@/app/ui/portal";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getNotesForStudent } from "@/lib/notes";
 import { getCurrentUser } from "@/lib/session";
+import { StudentNotes, type NoteView } from "./StudentNotes";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +37,7 @@ export default async function StudentDetail({ params }: PageContext) {
   });
   if (!match) redirect("/students");
 
-  const [student, completedSessions, journalEntries, totalSessions] = await Promise.all([
+  const [student, completedSessions, journalEntries, totalSessions, notes] = await Promise.all([
     db.user.findUnique({
       where: { id: studentId },
       select: { id: true, name: true, quranProgress: true },
@@ -53,6 +55,7 @@ export default async function StudentDetail({ params }: PageContext) {
       select: { accuracy: true, createdAt: true },
     }),
     db.appointment.count({ where: { mentorshipId: match.id, status: "COMPLETED" } }),
+    getNotesForStudent(user.id, studentId),
   ]);
 
   if (!student) redirect("/students");
@@ -65,6 +68,24 @@ export default async function StudentDetail({ params }: PageContext) {
           .map((entry) => `${Math.round(entry.accuracy)}%`)
           .join(" → ")
       : null;
+
+  const toNoteView = (note: (typeof notes)["open"][number]): NoteView => ({
+    id: note.id,
+    content: note.content,
+    priority: note.priority,
+    resolved: note.resolved,
+    resolvedAt: note.resolvedAt?.toISOString() ?? null,
+    createdAt: note.createdAt.toISOString(),
+    sessionDate: note.sessionDate?.toISOString() ?? null,
+  });
+
+  const sessionOptions = completedSessions.map((session) => ({
+    id: session.id,
+    startTime: session.startTime.toISOString(),
+    label: `${session.startTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}${
+      session.surahNumber ? ` - Surah ${session.surahNumber}` : ""
+    }`,
+  }));
 
   return (
     <div className="stagger-fade mx-auto max-w-4xl space-y-6 p-6">
@@ -97,6 +118,13 @@ export default async function StudentDetail({ params }: PageContext) {
           />
         </div>
       </Panel>
+
+      <StudentNotes
+        studentId={studentId}
+        openNotes={notes.open.map(toNoteView)}
+        resolvedNotes={notes.resolved.map(toNoteView)}
+        sessions={sessionOptions}
+      />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold text-text-primary">Completed Sessions</h2>

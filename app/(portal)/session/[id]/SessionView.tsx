@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { VideoRoom } from "@/app/ui/VideoRoom";
 import { GlassCard } from "@/app/ui/glass";
 import { useToast } from "@/app/ui/toast";
+import { SessionNotes } from "./SessionNotes";
 
 interface SessionPlan {
   fromSurah: number;
@@ -130,6 +131,11 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
       {join.appointment.isTeacher ? (
         <PlanEditor appointmentId={join.appointment.id} initial={join.plan} notify={toast} />
       ) : null}
+
+      <SessionNotes
+        appointmentId={join.appointment.id}
+        studentId={join.appointment.isTeacher ? join.otherUserId : null}
+      />
     </div>
   );
 }
