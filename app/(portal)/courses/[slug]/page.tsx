@@ -7,6 +7,7 @@ import { EmptyState, Panel } from "@/app/ui/portal";
 import { auth } from "@/lib/auth";
 import { getCourseDetail } from "@/lib/courses";
 import { EnrollButton } from "./EnrollButton";
+import { HifdhSchedule } from "./HifdhSchedule";
 import { ReviewSection } from "./ReviewSection";
 
 export async function generateMetadata({
@@ -23,10 +24,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function CourseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CourseDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
   const course = await getCourseDetail(await auth(), slug);
   if (!course) notFound();
+
+  const query = searchParams ? await searchParams : {};
+  const isTest = process.env.TEST_MODE === "true" && (query.test === "1" || query.test === "true");
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
@@ -55,6 +65,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           </div>
         </div>
       </GlassCard>
+
+      {course.slug === "hifdh-ul-quran" ? <HifdhSchedule enrolled={course.enrolled} isTest={isTest} /> : null}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold text-text-primary">Lessons</h2>

@@ -6,7 +6,9 @@ import type { Metadata } from "next";
 import { elMessiri } from "@/app/ui/fonts";
 import { LeaderBoardCard } from "@/app/ui/cards";
 import { EmptyState, Panel, PortalHeader, StatTile } from "@/app/ui/portal";
+import { getUpcomingSessions, countSessionsBetween } from "@/lib/agenda";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { leaderboardAround } from "@/lib/leaderboard";
 import { getCurrentUser } from "@/lib/session";
 import { Award, CheckSquare, ClipboardCheck } from "lucide-react";
@@ -31,11 +33,12 @@ export default async function DashboardPage({
   if (!user) redirect("/login");
 
   if (user.role === "TEACHER") {
-    return <TeacherDashboard name={user.name} gender={user.gender} />;
+    return <TeacherDashboard userId={user.id} name={user.name} gender={user.gender} />;
   }
 
   const firstName = user.name.split(" ")[0] ?? "Student";
   const { rows: leaders } = await leaderboardAround(user.id);
+  const sessions = await getUpcomingSessions(user.id);
 
   if (tab === "analytics") {
     return <AnalyticsTab firstName={firstName} />;
@@ -157,7 +160,29 @@ export default async function DashboardPage({
             <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
               Weekly Schedule
             </h2>
-            <p className="text-sm text-text-secondary">No sessions scheduled yet.</p>
+            {sessions.length === 0 ? (
+              <p className="text-sm text-text-secondary">No sessions scheduled yet.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {sessions.slice(0, 5).map((session) => (
+                  <Link
+                    key={session.id}
+                    href={`/session/${session.id}`}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-bg-hover/50 px-3 py-2 transition-colors hover:bg-bg-hover"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-text-primary">
+                        {session.title ?? "Session"}
+                      </span>
+                      <span className="block truncate text-xs text-text-secondary">{session.otherPartyName}</span>
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-primary">
+                      {session.startTime.toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </Panel>
 
           <section className="flex flex-col gap-2">
@@ -274,24 +299,59 @@ function AnalyticsTab({ firstName }: { firstName: string }) {
   );
 }
 
-function TeacherDashboard({ name, gender }: { name: string; gender: string | null }) {
+async function TeacherDashboard({ userId, name, gender }: { userId: string; name: string; gender: string | null }) {
   const title = gender === "female" ? "Ustadha" : "Ustadh";
   const firstName = name.split(" ")[0] ?? "";
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const [sessions, activeStudents, sessionsThisMonth] = await Promise.all([
+    getUpcomingSessions(userId),
+    db.mentorship.count({ where: { teacherId: userId, status: "ACTIVE" } }),
+    countSessionsBetween(userId, startOfMonth, endOfMonth),
+  ]);
+
+  const todayKey = now.toDateString();
+  const today = sessions.filter((session) => session.startTime.toDateString() === todayKey);
+
+  const byDay = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => ({
+    day,
+    sessions: sessions.filter((session) => session.startTime.getDay() === index),
+  }));
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 p-6">
       <PortalHeader title={`Hello, ${title} ${firstName}`} subtitle="Here's your overview for today." />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile icon={BookOpen} value={0} label="Active Students" tone="brass" />
-        <StatTile icon={CheckSquare} value={0} label="Sessions This Month" tone="success" />
-        <StatTile icon={BookOpen} value={0} label="Today's Sessions" tone="info" />
+        <StatTile icon={BookOpen} value={activeStudents} label="Active Students" tone="brass" />
+        <StatTile icon={CheckSquare} value={sessionsThisMonth} label="Sessions This Month" tone="success" />
+        <StatTile icon={ClipboardCheck} value={today.length} label="Today's Sessions" tone="info" />
       </div>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold text-text-primary">Today&apos;s Sessions</h2>
         <Panel className="p-5">
-          <p className="text-sm text-text-secondary">No sessions scheduled for today.</p>
+          {today.length === 0 ? (
+            <p className="text-sm text-text-secondary">No sessions scheduled for today.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {today.map((session) => (
+                <Link
+                  key={session.id}
+                  href={`/session/${session.id}`}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-bg-hover/50 px-3 py-2 transition-colors hover:bg-bg-hover"
+                >
+                  <span className="text-sm font-semibold text-text-primary">{session.otherPartyName}</span>
+                  <span className="text-xs font-semibold text-primary">
+                    {session.startTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </Panel>
       </section>
 
@@ -299,14 +359,26 @@ function TeacherDashboard({ name, gender }: { name: string; gender: string | nul
         <h2 className="text-lg font-bold text-text-primary">This Week&apos;s Sessions</h2>
         <Panel className="p-5">
           <div className="grid grid-cols-7 gap-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            {byDay.map(({ day, sessions: daySessions }) => (
               <div key={day} className="flex flex-col gap-2">
                 <span className="text-center text-[11px] font-semibold uppercase text-text-muted">{day}</span>
-                <div className="min-h-16 rounded-xl bg-bg-hover/50" />
+                <div className="min-h-16 rounded-xl bg-bg-hover/50 p-1">
+                  {daySessions.map((session) => (
+                    <Link
+                      key={session.id}
+                      href={`/session/${session.id}`}
+                      className="block truncate rounded-lg bg-primary/10 px-1.5 py-1 text-[10px] font-semibold text-primary"
+                    >
+                      {session.startTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                    </Link>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-sm text-text-secondary">No sessions this week.</p>
+          {sessions.length === 0 ? (
+            <p className="mt-4 text-sm text-text-secondary">No sessions this week.</p>
+          ) : null}
         </Panel>
       </section>
 
@@ -318,7 +390,9 @@ function TeacherDashboard({ name, gender }: { name: string; gender: string | nul
           </Link>
         </div>
         <Panel className="p-5">
-          <p className="text-sm text-text-secondary">No active students assigned.</p>
+          <p className="text-sm text-text-secondary">
+            {activeStudents === 0 ? "No active students assigned." : `${activeStudents} active student${activeStudents === 1 ? "" : "s"}.`}
+          </p>
         </Panel>
       </section>
     </div>
