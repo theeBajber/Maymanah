@@ -92,6 +92,26 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         ) : null}
       </section>
 
+      {course.enrolled ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold text-text-primary">Final Exam</h2>
+          <Panel className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-text-primary">Ready to be tested?</p>
+              <p className="text-sm text-text-secondary">
+                Complete every lesson, then sit the final exam to earn your certificate.
+              </p>
+            </div>
+            <Link
+              href={`/courses/${course.slug}/exam`}
+              className="shrink-0 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-text-inverse transition-all hover:bg-primary-dark"
+            >
+              Go to Final Exam
+            </Link>
+          </Panel>
+        </section>
+      ) : null}
+
       <ReviewSection slug={course.slug} enrolled={course.enrolled} />
     </div>
   );

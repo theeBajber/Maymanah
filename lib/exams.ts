@@ -90,7 +90,11 @@ export async function submitExam(
     where: { userId_courseId: { userId: user.id, courseId: exam.courseId } },
     select: { status: true },
   });
-  if (!enrollment || enrollment.status !== "ACTIVE") return { ok: false, reason: "not_enrolled" };
+  // Finishing every lesson already marks an enrolment complete, so the final
+  // exam has to accept a completed learner; only a dropped or pending one is
+  // turned away.
+  const enrolled = enrollment?.status === "ACTIVE" || enrollment?.status === "COMPLETED";
+  if (!enrolled) return { ok: false, reason: "not_enrolled" };
 
   const previous = await db.submission.findMany({
     where: { examId, studentId: user.id },
@@ -148,7 +152,7 @@ export async function submitExam(
   // the enrolment alone, since one quiz does not finish a course.
   if (!hasWritten && exam.examType === "FINAL" && totalScore >= exam.passMark) {
     await db.enrollment.updateMany({
-      where: { userId: user.id, courseId: exam.courseId, status: "ACTIVE" },
+      where: { userId: user.id, courseId: exam.courseId, status: { in: ["ACTIVE", "COMPLETED"] } },
       data: { status: "COMPLETED", progress: 100, completedAt: new Date(), passedAt: new Date() },
     });
     await issueCertificate(user.id, exam.courseId);

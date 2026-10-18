@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { getLessonQuiz } from "@/lib/assessments";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
@@ -47,7 +48,7 @@ export default async function LessonPage({
   });
   if (!enrollment || enrollment.status !== "ACTIVE") notFound();
 
-  const [progress, neighbours] = await Promise.all([
+  const [progress, neighbours, quiz] = await Promise.all([
     db.lessonProgress.findUnique({
       where: { studentId_lessonId: { studentId: user.id, lessonId } },
       select: { completed: true },
@@ -57,6 +58,7 @@ export default async function LessonPage({
       orderBy: { order: "asc" },
       select: { id: true, title: true },
     }),
+    getLessonQuiz(user.id, lessonId),
   ]);
 
   const position = neighbours.findIndex((row) => row.id === lessonId);
@@ -68,6 +70,7 @@ export default async function LessonPage({
       previous={position > 0 ? neighbours[position - 1] : null}
       next={position >= 0 && position < neighbours.length - 1 ? neighbours[position + 1] : null}
       courseSlug={slug}
+      quiz={quiz}
     />
   );
 }
