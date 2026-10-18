@@ -128,6 +128,35 @@ export function oneTimeCodeEmailContent(name: string, code: string): EmailConten
   };
 }
 
+/** Approval of a teacher's application. */
+export function teacherApprovalEmailContent(name: string): EmailContent {
+  return {
+    subject: "Your teacher application is approved",
+    text: [
+      `Assalamu alaikum ${name},`,
+      "",
+      "Your application to teach on Maymanah has been approved. Students can now be paired with you.",
+      "",
+      "Open your dashboard to set your availability and meet your students.",
+    ].join("\n"),
+  };
+}
+
+/** Decline of a teacher's application, with the reason when one was given. */
+export function teacherRejectionEmailContent(name: string, reason?: string): EmailContent {
+  return {
+    subject: "About your teacher application",
+    text: [
+      `Assalamu alaikum ${name},`,
+      "",
+      "Thank you for applying to teach on Maymanah. We are not able to approve your application at this time.",
+      ...(reason ? ["", `Reason given: ${reason}`] : []),
+      "",
+      "You are welcome to apply again later.",
+    ].join("\n"),
+  };
+}
+
 /** Builds the base URL for links in an email, from the deployment's own origin. */
 export function baseUrl(): string {
   return env().APP_URL.replace(/\/$/, "");
