@@ -66,7 +66,9 @@ export default async function CourseDetailPage({
         </div>
       </GlassCard>
 
-      {course.slug === "hifdh-ul-quran" ? <HifdhSchedule enrolled={course.enrolled} isTest={isTest} /> : null}
+      {course.slug === "hifdh-ul-quran" ? (
+        <HifdhSchedule enrolled={course.enrolled} isTest={isTest} slug={course.slug} showAll={query.show === "all"} />
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold text-text-primary">Lessons</h2>

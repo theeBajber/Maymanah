@@ -2,36 +2,10 @@
 
 import { Check, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
+import { AvailabilityGrid, parseSlotKey, type SlotKey } from "@/app/ui/AvailabilityGrid";
 import { useToast } from "@/app/ui/toast";
-
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 5);
-const MINUTES = [0, 30];
-const FIRST_HOUR = HOURS[0];
-
-type SlotKey = `${number}-${string}-${string}`;
-
-function toSlotKey(day: number, start: string, end: string): SlotKey {
-  return `${day}-${start}-${end}`;
-}
-
-function parseSlotKey(key: SlotKey) {
-  const [day, start, end] = key.split("-");
-  return { day: parseInt(day, 10), start, end };
-}
-
-function cellKey(row: number, day: number): SlotKey {
-  const hourOffset = Math.floor(row / MINUTES.length);
-  const min = (row % MINUTES.length) * (60 / MINUTES.length);
-  const hour = FIRST_HOUR + hourOffset;
-  const start = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
-  const endMin = min === 0 ? 30 : 0;
-  const endHour = min === 0 ? hour : hour + 1;
-  const end = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
-  return toSlotKey(day, start, end);
-}
 
 /**
  * The weekly availability grid a student fills to be matched.
@@ -46,73 +20,6 @@ export function SetAvailabilityForPairing() {
   const [selected, setSelected] = useState<Set<SlotKey>>(new Set());
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  const dragActionRef = useRef<"add" | "remove" | null>(null);
-  const isDraggingRef = useRef(false);
-  const anchorRef = useRef<{ row: number; day: number } | null>(null);
-  const prevRectKeysRef = useRef<Set<SlotKey> | null>(null);
-  const preDragSelectedRef = useRef<Set<SlotKey> | null>(null);
-
-  const rectKeys = useCallback((anchorRow: number, anchorDay: number, currentRow: number, currentDay: number) => {
-    const keys = new Set<SlotKey>();
-    for (let r = Math.min(anchorRow, currentRow); r <= Math.max(anchorRow, currentRow); r++) {
-      for (let d = Math.min(anchorDay, currentDay); d <= Math.max(anchorDay, currentDay); d++) {
-        keys.add(cellKey(r, d));
-      }
-    }
-    return keys;
-  }, []);
-
-  useEffect(() => {
-    const handleMouseUp = () => {
-      isDraggingRef.current = false;
-      dragActionRef.current = null;
-      anchorRef.current = null;
-      prevRectKeysRef.current = null;
-      preDragSelectedRef.current = null;
-    };
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => window.removeEventListener("mouseup", handleMouseUp);
-  }, []);
-
-  const handleCellMouseDown = useCallback(
-    (row: number, day: number) => {
-      const key = cellKey(row, day);
-      dragActionRef.current = selected.has(key) ? "remove" : "add";
-      isDraggingRef.current = true;
-      anchorRef.current = { row, day };
-      preDragSelectedRef.current = new Set(selected);
-      prevRectKeysRef.current = new Set<SlotKey>([key]);
-      setSelected((prev) => {
-        const next = new Set(prev);
-        if (dragActionRef.current === "add") next.add(key);
-        else next.delete(key);
-        return next;
-      });
-    },
-    [selected],
-  );
-
-  const handleCellMouseEnter = useCallback(
-    (row: number, day: number) => {
-      if (!isDraggingRef.current || !anchorRef.current) return;
-      const next = rectKeys(anchorRef.current.row, anchorRef.current.day, row, day);
-      if (prevRectKeysRef.current && next.size === prevRectKeysRef.current.size && [...next].every((key) => prevRectKeysRef.current!.has(key))) {
-        return;
-      }
-      prevRectKeysRef.current = next;
-      setSelected(() => {
-        const base = preDragSelectedRef.current!;
-        const draft = new Set(base);
-        for (const key of next) {
-          if (dragActionRef.current === "add") draft.add(key);
-          else draft.delete(key);
-        }
-        return draft;
-      });
-    },
-    [rectKeys],
-  );
 
   async function handleSaveAndPair() {
     if (selected.size === 0) {
@@ -182,53 +89,7 @@ export function SetAvailabilityForPairing() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <div
-          className="grid min-w-[500px] gap-px overflow-hidden rounded-xl bg-border"
-          style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}
-        >
-          <div className="bg-bg-card p-2 text-center text-[10px] font-semibold text-text-secondary" />
-          {DAYS.map((day) => (
-            <div key={day} className="bg-bg-card p-2 text-center text-[10px] font-semibold text-text-secondary">
-              {day}
-            </div>
-          ))}
-          {HOURS.map((hour, hourIndex) =>
-            MINUTES.map((min, minIndex) => {
-              const rowIndex = hourIndex * MINUTES.length + minIndex;
-              const start = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
-              const endMin = min === 0 ? 30 : 0;
-              const endHour = min === 0 ? hour : hour + 1;
-              const end = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
-              return (
-                <div key={`${hour}-${min}`} className="contents">
-                  <div className="flex items-center justify-center bg-bg-card text-[9px] text-text-muted">
-                    {min === 0 ? `${hour}:00` : ""}
-                  </div>
-                  {Array.from({ length: 7 }, (_, day) => {
-                    const key = toSlotKey(day, start, end);
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        aria-label={`${DAYS[day]} ${start}`}
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          handleCellMouseDown(rowIndex, day);
-                        }}
-                        onMouseEnter={() => handleCellMouseEnter(rowIndex, day)}
-                        className={`h-7 select-none transition-colors ${
-                          selected.has(key) ? "bg-primary" : "bg-bg-card hover:bg-bg-hover"
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              );
-            }),
-          )}
-        </div>
-      </div>
+      <AvailabilityGrid selected={selected} onSelectedChange={setSelected} />
 
       <p className="mt-4 text-xs text-text-muted">
         Click and drag to select multiple slots. Selected = available, blank = unavailable.

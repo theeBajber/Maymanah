@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 import { getCurrentUser } from "@/lib/session";
+import { timeToMinutes } from "@/lib/scheduling";
+import { weekdayInZone, zonedParts } from "@/lib/timezone";
 
 function unauthorized() {
   return NextResponse.json({ error: "Sign in to do this" }, { status: 401 });
@@ -17,6 +20,7 @@ async function ownAppointment(userId: string, id: string) {
     },
     select: {
       id: true,
+      title: true,
       status: true,
       startTime: true,
       teacherId: true,
@@ -103,6 +107,44 @@ export async function PATCH(
     where: { id },
     data: { startTime: start, endTime: new Date(start.getTime() + parsed.data.durationMinutes * 60_000) },
   });
+
+  // A teacher may move a session to an hour the student never offered; the
+  // student is told, so the conflict is a notice rather than a surprise.
+  if (appointment.teacherId === user.id) {
+    const studentId = appointment.mentorship.studentId;
+    const profile = await db.profile.findUnique({ where: { userId: studentId }, select: { timezone: true } });
+    const timeZone = profile?.timezone ?? "Africa/Nairobi";
+    const parts = zonedParts(start, timeZone);
+    const endParts = zonedParts(new Date(start.getTime() + parsed.data.durationMinutes * 60_000), timeZone);
+    const startMinutes = parts.hour * 60 + parts.minute;
+    const endMinutes = endParts.hour * 60 + endParts.minute;
+
+    const windows = await db.availability.findMany({
+      where: { userId: studentId, isRecurring: true, dayOfWeek: weekdayInZone(start, timeZone) },
+      select: { startTime: true, endTime: true },
+    });
+    const withinAvailability = windows.some((window) => {
+      const windowStart = timeToMinutes(window.startTime);
+      const windowEnd = timeToMinutes(window.endTime);
+      return windowStart !== null && windowEnd !== null && startMinutes >= windowStart && endMinutes <= windowEnd;
+    });
+
+    if (!withinAvailability) {
+      await createNotification({
+        userId: studentId,
+        type: "session_rescheduled",
+        title: "Session rescheduled",
+        body: `${user.name} moved your "${appointment.title || "session"}" to ${start.toLocaleString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })}. This time is outside your current availability.`,
+        metadata: { appointmentId: id, newTime: start.toISOString(), teacherId: user.id },
+      });
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }
