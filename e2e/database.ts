@@ -15,6 +15,11 @@ export const E2E_COURSE_SLUG = "e2e-available-course";
 /** Every account the suite creates shares this prefix, so cleanup is exact. */
 export const E2E_EMAIL_PREFIX = "e2e-";
 
+/** A fixed teacher and student seeded as an active pairing for the notes journey. */
+export const E2E_PAIR_TEACHER_EMAIL = "e2e-notes-teacher@test.maymanah.app";
+export const E2E_PAIR_STUDENT_EMAIL = "e2e-notes-student@test.maymanah.app";
+export const E2E_PAIR_PASSWORD = "MaymanahE2ENotes1";
+
 export function createClient(): PrismaClient {
   return new PrismaClient({
     adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL! }),

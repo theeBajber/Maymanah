@@ -1,4 +1,11 @@
-import { createClient, E2E_COURSE_SLUG } from "./database";
+import { hashPassword } from "../lib/password";
+import {
+  createClient,
+  E2E_COURSE_SLUG,
+  E2E_PAIR_PASSWORD,
+  E2E_PAIR_STUDENT_EMAIL,
+  E2E_PAIR_TEACHER_EMAIL,
+} from "./database";
 
 /**
  * Publishes a course for the enrolment journey to find.
@@ -83,6 +90,24 @@ export default async function globalSetup(): Promise<void> {
           ],
         },
       },
+    });
+
+    // A fixed pairing gives the notes journey a teacher with a student to
+    // write about, without driving the admin pairing screens first.
+    await db.user.deleteMany({
+      where: { email: { in: [E2E_PAIR_TEACHER_EMAIL, E2E_PAIR_STUDENT_EMAIL] } },
+    });
+    const passwordHash = await hashPassword(E2E_PAIR_PASSWORD);
+    const teacher = await db.user.create({
+      data: { name: "Ustadh Notes", email: E2E_PAIR_TEACHER_EMAIL, passwordHash, role: "TEACHER" },
+      select: { id: true },
+    });
+    const student = await db.user.create({
+      data: { name: "Yusuf Notes", email: E2E_PAIR_STUDENT_EMAIL, passwordHash, role: "STUDENT" },
+      select: { id: true },
+    });
+    await db.mentorship.create({
+      data: { teacherId: teacher.id, studentId: student.id, status: "ACTIVE" },
     });
   } finally {
     await db.$disconnect();
