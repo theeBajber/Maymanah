@@ -12,7 +12,7 @@ const { auth } = NextAuth(authConfig);
  * an earlier arrangement did, guarantees that the two can drift apart and leave
  * a route reachable that was meant to be protected.
  */
-const REQUIRES_ACCOUNT = ["/dashboard", "/settings", "/courses", "/sessions", "/availability", "/messages", "/mushaf", "/revision", "/report"];
+const REQUIRES_ACCOUNT = ["/dashboard", "/settings", "/courses", "/sessions", "/students", "/availability", "/messages", "/mushaf", "/revision", "/report"];
 
 export default auth((request) => {
   const { pathname } = request.nextUrl;
