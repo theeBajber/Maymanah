@@ -49,4 +49,10 @@ test("a student sits the lesson quiz and the final exam", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Passed!" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Your certificate has been issued.")).toBeVisible();
+
+  await page.goto(`/courses/${E2E_COURSE_SLUG}`);
+  await page.getByRole("link", { name: "View Certificate" }).click();
+  await page.waitForURL(/\/certificates\//, { timeout: 15_000 });
+  await expect(page.getByText("Certificate of completion")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download PDF" })).toBeVisible();
 });
