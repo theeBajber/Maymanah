@@ -2,6 +2,10 @@ import { hashPassword } from "../lib/password";
 import {
   createClient,
   E2E_COURSE_SLUG,
+  E2E_HIFDH_COURSE_SLUG,
+  E2E_HIFDH_PASSWORD,
+  E2E_HIFDH_STUDENT_EMAIL,
+  E2E_HIFDH_TEACHER_EMAIL,
   E2E_PAIR_PASSWORD,
   E2E_PAIR_STUDENT_EMAIL,
   E2E_PAIR_TEACHER_EMAIL,
@@ -108,6 +112,56 @@ export default async function globalSetup(): Promise<void> {
     });
     await db.mentorship.create({
       data: { teacherId: teacher.id, studentId: student.id, status: "ACTIVE" },
+    });
+
+    // The Hifdh journey needs an approved teacher whose open hours overlap the
+    // student's, and a published course to enrol in, before it can pair anyone.
+    await db.user.deleteMany({
+      where: { email: { in: [E2E_HIFDH_TEACHER_EMAIL, E2E_HIFDH_STUDENT_EMAIL] } },
+    });
+    const hifdhPasswordHash = await hashPassword(E2E_HIFDH_PASSWORD);
+    await db.user.create({
+      data: {
+        name: "Ustadh Hifdh",
+        email: E2E_HIFDH_TEACHER_EMAIL,
+        passwordHash: hifdhPasswordHash,
+        role: "TEACHER",
+        gender: "male",
+        profile: { create: { timezone: "Africa/Nairobi" } },
+        ustadhProfile: { create: { isApproved: true, availableForTeaching: true } },
+        availabilities: {
+          create: [1, 2, 3, 4, 5].map((dayOfWeek) => ({ dayOfWeek, startTime: "09:00", endTime: "12:00" })),
+        },
+      },
+    });
+    const hifdhStudent = await db.user.create({
+      data: {
+        name: "Yusuf Hifdh",
+        email: E2E_HIFDH_STUDENT_EMAIL,
+        passwordHash: hifdhPasswordHash,
+        role: "STUDENT",
+        gender: "male",
+        profile: { create: { timezone: "Africa/Nairobi" } },
+      },
+      select: { id: true },
+    });
+
+    const hifdhCourse = await db.course.upsert({
+      where: { slug: E2E_HIFDH_COURSE_SLUG },
+      update: { isPublished: true, isActive: true },
+      create: {
+        title: "Hifdh ul Quran",
+        slug: E2E_HIFDH_COURSE_SLUG,
+        description: "Memorise the Quran with a dedicated teacher.",
+        category: "Quran",
+        isPublished: true,
+      },
+      select: { id: true },
+    });
+    await db.enrollment.upsert({
+      where: { userId_courseId: { userId: hifdhStudent.id, courseId: hifdhCourse.id } },
+      create: { userId: hifdhStudent.id, courseId: hifdhCourse.id },
+      update: {},
     });
   } finally {
     await db.$disconnect();

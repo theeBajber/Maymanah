@@ -235,6 +235,11 @@ async function availabilityFor(userId: string): Promise<AvailabilityWindow[]> {
   });
 }
 
+/** A teacher's recurring windows, as read on their own clock. */
+export async function getTeacherAvailability(teacherId: string): Promise<AvailabilityWindow[]> {
+  return availabilityFor(teacherId);
+}
+
 function slotsToWindows(slots: { dayOfWeek: number; startTime: string; duration: number }[]): AvailabilityWindow[] {
   return slots.flatMap((slot) => {
     const endTime = endOfWindow(slot.startTime, slot.duration);
@@ -242,8 +247,7 @@ function slotsToWindows(slots: { dayOfWeek: number; startTime: string; duration:
   });
 }
 
-/** The active Hifdh pairing a student already runs, if one exists. */
-export async function getStudentSchedule(studentId: string): Promise<StudentSchedule | null> {
+/** The active Hifdh pairing a student already runs, if one exists. */export async function getStudentSchedule(studentId: string): Promise<StudentSchedule | null> {
   const mentorship = await db.mentorship.findFirst({
     where: { studentId, status: "ACTIVE" },
     select: {
@@ -396,6 +400,86 @@ export async function pairHifdhStudent(studentId: string): Promise<StudentSchedu
   return getStudentSchedule(studentId);
 }
 
+export type RescheduleResult =
+  | { ok: true; schedule: StudentSchedule }
+  | { ok: false; reason: "not_found" | "no_overlap" | "full" };
+
+/**
+ * Rebuilds a paired student's weekly slots against their current availability.
+ *
+ * The teacher is kept: this is a change of times, not of mentor. Slots that
+ * already happened stay as history; only the future is replanned, and only once
+ * the new times are known, so a failed attempt leaves the old schedule in place.
+ */
+export async function rescheduleStudent(studentId: string): Promise<RescheduleResult> {
+  const mentorship = await db.mentorship.findFirst({
+    where: { studentId, status: "ACTIVE" },
+    select: { id: true, teacherId: true },
+  });
+  if (!mentorship) return { ok: false, reason: "not_found" };
+
+  const now = new Date();
+  const [studentTimeZone, teacherTimeZone] = await Promise.all([
+    timeZoneFor(studentId),
+    timeZoneFor(mentorship.teacherId),
+  ]);
+  const [studentWindows, teacherWindows] = await Promise.all([
+    availabilityFor(studentId),
+    availabilityFor(mentorship.teacherId),
+  ]);
+  const studentIntervals = expandWindows(studentWindows, studentTimeZone, now, HORIZON_DAYS);
+  const teacherIntervals = expandWindows(teacherWindows, teacherTimeZone, now, HORIZON_DAYS);
+
+  if (studentIntervals.length === 0 || teacherIntervals.length === 0) {
+    return { ok: false, reason: "no_overlap" };
+  }
+
+  const mentorshipId = await allocate(
+    studentId,
+    mentorship.id,
+    mentorship.teacherId,
+    teacherTimeZone,
+    studentIntervals,
+    teacherIntervals,
+  );
+  if (!mentorshipId) return { ok: false, reason: "no_overlap" };
+
+  // The old week's sessions no longer correspond to any slot, so they go before
+  // the new ones are materialised; completed and past sessions are untouched.
+  await db.appointment.deleteMany({
+    where: { mentorshipId, status: "SCHEDULED", startTime: { gte: now } },
+  });
+  await generateUpcomingAppointments(mentorshipId);
+
+  const schedule = await getStudentSchedule(studentId);
+  return schedule ? { ok: true, schedule } : { ok: false, reason: "not_found" };
+}
+
+/**
+ * Ends a pairing so the student can be matched afresh.
+ *
+ * The mentorship is paused rather than deleted, keeping the sessions already
+ * sat as history. The student's availability is cleared with it, so re-matching
+ * starts from what they choose next rather than the times that just failed.
+ */
+export async function unpairStudent(studentId: string, mentorshipId: string): Promise<boolean> {
+  const mentorship = await db.mentorship.findFirst({
+    where: { id: mentorshipId, studentId, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (!mentorship) return false;
+
+  const now = new Date();
+  await db.$transaction([
+    db.mentorship.update({ where: { id: mentorshipId }, data: { status: "PAUSED" } }),
+    db.recurringSlot.deleteMany({ where: { mentorshipId } }),
+    db.appointment.deleteMany({ where: { mentorshipId, status: "SCHEDULED", startTime: { gte: now } } }),
+    db.availability.deleteMany({ where: { userId: studentId, isRecurring: true } }),
+  ]);
+
+  return true;
+}
+
 async function allocate(
   studentId: string,
   mentorshipId: string | null,
@@ -412,7 +496,12 @@ async function allocate(
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${teacherId}, 0))`;
 
     const existingSlots = await tx.recurringSlot.findMany({
-      where: { type: "DAILY_HIFDH", mentorship: { teacherId, status: "ACTIVE" } },
+      where: {
+        type: "DAILY_HIFDH",
+        // The student's own slots are about to be replaced, so they must not be
+        // counted as occupied against the new plan.
+        mentorship: { teacherId, status: "ACTIVE", ...(mentorshipId ? { id: { not: mentorshipId } } : {}) },
+      },
       select: { dayOfWeek: true, startTime: true, duration: true },
     });
     const occupied = expandWindows(slotsToWindows(existingSlots), teacherTimeZone, now, HORIZON_DAYS);

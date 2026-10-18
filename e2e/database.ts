@@ -20,6 +20,12 @@ export const E2E_PAIR_TEACHER_EMAIL = "e2e-notes-teacher@test.maymanah.app";
 export const E2E_PAIR_STUDENT_EMAIL = "e2e-notes-student@test.maymanah.app";
 export const E2E_PAIR_PASSWORD = "MaymanahE2ENotes1";
 
+/** The course the Hifdh pairing journey enrols in, and the accounts it uses. */
+export const E2E_HIFDH_COURSE_SLUG = "hifdh-ul-quran";
+export const E2E_HIFDH_TEACHER_EMAIL = "e2e-hifdh-teacher@test.maymanah.app";
+export const E2E_HIFDH_STUDENT_EMAIL = "e2e-hifdh-student@test.maymanah.app";
+export const E2E_HIFDH_PASSWORD = "MaymanahE2EHifdh1";
+
 export function createClient(): PrismaClient {
   return new PrismaClient({
     adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL! }),
