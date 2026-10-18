@@ -7,6 +7,8 @@ import { Button } from "@/app/ui/button";
 import { GlassCard } from "@/app/ui/glass";
 import { Markdown } from "@/app/ui/markdown";
 import { useToast } from "@/app/ui/toast";
+import type { Assessment } from "@/lib/assessments";
+import { LessonQuiz } from "./LessonQuiz";
 
 interface LessonView {
   id: string;
@@ -37,12 +39,14 @@ export function LessonReader({
   previous,
   next,
   courseSlug,
+  quiz,
 }: {
   lesson: LessonView;
   completed: boolean;
   previous: Neighbour | null;
   next: Neighbour | null;
   courseSlug: string;
+  quiz: Assessment | null;
 }) {
   const { toast } = useToast();
   const [done, setDone] = useState(completed);
@@ -105,6 +109,13 @@ export function LessonReader({
           <p className="text-sm text-text-secondary">The text for this lesson is being written.</p>
         </GlassCard>
       )}
+
+      {quiz ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold text-text-primary">Check your understanding</h2>
+          <LessonQuiz assessment={quiz} />
+        </section>
+      ) : null}
 
       <div className="flex items-center justify-between gap-3">
         {done ? (
