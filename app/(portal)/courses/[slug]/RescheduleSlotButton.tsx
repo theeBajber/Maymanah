@@ -15,10 +15,12 @@ import { RescheduleDialog } from "@/app/ui/RescheduleDialog";
  */
 export function RescheduleSlotButton({
   teacherId,
+  teacherTimeZone,
   sessionType,
   nextOccurrence,
 }: {
   teacherId: string;
+  teacherTimeZone: string;
   sessionType: string;
   nextOccurrence: string;
 }) {
@@ -67,6 +69,7 @@ export function RescheduleSlotButton({
         <RescheduleDialog
           appointmentId={appointmentId}
           teacherId={teacherId}
+          teacherTimeZone={teacherTimeZone}
           currentStartTime={nextOccurrence}
           sessionType={sessionType}
           onClose={() => {

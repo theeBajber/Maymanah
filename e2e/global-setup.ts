@@ -130,7 +130,7 @@ export default async function globalSetup(): Promise<void> {
         profile: { create: { timezone: "Africa/Nairobi" } },
         ustadhProfile: { create: { isApproved: true, availableForTeaching: true } },
         availabilities: {
-          create: [1, 2, 3, 4, 5].map((dayOfWeek) => ({ dayOfWeek, startTime: "09:00", endTime: "12:00" })),
+          create: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({ dayOfWeek, startTime: "08:00", endTime: "20:00" })),
         },
       },
     });

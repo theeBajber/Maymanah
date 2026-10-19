@@ -143,7 +143,7 @@ export async function HifdhSchedule({
                     </p>
                   </div>
                 </div>
-                {next && <RescheduleSlotButton teacherId={schedule.teacherId} sessionType={slot.type} nextOccurrence={next.toISOString()} />}
+                {next && <RescheduleSlotButton teacherId={schedule.teacherId} teacherTimeZone={schedule.teacherTimeZone} sessionType={slot.type} nextOccurrence={next.toISOString()} />}
               </div>
             );
           })}

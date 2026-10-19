@@ -1,14 +1,20 @@
 "use client";
 
 import { CircleCheck, Loader2, Sun, X, Zap } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useToast } from "@/app/ui/toast";
+import { zonedParts } from "@/lib/timezone";
 
 interface TimeSlot {
+  label: string;
   startTime: string;
   endTime: string;
+}
+
+function dateInZone(instant: string | Date, timeZone: string): string {
+  const parts = zonedParts(new Date(instant), timeZone);
+  return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
 }
 
 function durationFor(sessionType: string): number {
@@ -25,25 +31,25 @@ function durationFor(sessionType: string): number {
 export function RescheduleDialog({
   appointmentId,
   teacherId,
+  teacherTimeZone,
   currentStartTime,
   sessionType,
   onClose,
 }: {
   appointmentId: string;
   teacherId: string;
+  teacherTimeZone: string;
   currentStartTime: string;
   sessionType: string;
   onClose: () => void;
 }) {
-  const router = useRouter();
   const { toast } = useToast();
   const duration = durationFor(sessionType);
-  const [date, setDate] = useState(() => new Date(currentStartTime).toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => dateInZone(currentStartTime, teacherTimeZone));
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [fetching, setFetching] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -77,12 +83,11 @@ export function RescheduleDialog({
       const res = await fetch(`/api/appointments/${appointmentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ startTime: `${date}T${selected}:00Z`, durationMinutes: duration }),
+        body: JSON.stringify({ startTime: selected, durationMinutes: duration }),
       });
       if (res.ok) {
         toast({ title: "Session rescheduled", variant: "success" });
         onClose();
-        router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
         toast({ title: data.error || "Failed to reschedule", variant: "error" });
@@ -115,7 +120,7 @@ export function RescheduleDialog({
           <input
             type="date"
             value={date}
-            min={new Date().toISOString().slice(0, 10)}
+            min={dateInZone(new Date(), teacherTimeZone)}
             onChange={(event) => setDate(event.target.value)}
             className="w-full rounded-xl border border-border bg-bg-primary px-3 py-2.5 text-sm text-text-primary transition-colors focus:border-primary focus:outline-none"
           />
@@ -155,7 +160,7 @@ export function RescheduleDialog({
                     ) : (
                       <Zap className="size-3.5 shrink-0 text-text-muted" />
                     )}
-                    {slot.startTime}
+                    {slot.label}
                   </button>
                 );
               })}
