@@ -19,9 +19,30 @@ interface Verse {
 
 interface Reciter {
   identifier: string;
-  language: string;
   name: string;
 }
+
+// Only reciters whose verse-by-verse audio is available on the CDN the proxy
+// accepts. Asking the editions endpoint returns hundreds of entries, including
+// surah-level and translated recordings that have no audio for a single verse,
+// which is why the list is fixed rather than fetched.
+const RECITERS: Reciter[] = [
+  { identifier: "ar.alafasy", name: "Mishary Alafasy" },
+  { identifier: "ar.abdulbasitmurattal", name: "Abdul Basit (Murattal)" },
+  { identifier: "ar.abdurrahmaansudais", name: "Abdurrahman As-Sudais" },
+  { identifier: "ar.shaatree", name: "Abu Bakr Ash-Shaatree" },
+  { identifier: "ar.ahmedajamy", name: "Ahmed Al-Ajamy" },
+  { identifier: "ar.hanirifai", name: "Hani Ar-Rifai" },
+  { identifier: "ar.husary", name: "Mahmoud Khalil Al-Husary" },
+  { identifier: "ar.husarymujawwad", name: "Mahmoud Khalil Al-Husary (Mujawwad)" },
+  { identifier: "ar.hudhaify", name: "Ali Al-Hudhaify" },
+  { identifier: "ar.mahermuaiqly", name: "Maher Al-Muaiqly" },
+  { identifier: "ar.minshawi", name: "Muhammad Siddiq Al-Minshawi" },
+  { identifier: "ar.minshawimujawwad", name: "Muhammad Siddiq Al-Minshawi (Mujawwad)" },
+  { identifier: "ar.muhammadayyoub", name: "Muhammad Ayyoub" },
+  { identifier: "ar.muhammadjibreel", name: "Muhammad Jibreel" },
+  { identifier: "ar.saoodshuraym", name: "Saud Ash-Shuraym" },
+];
 
 interface AyahAudio {
   numberInSurah: number;
@@ -44,7 +65,6 @@ export function MushafView() {
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
   const [surah, setSurah] = useState(1);
   const [verses, setVerses] = useState<Verse[] | null>(null);
-  const [reciters, setReciters] = useState<Reciter[] | null>(null);
   const [reciter, setReciter] = useState(DEFAULT_RECITER);
   const [audioByVerse, setAudioByVerse] = useState<Map<number, string>>(new Map());
   const [playing, setPlaying] = useState<number | null>(null);
@@ -62,14 +82,6 @@ export function MushafView() {
       .catch(() => {
         if (!cancelled) setError("The chapter list could not be loaded. Check your connection.");
       });
-    fetch("https://api.alquran.cloud/v1/edition?format=audio&language=ar")
-      .then(async (response) => {
-        const body = (await response.json().catch(() => ({}))) as { data?: Reciter[] };
-        if (!cancelled) {
-          setReciters((body.data ?? []).filter((row) => !row.identifier.endsWith("-2")));
-        }
-      })
-      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -188,7 +200,7 @@ export function MushafView() {
             onChange={(event) => selectReciter(event.target.value)}
             className="h-10 max-w-56 rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 text-sm text-ivory focus:border-brass/60 focus:outline-none"
           >
-            {(reciters ?? []).map((row) => (
+            {RECITERS.map((row) => (
               <option key={row.identifier} value={row.identifier} className="bg-bg-elevated">
                 {row.name}
               </option>

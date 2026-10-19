@@ -16,6 +16,8 @@ export interface SeedLesson {
   title: string;
   duration: number;
   content: string;
+  videoUrl?: string;
+  audioUrl?: string;
   questions: SeedQuestion[];
 }
 
