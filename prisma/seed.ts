@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { neonConfig } from "@neondatabase/serverless";
 import ws from "ws";
 
+import { catalogueCourses, type SeedCourse } from "./seed-courses";
 import { hifdhCourse } from "./seed-content";
 
 // The seed runs outside Next, so the WebSocket shim the Neon driver needs has
@@ -16,66 +17,64 @@ const db = new PrismaClient({
 });
 
 /**
- * Publishes the Quran Hifdh course and its lessons.
+ * Publishes one course and its lessons.
  *
  * Run repeatedly without side effects: the course and its lessons are matched
  * on their stable keys and updated in place, so re-seeding after a copy change
  * refreshes the text without duplicating rows or resetting enrolments.
  */
-async function seedHifdhCourse(): Promise<void> {
-  const course = await db.course.upsert({
-    where: { slug: hifdhCourse.slug },
-    update: {
-      title: hifdhCourse.title,
-      description: hifdhCourse.description,
-      category: "Quran",
-      isPublished: true,
-      isActive: true,
-    },
-    create: {
-      title: hifdhCourse.title,
-      slug: hifdhCourse.slug,
-      description: hifdhCourse.description,
-      category: "Quran",
-      isPublished: true,
-      isActive: true,
-    },
+async function seedCourse(course: SeedCourse): Promise<void> {
+  const shared = {
+    title: course.title,
+    description: course.description,
+    image: course.image,
+    category: course.category,
+    isPublished: true,
+    isActive: true,
+  };
+
+  const row = await db.course.upsert({
+    where: { slug: course.slug },
+    update: shared,
+    create: { ...shared, slug: course.slug },
     select: { id: true },
   });
 
-  for (const [index, lesson] of hifdhCourse.lessons.entries()) {
+  for (const [index, lesson] of course.lessons.entries()) {
     const order = index + 1;
     const existing = await db.lesson.findFirst({
-      where: { courseId: course.id, order },
+      where: { courseId: row.id, order },
       select: { id: true },
     });
 
-    const row = existing
+    const lessonData = {
+      title: lesson.title,
+      content: lesson.content,
+      videoUrl: lesson.videoUrl ?? null,
+      audioUrl: lesson.audioUrl ?? null,
+      duration: lesson.duration,
+      isPublished: true,
+    };
+
+    const lessonRow = existing
       ? await db.lesson.update({
           where: { id: existing.id },
-          data: {
-            title: lesson.title,
-            content: lesson.content,
-            duration: lesson.duration,
-            isPublished: true,
-          },
+          data: lessonData,
           select: { id: true },
         })
       : await db.lesson.create({
-          data: {
-            courseId: course.id,
-            title: lesson.title,
-            content: lesson.content,
-            duration: lesson.duration,
-            order,
-            isPublished: true,
-          },
+          data: { courseId: row.id, ...lessonData, order },
           select: { id: true },
         });
 
+    if (lesson.questions.length === 0) {
+      await db.exam.deleteMany({ where: { lessonId: lessonRow.id } });
+      continue;
+    }
+
     const totalMarks = lesson.questions.length;
     const exam = await db.exam.upsert({
-      where: { lessonId: row.id },
+      where: { lessonId: lessonRow.id },
       update: {
         title: `${lesson.title} Quiz`,
         description: `Test your knowledge of "${lesson.title}"`,
@@ -84,8 +83,8 @@ async function seedHifdhCourse(): Promise<void> {
         isPublished: true,
       },
       create: {
-        courseId: course.id,
-        lessonId: row.id,
+        courseId: row.id,
+        lessonId: lessonRow.id,
         title: `${lesson.title} Quiz`,
         description: `Test your knowledge of "${lesson.title}"`,
         totalMarks,
@@ -115,12 +114,25 @@ async function seedHifdhCourse(): Promise<void> {
     });
   }
 
-  console.log(
-    `Seeded "${hifdhCourse.title}" with ${hifdhCourse.lessons.length} lessons.`,
-  );
+  console.log(`Seeded "${course.title}" with ${course.lessons.length} lessons.`);
 }
 
-seedHifdhCourse()
+async function main(): Promise<void> {
+  await seedCourse({
+    title: hifdhCourse.title,
+    slug: hifdhCourse.slug,
+    description: hifdhCourse.description,
+    image: "/quran-hifdh.jpg",
+    category: "Quran",
+    lessons: hifdhCourse.lessons,
+  });
+
+  for (const course of catalogueCourses) {
+    await seedCourse(course);
+  }
+}
+
+main()
   .catch((error) => {
     console.error(error);
     process.exit(1);
