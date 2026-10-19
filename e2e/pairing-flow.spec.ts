@@ -48,6 +48,19 @@ test("a student is paired, scheduled, and can change mentor", async ({ page }) =
   await expect(page.getByText("Schedule updated!")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(/Weds at/)).toBeVisible({ timeout: 20_000 });
 
+  // Move this week's session to another open time on the teacher's calendar.
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  await page.getByRole("button", { name: "Reschedule this week" }).first().click();
+  await expect(page.getByRole("heading", { name: "Reschedule Session" })).toBeVisible({ timeout: 20_000 });
+  await page.locator('input[type="date"]').fill(tomorrow);
+  const slot = page.getByRole("button", { name: /^\d{2}:\d{2}$/ }).first();
+  await expect(slot).toBeVisible({ timeout: 20_000 });
+  await slot.click();
+  await page.getByRole("button", { name: "Confirm" }).click();
+  await expect(page.getByText("Session rescheduled")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Reschedule Session" })).toBeHidden({ timeout: 20_000 });
+  await page.waitForTimeout(1_500);
+
   // A session moved outside the student's hours raises the notice, and the
   // notice's "Find a new teacher" returns them to the availability grid.
   const db = createClient();
@@ -68,7 +81,7 @@ test("a student is paired, scheduled, and can change mentor", async ({ page }) =
     await db.$disconnect();
   }
 
-  await page.goto(`/courses/${E2E_HIFDH_COURSE_SLUG}`);
+  await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByText("Session time conflicts with your availability")).toBeVisible({
     timeout: 20_000,
   });
