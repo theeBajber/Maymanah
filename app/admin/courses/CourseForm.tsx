@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { ArrowLeft, Save, Upload, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { Dropdown } from "@/app/ui/Dropdown";
 import { useToast } from "@/app/ui/toast";
 
 const categories = ["Quran", "Fiqh", "History", "Arabic", "Aqeedah"] as const;
@@ -188,24 +189,12 @@ export function CourseForm({ course }: { course?: CourseData }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">
-                Category
-              </label>
-              <select
-                value={form.category}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, category: e.target.value }))
-                }
-                className="w-full px-3 py-2.5 rounded-lg border border-border bg-bg-primary text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Dropdown
+              label="Category"
+              options={categories.map((cat) => ({ value: cat, label: cat }))}
+              value={form.category}
+              onChange={(value) => setForm((prev) => ({ ...prev, category: value }))}
+            />
 
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1.5">

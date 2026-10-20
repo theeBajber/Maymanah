@@ -14,14 +14,18 @@ interface DropdownProps<T> {
   onChange: (value: T) => void;
   label?: string;
   placeholder?: string;
+  disabled?: boolean;
+  className?: string;
 }
 
-export function Dropdown<T extends string>({
+export function Dropdown<T extends string | number>({
   options,
   value,
   onChange,
   label,
   placeholder = "Select...",
+  disabled = false,
+  className = "",
 }: DropdownProps<T>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -37,7 +41,7 @@ export function Dropdown<T extends string>({
   const selected = options.find((o) => o.value === value);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={`relative ${className}`}>
       {label && (
         <label className="text-[10px] uppercase tracking-widest font-bold px-1 block mb-2">
           {label}
@@ -46,9 +50,10 @@ export function Dropdown<T extends string>({
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        disabled={disabled}
         className={`w-full flex items-center justify-between px-4 h-12 rounded-xl border focus:outline-none bg-transparent transition-colors ${
           open ? "border-primary" : "border-primary-dark/80"
-        } hover:border-primary focus:border-primary`}
+        } hover:border-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-primary-dark/80`}
       >
         <span className={`truncate text-sm ${selected ? "text-text-primary" : "text-text-muted"}`}>
           {selected ? selected.label : placeholder}
@@ -58,7 +63,7 @@ export function Dropdown<T extends string>({
           className={`shrink-0 ml-2 transition-transform text-text-secondary ${open ? "rotate-180" : ""}`}
         />
       </button>
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border bg-bg-elevated shadow-float animate-in">
           {options.map((opt) => (
             <button

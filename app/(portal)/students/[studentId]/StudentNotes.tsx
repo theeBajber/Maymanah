@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronRight, Plus, RotateCcw } from "lucide-react"
 import { useState } from "react";
 
 import { Button } from "@/app/ui/button";
+import { Dropdown } from "@/app/ui/Dropdown";
 import { EmptyState, Panel } from "@/app/ui/portal";
 import { useToast } from "@/app/ui/toast";
 
@@ -201,19 +202,27 @@ export function StudentNotes({
             />
             <p className="text-right text-xs text-text-muted">{content.length}/500</p>
             <div className="flex flex-wrap items-center gap-3">
-              <select value={priority} onChange={(event) => setPriority(event.target.value as "LOW" | "MEDIUM" | "HIGH")} className={field}>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-              </select>
-              <select value={sessionId} onChange={(event) => setSessionId(event.target.value)} className={field}>
-                <option value="">No session linked</option>
-                {sessions.map((session) => (
-                  <option key={session.id} value={session.id}>
-                    {session.label}
-                  </option>
-                ))}
-              </select>
+              <div className="w-40">
+                <Dropdown
+                  options={[
+                    { value: "LOW", label: "Low" },
+                    { value: "MEDIUM", label: "Medium" },
+                    { value: "HIGH", label: "High" },
+                  ]}
+                  value={priority}
+                  onChange={setPriority}
+                />
+              </div>
+              <div className="w-64">
+                <Dropdown
+                  options={[
+                    { value: "", label: "No session linked" },
+                    ...sessions.map((session) => ({ value: session.id, label: session.label })),
+                  ]}
+                  value={sessionId}
+                  onChange={setSessionId}
+                />
+              </div>
               <Button size="sm" loading={saving} disabled={!content.trim()} onClick={save} className="ml-auto">
                 Save
               </Button>
