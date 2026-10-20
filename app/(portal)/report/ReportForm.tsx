@@ -2,7 +2,6 @@
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faBug,
   faFlag,
   faMessage,
   faSpinner,
@@ -10,6 +9,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
 
+import { Dropdown } from "@/app/ui/Dropdown";
 import { useToast } from "@/app/ui/toast";
 
 type ReportType = "user" | "technical" | "other";
@@ -105,29 +105,16 @@ export function ReportForm({
     "w-full bg-transparent text-text-primary placeholder:text-text-muted outline-none text-sm";
   const labelBase =
     "text-[10px] uppercase tracking-widest font-bold text-text-secondary";
-  const selectBase =
-    "w-full bg-transparent text-text-primary outline-none text-sm cursor-pointer";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <label className={`${labelBase} block mb-2`}>Report Type</label>
-        <div className={`${inputBase} h-12 ${loading ? "opacity-50 pointer-events-none" : ""}`}>
-          <FontAwesomeIcon icon={faFlag} className="size-4 text-text-muted shrink-0" />
-          <select
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value as ReportType)}
-            className={selectBase}
-            disabled={loading || !!initialUserId}
-          >
-            {REPORT_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <Dropdown
+        label="Report Type"
+        options={REPORT_TYPES}
+        value={reportType}
+        onChange={setReportType}
+        disabled={loading || !!initialUserId}
+      />
 
       {reportType === "user" && (
         <>
@@ -150,24 +137,13 @@ export function ReportForm({
             </div>
           </div>
 
-          <div>
-            <label className={`${labelBase} block mb-2`}>Reason</label>
-            <div className={`${inputBase} h-12 ${loading ? "opacity-50 pointer-events-none" : ""}`}>
-              <FontAwesomeIcon icon={faBug} className="size-4 text-text-muted shrink-0" />
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value as UserReason)}
-                className={selectBase}
-                disabled={loading}
-              >
-                {USER_REASONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <Dropdown
+            label="Reason"
+            options={USER_REASONS}
+            value={reason}
+            onChange={setReason}
+            disabled={loading}
+          />
         </>
       )}
 

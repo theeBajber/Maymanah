@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Dropdown } from "@/app/ui/Dropdown";
 import { useToast } from "@/app/ui/toast";
 import {
   ArrowLeft,
@@ -137,19 +138,17 @@ export function UserDetail({ user }: { user: UserDetailData }) {
 
               {/* Role changer */}
               <div className="shrink-0">
-                <label className="text-xs text-text-muted uppercase tracking-wider block mb-1">
-                  Change Role
-                </label>
-                <select
+                <Dropdown
+                  label="Change Role"
+                  options={[
+                    { value: "STUDENT", label: "Student" },
+                    { value: "TEACHER", label: "Teacher" },
+                    { value: "ADMIN", label: "Admin" },
+                  ]}
                   value={selectedRole}
-                  onChange={(e) => handleRoleChange(e.target.value)}
+                  onChange={handleRoleChange}
                   disabled={updating}
-                  className="px-3 py-1.5 rounded-lg border border-border bg-bg-primary text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
-                >
-                  <option value="STUDENT">Student</option>
-                  <option value="TEACHER">Teacher</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
+                />
               </div>
             </div>
 

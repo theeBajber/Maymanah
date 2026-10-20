@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Dropdown } from "@/app/ui/Dropdown";
 import { EmptyState, PortalHeader } from "@/app/ui/portal";
 
 interface Chapter {
@@ -177,36 +178,25 @@ export function MushafView() {
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
-        <label className="flex items-center gap-2 text-sm text-text-secondary">
-          Chapter
-          <select
-            value={surah}
-            onChange={(event) => selectSurah(Number(event.target.value))}
-            className="h-10 rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 text-sm text-ivory focus:border-brass/60 focus:outline-none"
-          >
-            {(chapters ?? []).map((row) => (
-              <option key={row.id} value={row.id} className="bg-bg-elevated">
-                {row.id}. {row.name_simple}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="flex flex-wrap gap-4">
+        <Dropdown
+          className="w-72"
+          label="Chapter"
+          options={(chapters ?? []).map((row) => ({
+            value: row.id,
+            label: `${row.id}. ${row.name_simple}`,
+          }))}
+          value={surah}
+          onChange={selectSurah}
+        />
 
-        <label className="flex items-center gap-2 text-sm text-text-secondary">
-          Reciter
-          <select
-            value={reciter}
-            onChange={(event) => selectReciter(event.target.value)}
-            className="h-10 max-w-56 rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 text-sm text-ivory focus:border-brass/60 focus:outline-none"
-          >
-            {RECITERS.map((row) => (
-              <option key={row.identifier} value={row.identifier} className="bg-bg-elevated">
-                {row.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Dropdown
+          className="w-72"
+          label="Reciter"
+          options={RECITERS.map((row) => ({ value: row.identifier, label: row.name }))}
+          value={reciter}
+          onChange={selectReciter}
+        />
       </div>
 
       {verses === null ? (

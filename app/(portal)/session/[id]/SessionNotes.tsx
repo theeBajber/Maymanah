@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/app/ui/button";
+import { Dropdown } from "@/app/ui/Dropdown";
 import { GlassCard } from "@/app/ui/glass";
 import { useToast } from "@/app/ui/toast";
 
@@ -107,15 +108,17 @@ export function SessionNotes({ appointmentId, studentId }: { appointmentId: stri
             className="w-full resize-none rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 py-2 text-sm text-ivory focus:border-brass/60 focus:outline-none"
           />
           <div className="flex items-center gap-3">
-            <select
-              value={priority}
-              onChange={(event) => setPriority(event.target.value as "LOW" | "MEDIUM" | "HIGH")}
-              className="rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 py-2 text-sm text-ivory focus:border-brass/60 focus:outline-none"
-            >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-            </select>
+            <div className="w-40">
+              <Dropdown
+                options={[
+                  { value: "LOW", label: "Low" },
+                  { value: "MEDIUM", label: "Medium" },
+                  { value: "HIGH", label: "High" },
+                ]}
+                value={priority}
+                onChange={setPriority}
+              />
+            </div>
             <Button size="sm" loading={saving} disabled={!content.trim()} onClick={save} className="ml-auto">
               Save
             </Button>
