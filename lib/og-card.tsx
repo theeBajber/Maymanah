@@ -23,7 +23,7 @@ export function renderOgCard() {
           position: "relative",
         }}
       >
-        {/* brass ambient glow, echoing the site's night-lantern theme */}
+        {/* accent ambient glow, echoing the site's night-lantern theme */}
         <div
           style={{
             position: "absolute",
@@ -32,7 +32,7 @@ export function renderOgCard() {
             width: 800,
             height: 500,
             borderRadius: "50%",
-            background: `radial-gradient(circle, ${BRAND_COLORS.brass}33 0%, ${BRAND_COLORS.brass}00 70%)`,
+            background: `radial-gradient(circle, ${BRAND_COLORS.accent}33 0%, ${BRAND_COLORS.accent}00 70%)`,
             display: "flex",
           }}
         />
@@ -43,7 +43,7 @@ export function renderOgCard() {
             style={{
               width: 28,
               height: 28,
-              border: `2px solid ${BRAND_COLORS.brass}55`,
+              border: `2px solid ${BRAND_COLORS.accent}55`,
               transform: "rotate(45deg)",
             }}
           />
@@ -53,7 +53,7 @@ export function renderOgCard() {
             style={{
               width: 28,
               height: 28,
-              border: `2px solid ${BRAND_COLORS.brass}55`,
+              border: `2px solid ${BRAND_COLORS.accent}55`,
               transform: "rotate(45deg)",
             }}
           />
@@ -83,7 +83,7 @@ export function renderOgCard() {
               style={{
                 width: 56,
                 height: 56,
-                border: `4px solid ${BRAND_COLORS.brass}`,
+                border: `4px solid ${BRAND_COLORS.accent}`,
                 transform: "rotate(45deg)",
                 display: "flex",
               }}
@@ -95,7 +95,7 @@ export function renderOgCard() {
             style={{
               height: 2,
               width: 140,
-              background: `linear-gradient(to right, transparent, ${BRAND_COLORS.brass}, transparent)`,
+              background: `linear-gradient(to right, transparent, ${BRAND_COLORS.accent}, transparent)`,
               display: "flex",
             }}
           />

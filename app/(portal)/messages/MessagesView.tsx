@@ -207,12 +207,12 @@ export function MessagesView() {
                   placeholder="Write a message…"
                   maxLength={5000}
                   autoComplete="off"
-                  className="h-11 min-w-0 flex-1 rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 text-sm text-ivory placeholder:text-sage/40 focus:border-brass/60 focus:outline-none"
+                  className="h-11 min-w-0 flex-1 rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 text-sm text-ivory placeholder:text-sage/40 focus:border-accent/60 focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={sending || !draft.trim()}
-                  className="inline-flex h-11 items-center rounded-[10px] bg-brass px-5 text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B] disabled:opacity-50"
+                  className="inline-flex h-11 items-center rounded-[10px] bg-accent px-5 text-sm font-semibold text-text-inverse transition-all hover:brightness-95 disabled:opacity-50"
                 >
                   {sending ? "Sending…" : "Send"}
                 </button>

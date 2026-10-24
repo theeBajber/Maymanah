@@ -76,7 +76,7 @@ export default function Curriculum() {
 }
 
 /* Each track is a designed learning path — a rail of stations
-   ending at a brass-lit certification node — not a bullet list. */
+   ending at an accent-lit certification node — not a bullet list. */
 
 type Step = {
   title: string;
@@ -90,7 +90,7 @@ function PathRail({ steps }: { steps: Step[] }) {
     <ol className="relative mt-2 flex flex-col gap-6">
       <span
         aria-hidden
-        className="absolute bottom-3 left-1.25 top-3 w-px bg-linear-to-b from-ivory/10 via-ivory/20 to-brass/60"
+        className="absolute bottom-3 left-1.25 top-3 w-px bg-linear-to-b from-ivory/10 via-ivory/20 to-accent/60"
       />
       {steps.map((step) => (
         <li key={step.title} className="relative flex flex-col gap-1 ps-8">
@@ -98,13 +98,13 @@ function PathRail({ steps }: { steps: Step[] }) {
             aria-hidden
             className={`absolute left-0 top-1.75 size-2.75 rotate-45 ${
               step.final
-                ? "bg-brass shadow-glow-brass"
-                : "border border-brass/50 bg-layl"
+                ? "bg-accent shadow-glow-accent"
+                : "border border-accent/50 bg-layl"
             }`}
           />
           <span
             className={`flex flex-wrap items-baseline gap-2 text-[15px] font-medium ${
-              step.final ? "text-brass" : "text-ivory"
+              step.final ? "text-accent" : "text-ivory"
             }`}
           >
             {step.title}
@@ -146,7 +146,7 @@ function TrackPanel({
 }) {
   return (
     <article
-      className={`glass-still hover-lift relative flex flex-col gap-5 overflow-hidden rounded-2xl p-6 hover:border-brass/30 md:p-8 ${className}`}
+      className={`glass-still hover-lift relative flex flex-col gap-5 overflow-hidden rounded-2xl p-6 hover:border-accent/30 md:p-8 ${className}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2
@@ -157,13 +157,13 @@ function TrackPanel({
             <span
               lang="ar"
               dir="rtl"
-              className={`${amiri.className} text-2xl text-brass`}
+              className={`${amiri.className} text-2xl text-accent`}
             >
               {arabic}
             </span>
           )}
         </h2>
-        <span className="rounded-full border border-brass/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">
+        <span className="rounded-full border border-accent/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
           {badge}
         </span>
       </div>
@@ -243,7 +243,7 @@ function ArabicTrack() {
   ];
 
   return (
-    <article className="glass-still hover-lift relative flex flex-col gap-6 overflow-hidden rounded-2xl p-6 hover:border-brass/30 md:col-span-2 md:p-8">
+    <article className="glass-still hover-lift relative flex flex-col gap-6 overflow-hidden rounded-2xl p-6 hover:border-accent/30 md:col-span-2 md:p-8">
       <div className="flex flex-col gap-3">
         <h2
           className={`${elMessiri.className} text-2xl font-semibold text-ivory sm:text-3xl`}
@@ -259,7 +259,7 @@ function ArabicTrack() {
         {/* the connecting rail, desktop only */}
         <span
           aria-hidden
-          className="absolute left-1 right-6 top-1.25 hidden h-px bg-linear-to-r from-ivory/10 via-ivory/20 to-brass/60 lg:block"
+          className="absolute left-1 right-6 top-1.25 hidden h-px bg-linear-to-r from-ivory/10 via-ivory/20 to-accent/60 lg:block"
         />
         {levels.map((item) => (
           <div key={item.level} className="relative flex flex-col gap-1.5 lg:pt-6">
@@ -267,13 +267,13 @@ function ArabicTrack() {
               aria-hidden
               className={`absolute left-0 top-0 hidden size-2.75 rotate-45 lg:block ${
                 item.final
-                  ? "bg-brass shadow-glow-brass"
-                  : "border border-brass/50 bg-layl"
+                  ? "bg-accent shadow-glow-accent"
+                  : "border border-accent/50 bg-layl"
               }`}
             />
             <span
               className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
-                item.final ? "text-brass" : "text-sage/80"
+                item.final ? "text-accent" : "text-sage/80"
               }`}
             >
               {item.level}

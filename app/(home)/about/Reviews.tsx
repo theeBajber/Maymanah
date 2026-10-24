@@ -60,7 +60,7 @@ export function Reviews() {
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
             aria-label="Previous reviews"
-            className="flex size-10 items-center justify-center rounded-[10px] border border-ivory/15 text-sage transition-colors hover:border-brass/40 hover:text-ivory disabled:pointer-events-none disabled:opacity-30"
+            className="flex size-10 items-center justify-center rounded-[10px] border border-ivory/15 text-sage transition-colors hover:border-accent/40 hover:text-ivory disabled:pointer-events-none disabled:opacity-30"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -71,7 +71,7 @@ export function Reviews() {
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page === totalPages - 1}
             aria-label="Next reviews"
-            className="flex size-10 items-center justify-center rounded-[10px] border border-ivory/15 text-sage transition-colors hover:border-brass/40 hover:text-ivory disabled:pointer-events-none disabled:opacity-30"
+            className="flex size-10 items-center justify-center rounded-[10px] border border-ivory/15 text-sage transition-colors hover:border-accent/40 hover:text-ivory disabled:pointer-events-none disabled:opacity-30"
           >
             <ChevronRight className="size-4" />
           </button>
@@ -82,13 +82,13 @@ export function Reviews() {
         {visible.map((review, index) => (
           <figure
             key={review.name}
-            className="glass-still hover-lift stagger-item flex flex-col justify-between gap-8 rounded-2xl p-8 hover:border-brass/30 md:p-10"
+            className="glass-still hover-lift stagger-item flex flex-col justify-between gap-8 rounded-2xl p-8 hover:border-accent/30 md:p-10"
             style={{ "--i": index } as React.CSSProperties}
           >
             <blockquote className="flex flex-col gap-5">
               <span
                 aria-hidden
-                className="h-px w-12 bg-linear-to-r from-brass/60 to-transparent"
+                className="h-px w-12 bg-linear-to-r from-accent/60 to-transparent"
               />
               <p
                 className={`${elMessiri.className} text-xl leading-relaxed text-ivory/90 md:text-2xl`}
@@ -101,12 +101,12 @@ export function Reviews() {
                 alt={`Portrait of ${review.name}`}
                 width={225}
                 height={225}
-                className="size-13 rounded-full border border-brass/40 object-cover"
+                className="size-13 rounded-full border border-accent/40 object-cover"
                 src={review.portrait}
               />
               <div>
                 <p className="font-semibold text-ivory">{review.name}</p>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-brass">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-accent">
                   {review.title}
                 </p>
               </div>
@@ -122,7 +122,7 @@ export function Reviews() {
             onClick={() => setPage(i)}
             aria-label={`Go to page ${i + 1}`}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === page ? "w-6 bg-brass" : "w-1.5 bg-ivory/20 hover:bg-ivory/40"
+              i === page ? "w-6 bg-accent" : "w-1.5 bg-ivory/20 hover:bg-ivory/40"
             }`}
           />
         ))}

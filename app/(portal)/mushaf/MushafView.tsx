@@ -212,7 +212,7 @@ export function MushafView() {
             >
               <p lang="ar" dir="rtl" className="font-naskh flex-1 text-right text-2xl leading-loose text-ivory">
                 {verse.text_uthmani}{" "}
-                <span className="text-brass">﴿{index + 1}﴾</span>
+                <span className="text-accent">﴿{index + 1}﴾</span>
               </p>
               <button
                 onClick={() => play(index + 1)}

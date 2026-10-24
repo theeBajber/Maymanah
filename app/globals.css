@@ -11,13 +11,15 @@
 :root {
     --layl: #0b151b;
     --layl-deep: #060d11;
-    --brass: #c6a15b;
+    --accent: #7fb5a6;
+    --accent-light: #9cc9bb;
+    --accent-muted: #12261f;
     --lapis: #8fa9d0;
     --ivory: #eae6da;
     --sage: #93a5a8;
     --layl-deep-rgb: 6, 13, 17;
     --ivory-rgb: 234, 230, 218;
-    --brass-rgb: 198, 161, 91;
+    --accent-rgb: 127 181 166;
 
     /* semantic states tuned for the night palette */
     --night-success: #8fbf9a;
@@ -25,8 +27,8 @@
     --night-danger: #e08a7e;
 }
 
-/* Qandeel light — ivory-paper ground, Layl ink, same brass/lapis accents.
-   Darkened brass/lapis variants keep body text and small UI at AA on paper;
+/* Qandeel light — ivory-paper ground, Layl ink, same verdigris/lapis accents.
+   Darkened accent/lapis variants keep body text and small UI at AA on paper;
    the pale tones from the dark palette remain as *-light for large fills. */
 :root {
     --bg-primary: #f4efe2;
@@ -35,11 +37,16 @@
     --bg-hover: #e6dcc2;
     --bg-card: #faf7ee;
 
-    --primary: #8a6a34;
-    --primary-light: #c6a15b;
-    --primary-dark: #6e5427;
-    --primary-muted: #f1e6cd;
-    --primary-subtle: #e3d3a9;
+    --primary: #356f61;
+    --primary-light: #7fb5a6;
+    --primary-dark: #285749;
+    --primary-muted: #dcebe4;
+    --primary-subtle: #b9d8cc;
+
+    --accent: #356f61;
+    --accent-light: #7fb5a6;
+    --accent-muted: #dcebe4;
+    --accent-rgb: 53 111 97;
 
     --secondary: #3f628f;
     --secondary-light: #8fa9d0;
@@ -109,10 +116,12 @@
     --color-border-strong: var(--border-strong);
     --color-divider: var(--divider);
 
-    /* Qandeel color utilities (bg-layl, text-ivory, border-brass, …) */
+    /* Qandeel color utilities (bg-layl, text-ivory, border-accent, …) */
     --color-layl: var(--layl);
     --color-layl-deep: var(--layl-deep);
-    --color-brass: var(--brass);
+    --color-accent: var(--accent);
+    --color-accent-light: var(--accent-light);
+    --color-accent-muted: var(--accent-muted);
     --color-lapis: var(--lapis);
     --color-ivory: var(--ivory);
     --color-sage: var(--sage);
@@ -120,11 +129,11 @@
     --color-night-warning: var(--night-warning);
     --color-night-danger: var(--night-danger);
 
-    /* Qandeel elevation scale (shadow-rest, shadow-raise, shadow-float, shadow-glow-brass, shadow-glow-lapis) */
+    /* Qandeel elevation scale (shadow-rest, shadow-raise, shadow-float, shadow-glow-accent, shadow-glow-lapis) */
     --shadow-rest: 0 1px 2px rgba(6, 13, 17, 0.5);
     --shadow-raise: 0 8px 24px -8px rgba(6, 13, 17, 0.55);
     --shadow-float: 0 20px 48px -12px rgba(6, 13, 17, 0.65);
-    --shadow-glow-brass: 0 0 40px -12px rgba(198, 161, 91, 0.3);
+    --shadow-glow-accent: 0 0 40px -12px rgb(var(--accent-rgb) / 0.3);
     --shadow-glow-lapis: 0 0 32px -12px rgba(143, 169, 208, 0.25);
 
     /* Qandeel motion (ease-qandeel) */
@@ -139,11 +148,16 @@
         --bg-hover: #15242e;
         --bg-card: #101e26;
 
-        --primary: #c6a15b;
-        --primary-light: #d6b678;
-        --primary-dark: #a9854b;
-        --primary-muted: #221d12;
-        --primary-subtle: #38301d;
+        --primary: #7fb5a6;
+        --primary-light: #9cc9bb;
+        --primary-dark: #5e9c8c;
+        --primary-muted: #12261f;
+        --primary-subtle: #1e3b32;
+
+        --accent: #7fb5a6;
+        --accent-light: #9cc9bb;
+        --accent-muted: #12261f;
+        --accent-rgb: 127 181 166;
 
         --secondary: #8fa9d0;
         --secondary-light: #a9bedd;
@@ -303,18 +317,26 @@
     --tw-prose-code: var(--primary);
 }
 
-.dark {
+/* Night scenes share the dark palette so containers that are always night
+   (auth, certificates, public shell) stay legible regardless of user theme. */
+.dark,
+.night-scene {
     --bg-primary: #0b151b;
     --bg-secondary: #0e1a21;
     --bg-elevated: #101e26;
     --bg-hover: #15242e;
     --bg-card: #101e26;
 
-    --primary: #c6a15b;
-    --primary-light: #d6b678;
-    --primary-dark: #a9854b;
-    --primary-muted: #221d12;
-    --primary-subtle: #38301d;
+    --primary: #7fb5a6;
+    --primary-light: #9cc9bb;
+    --primary-dark: #5e9c8c;
+    --primary-muted: #12261f;
+    --primary-subtle: #1e3b32;
+
+    --accent: #7fb5a6;
+    --accent-light: #9cc9bb;
+    --accent-muted: #12261f;
+    --accent-rgb: 127 181 166;
 
     --secondary: #8fa9d0;
     --secondary-light: #a9bedd;
@@ -354,11 +376,16 @@
     --bg-hover: #e6dcc2;
     --bg-card: #faf7ee;
 
-    --primary: #8a6a34;
-    --primary-light: #c6a15b;
-    --primary-dark: #6e5427;
-    --primary-muted: #f1e6cd;
-    --primary-subtle: #e3d3a9;
+    --primary: #356f61;
+    --primary-light: #7fb5a6;
+    --primary-dark: #285749;
+    --primary-muted: #dcebe4;
+    --primary-subtle: #b9d8cc;
+
+    --accent: #356f61;
+    --accent-light: #7fb5a6;
+    --accent-muted: #dcebe4;
+    --accent-rgb: 53 111 97;
 
     --secondary: #3f628f;
     --secondary-light: #8fa9d0;
@@ -489,15 +516,16 @@ button {
     background: rgba(var(--bg-elevated-rgb), 0.72);
     backdrop-filter: blur(24px) saturate(1.4);
     -webkit-backdrop-filter: blur(24px) saturate(1.4);
-    border: 1px solid rgba(var(--brass-rgb), 0.28);
+    border: 1px solid rgb(var(--accent-rgb) / 0.28);
     box-shadow:
         inset 0 1px 0 rgba(var(--border-rgb), 0.09),
-        0 0 48px -16px rgba(var(--brass-rgb), 0.3),
+        0 0 48px -16px rgb(var(--accent-rgb) / 0.3),
         0 12px 32px -8px rgba(var(--layl-deep-rgb), 0.6);
 }
 
 /* Night scene: containers that are always the night palette,
-   independent of the light/dark theme (auth, styleguide). */
+   independent of the light/dark theme (auth, styleguide).
+   The palette itself is shared with `.dark` above. */
 .night-scene {
     color-scheme: dark;
 }
@@ -509,9 +537,9 @@ button {
     caret-color: var(--ivory);
 }
 
-/* --- Focus: one global, visible, brass ring --- */
+/* --- Focus: one global, visible, accent ring --- */
 :focus-visible {
-    outline: 2px solid var(--brass);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 
@@ -641,7 +669,7 @@ button {
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background-color: #c6a15b;
+    background-color: var(--accent);
 }
 
 /* --- Reduced motion: kill all animation and transitions --- */

@@ -109,7 +109,7 @@ export function ContactForm() {
           required
           maxLength={MESSAGE_MAX}
           onChange={(event) => setRemaining(MESSAGE_MAX - event.target.value.length)}
-          className="w-full resize-y rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 py-3 text-[15px] text-ivory transition-all duration-300 placeholder:text-sage/40 focus:border-brass/60 focus:shadow-[0_0_0_3px_rgba(198,161,91,0.12),0_0_28px_-8px_rgba(198,161,91,0.35)] focus:outline-none"
+          className="w-full resize-y rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 py-3 text-[15px] text-ivory transition-all duration-300 placeholder:text-sage/40 focus:border-accent/60 focus:shadow-[0_0_0_3px_rgb(var(--accent-rgb)_/_0.12),0_0_28px_-8px_rgb(var(--accent-rgb)_/_0.35)] focus:outline-none"
         />
       </Field>
 

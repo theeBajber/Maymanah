@@ -41,12 +41,12 @@ function registerFonts() {
 }
 
 /* Qandeel light palette — a certificate is read on paper (real or PDF),
-   so it uses the ivory/brass/Layl-ink variant, not the night theme. */
+   so it uses the ivory/accent/Layl-ink variant, not the night theme. */
 const COLORS = {
   paper: "#F4EFE2",
   paperInner: "#FAF7EE",
-  brass: "#8A6A34",
-  brassLight: "#C6A15B",
+  accent: "#356F61",
+  accentLight: "#7FB5A6",
   ink: "#0B151B",
   sage: "#4B5A5D",
 };
@@ -60,13 +60,13 @@ const styles = StyleSheet.create({
   frame: {
     flex: 1,
     borderWidth: 2,
-    borderColor: COLORS.brass,
+    borderColor: COLORS.accent,
     padding: 3,
   },
   innerFrame: {
     flex: 1,
     borderWidth: 0.75,
-    borderColor: COLORS.brassLight,
+    borderColor: COLORS.accentLight,
     backgroundColor: COLORS.paperInner,
     alignItems: "center",
     justifyContent: "center",
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 10,
     letterSpacing: 3,
-    color: COLORS.brass,
+    color: COLORS.accent,
     marginBottom: 10,
   },
   brandRow: {
@@ -116,14 +116,14 @@ const styles = StyleSheet.create({
     fontFamily: "El Messiri",
     fontWeight: "bold",
     fontSize: 28,
-    color: COLORS.brass,
+    color: COLORS.accent,
     marginBottom: 8,
     textAlign: "center",
   },
   rule: {
     width: 220,
     height: 1,
-    backgroundColor: COLORS.brassLight,
+    backgroundColor: COLORS.accentLight,
     marginBottom: 14,
   },
   body: {
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     fontFamily: "El Messiri",
     fontWeight: 600,
     fontSize: 11,
-    color: COLORS.brass,
+    color: COLORS.accent,
   },
   footerRow: {
     flexDirection: "row",
@@ -203,7 +203,7 @@ function CornerMark({
     >
       <Path
         d={diamondPath(size / 2, size / 2, 7)}
-        stroke={COLORS.brass}
+        stroke={COLORS.accent}
         strokeWidth={1}
         fill="none"
       />
@@ -246,7 +246,7 @@ function CertificateDocument({ studentName, courseTitle, issuedAt, certificateId
               <Svg width={16} height={16}>
                 <Path
                   d={diamondPath(8, 8, 7.5)}
-                  stroke={COLORS.brass}
+                  stroke={COLORS.accent}
                   strokeWidth={1.5}
                   fill="none"
                 />
@@ -283,13 +283,13 @@ function CertificateDocument({ studentName, courseTitle, issuedAt, certificateId
                 <Svg width={44} height={44}>
                   <Path
                     d={diamondPath(22, 22, 17)}
-                    stroke={COLORS.brass}
+                    stroke={COLORS.accent}
                     strokeWidth={1.5}
                     fill="none"
                   />
                   <Path
                     d={diamondPath(22, 22, 10)}
-                    stroke={COLORS.brassLight}
+                    stroke={COLORS.accentLight}
                     strokeWidth={1}
                     fill="none"
                   />

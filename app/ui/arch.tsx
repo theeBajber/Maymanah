@@ -9,7 +9,7 @@ const ARCH_PATH =
 type ArchFrameProps = {
   /** Size the frame here (e.g. "h-64 w-32"). Children fill it (use Image with `fill`). */
   className?: string;
-  /** Brass hairline tracing the arch profile. */
+  /** Accent hairline tracing the arch profile. */
   border?: boolean;
   style?: CSSProperties;
   children: ReactNode;
@@ -38,7 +38,7 @@ export function ArchFrame({
       {border && (
         <div
           aria-hidden
-          className="absolute inset-0 bg-brass/30"
+          className="absolute inset-0 bg-accent/30"
           style={{ clipPath: `url(#${clipId})` }}
         />
       )}

@@ -55,7 +55,7 @@ export function SegmentedControl<T extends string>({
     >
       <span
         aria-hidden
-        className="absolute top-1 bottom-1 left-1 rounded-[9px] bg-brass shadow-[0_0_24px_-6px_rgba(198,161,91,0.5)] transition-transform duration-300 ease-qandeel"
+        className="absolute top-1 bottom-1 left-1 rounded-[9px] bg-accent shadow-[0_0_24px_-6px_rgb(var(--accent-rgb)_/_0.5)] transition-transform duration-300 ease-qandeel"
         style={{
           width: `calc((100% - 8px) / ${options.length})`,
           transform: `translateX(${index * 100}%)`,
@@ -85,7 +85,7 @@ export function SegmentedControl<T extends string>({
               }
             }}
             className={`relative z-10 h-11 rounded-[9px] text-sm font-semibold transition-colors duration-300 ${
-              active ? "text-layl-deep" : "text-sage hover:text-ivory"
+              active ? "text-text-inverse" : "text-sage hover:text-ivory"
             }`}
           >
             {option.label}

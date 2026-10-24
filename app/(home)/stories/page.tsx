@@ -66,7 +66,7 @@ export default function Stories() {
         {stories.map((story, index) => (
           <Reveal key={story.name}>
             <article
-              className={`glass-still hover-lift flex flex-col gap-6 overflow-hidden rounded-3xl p-6 hover:border-brass/30 sm:gap-10 sm:p-10 ${
+              className={`glass-still hover-lift flex flex-col gap-6 overflow-hidden rounded-3xl p-6 hover:border-accent/30 sm:gap-10 sm:p-10 ${
                 index % 2 === 1 ? "sm:flex-row-reverse" : "sm:flex-row"
               }`}
             >
@@ -96,10 +96,10 @@ export default function Stories() {
                 </div>
               </div>
               <div className="flex flex-col gap-4">
-                <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-brass">
+                <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
                   <span
                     aria-hidden
-                    className="size-1.5 shrink-0 rotate-45 bg-brass/70"
+                    className="size-1.5 shrink-0 rotate-45 bg-accent/70"
                   />
                   {story.milestone}
                 </p>

@@ -105,7 +105,7 @@ export function SessionNotes({ appointmentId, studentId }: { appointmentId: stri
             placeholder="Write a note about this session..."
             maxLength={500}
             rows={3}
-            className="w-full resize-none rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 py-2 text-sm text-ivory focus:border-brass/60 focus:outline-none"
+            className="w-full resize-none rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 py-2 text-sm text-ivory focus:border-accent/60 focus:outline-none"
           />
           <div className="flex items-center gap-3">
             <div className="w-40">

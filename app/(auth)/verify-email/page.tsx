@@ -85,7 +85,7 @@ function Outcome({
       </div>
       <Link
         href="/dashboard"
-        className="inline-flex h-11 items-center justify-center rounded-[10px] bg-brass px-6 text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+        className="inline-flex h-11 items-center justify-center rounded-[10px] bg-accent px-6 text-sm font-semibold text-text-inverse transition-all hover:brightness-95"
       >
         {cta ? "Continue to your account" : "Go to your account"}
       </Link>

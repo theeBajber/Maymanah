@@ -6,7 +6,7 @@ type GirihFieldProps = {
   className?: string;
   /** Design system allows 0.03–0.08 ambient, up to ~0.10 on a masked edge strip. */
   opacity?: number;
-  color?: "brass" | "ivory";
+  color?: "accent" | "ivory";
   /** Rendered tile size in px (the tile itself is drawn on a 64-unit grid). */
   tile?: number;
   /** How the pattern dissolves into the night instead of tiling to a hard edge. */
@@ -15,7 +15,7 @@ type GirihFieldProps = {
   animate?: boolean;
 };
 
-const STROKE = { brass: "#C6A15B", ivory: "#EAE6DA" } as const;
+const STROKE = { accent: "#7FB5A6", ivory: "#EAE6DA" } as const;
 
 const FADES: Record<string, string | undefined> = {
   radial:
@@ -33,7 +33,7 @@ const FADES: Record<string, string | undefined> = {
 export function GirihField({
   className = "",
   opacity = 0.05,
-  color = "brass",
+  color = "accent",
   tile = 72,
   fade = "radial",
   animate = false,

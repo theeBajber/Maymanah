@@ -351,7 +351,7 @@ function DonatePageContent() {
         </div>
 
         <div className="relative flex flex-col gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
             Currency
           </p>
           <SegmentedControl
@@ -366,7 +366,7 @@ function DonatePageContent() {
         </div>
 
         <div className="relative flex flex-col gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
             Choose an amount
           </p>
           <div className="grid grid-cols-2 gap-3">
@@ -382,8 +382,8 @@ function DonatePageContent() {
                   }}
                   className={`flex items-center justify-center rounded-xl border py-4 text-xl font-semibold transition-all duration-200 active:scale-[0.985] ${
                     selected
-                      ? "border-brass/60 bg-brass/10 text-brass shadow-glow-brass"
-                      : "border-ivory/10 bg-ivory/[0.03] text-ivory hover:border-brass/30"
+                      ? "border-accent/60 bg-accent/10 text-accent shadow-glow-accent"
+                      : "border-ivory/10 bg-ivory/[0.03] text-ivory hover:border-accent/30"
                   }`}
                 >
                   {currency === "USD"
@@ -395,14 +395,14 @@ function DonatePageContent() {
             <div
               className={`relative rounded-xl border transition-all duration-200 ${
                 isCustom
-                  ? "border-brass/60 bg-brass/10 shadow-glow-brass"
-                  : "border-ivory/10 bg-ivory/[0.03] hover:border-brass/30"
+                  ? "border-accent/60 bg-accent/10 shadow-glow-accent"
+                  : "border-ivory/10 bg-ivory/[0.03] hover:border-accent/30"
               }`}
             >
               <span
                 aria-hidden
                 className={`pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm font-semibold ${
-                  isCustom ? "text-brass" : "text-sage/50"
+                  isCustom ? "text-accent" : "text-sage/50"
                 }`}
               >
                 {currencySymbol}
@@ -440,11 +440,11 @@ function DonatePageContent() {
           <div className="relative flex flex-col gap-2">
             <label
               htmlFor="mpesa-phone"
-              className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass"
+              className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent"
             >
               M-Pesa phone number
             </label>
-            <div className="flex h-12 items-center rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 transition-all duration-300 focus-within:border-brass/60 focus-within:shadow-[0_0_0_3px_rgba(198,161,91,0.12)]">
+            <div className="flex h-12 items-center rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 transition-all duration-300 focus-within:border-accent/60 focus-within:shadow-[0_0_0_3px_rgb(var(--accent-rgb)_/_0.12)]">
               <input
                 id="mpesa-phone"
                 type="tel"
@@ -469,7 +469,7 @@ function DonatePageContent() {
             type="checkbox"
             checked={anonymous}
             onChange={(e) => setAnonymous(e.target.checked)}
-            className="mt-1 size-4 accent-(--brass)"
+            className="mt-1 size-4 accent-(--accent)"
           />
           <span className="text-sm leading-relaxed text-sage">
             Donate anonymously
@@ -483,7 +483,7 @@ function DonatePageContent() {
         </label>
 
         <div className="relative flex flex-col gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
             Payment method
           </p>
           <div className="flex gap-2.5">
@@ -491,7 +491,7 @@ function DonatePageContent() {
               type="button"
               disabled={loading !== null}
               onClick={handleStripeDonate}
-              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[10px] bg-brass font-semibold text-layl-deep transition-all duration-300 hover:bg-[#D2AF6B] hover:shadow-glow-brass active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[10px] bg-accent font-semibold text-text-inverse transition-all duration-300 hover:brightness-95 hover:shadow-glow-accent active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
             >
               <CreditCard className="size-4" />
               {loading === "stripe" ? "Redirecting" : "Card"}
@@ -548,7 +548,7 @@ function TransparencyPanel() {
     <div className="flex flex-col gap-5">
       <div className="glass-still flex flex-col gap-6 rounded-2xl p-6 md:p-8">
         <div className="flex items-center gap-3">
-          <ChartColumn className="size-4.5 text-brass" />
+          <ChartColumn className="size-4.5 text-accent" />
           <h2
             className={`${elMessiri.className} text-xl font-semibold text-ivory`}
           >
@@ -583,17 +583,17 @@ function TransparencyPanel() {
             <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sage">
               Monthly goal progress
             </span>
-            <span className="text-sm font-semibold text-brass">40%</span>
+            <span className="text-sm font-semibold text-accent">40%</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-ivory/10">
-            <div className="h-full w-[40%] rounded-full bg-linear-to-r from-[#A9854B] to-brass" />
+            <div className="h-full w-[40%] rounded-full bg-linear-to-r from-primary-dark to-accent" />
           </div>
           <p className="text-sm text-sage">$152 of $380 raised this month.</p>
         </div>
       </div>
 
       <div className="glass-still flex flex-col gap-4 rounded-2xl p-6 md:p-8">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
           Sadaqah Jariyah
         </h3>
         <p
@@ -637,7 +637,7 @@ function CostRow({
         <p className="text-[15px] font-medium text-ivory">{title}</p>
         <p className="text-[13px] text-sage/80">{subtitle}</p>
       </div>
-      <p className="font-semibold text-brass">{amount}</p>
+      <p className="font-semibold text-accent">{amount}</p>
     </div>
   );
 }

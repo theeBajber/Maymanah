@@ -49,7 +49,7 @@ export default async function CertificatePage({
     certificate.issuedBy && certificate.issuedBy !== "SYSTEM" ? certificate.issuedBy : undefined;
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-layl-deep px-6 py-12">
+    <main className="dark night-scene flex min-h-svh items-center justify-center bg-layl-deep px-6 py-12">
       <GlassCard grade="lantern" mashrabiya className="flex w-full max-w-lg flex-col items-center gap-5 p-8 text-center md:p-10">
         <ShieldCheck className="size-10 text-night-success" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-sage">Certificate of completion</p>
@@ -57,7 +57,7 @@ export default async function CertificatePage({
         <div className="flex flex-col gap-2">
           <p className={`${amiri.className} text-3xl font-bold text-ivory`}>{certificate.user.name}</p>
           <p className="text-sm text-text-secondary">has completed</p>
-          <p className="text-lg font-semibold text-brass">{certificate.courseTitle}</p>
+          <p className="text-lg font-semibold text-accent">{certificate.courseTitle}</p>
           {teacherName ? <p className="text-xs text-text-muted">Issued by {teacherName}</p> : null}
         </div>
 
@@ -77,7 +77,7 @@ export default async function CertificatePage({
         <div className="flex w-full flex-col gap-2 sm:flex-row">
           <a
             href={`/api/certificates/${certificate.id}/pdf`}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-brass text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-accent text-sm font-semibold text-text-inverse transition-all hover:brightness-95"
           >
             <Download className="size-4" />
             Download PDF

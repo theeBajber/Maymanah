@@ -17,7 +17,7 @@ export default async function AdminCoursesPage() {
         action={
           <Link
             href="/admin/courses/new"
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-text-inverse rounded-[10px] text-sm font-medium transition-all hover:shadow-glow-brass"
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-text-inverse rounded-[10px] text-sm font-medium transition-all hover:shadow-glow-accent"
           >
             <Plus className="size-4" />
             New Course

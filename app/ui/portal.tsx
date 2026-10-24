@@ -62,15 +62,15 @@ export function StatTile({
   icon: Icon,
   value,
   label,
-  tone = "brass",
+  tone = "accent",
 }: {
   icon: ElementType;
   value: ReactNode;
   label: string;
-  tone?: "brass" | "success" | "info" | "danger";
+  tone?: "accent" | "success" | "info" | "danger";
 }) {
   const toneClass = {
-    brass: "text-primary border-primary/25",
+    accent: "text-primary border-primary/25",
     success: "text-success border-success/25",
     info: "text-info border-info/25",
     danger: "text-danger border-danger/25",

@@ -83,7 +83,7 @@ export function ReviewSection({ slug, enrolled }: { slug: string; enrolled: bool
             rows={3}
             maxLength={2000}
             placeholder="What worked, and what could be better? (optional)"
-            className="w-full resize-y rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 py-3 text-sm text-ivory placeholder:text-sage/40 focus:border-brass/60 focus:outline-none"
+            className="w-full resize-y rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 py-3 text-sm text-ivory placeholder:text-sage/40 focus:border-accent/60 focus:outline-none"
           />
           <Button type="submit" size="md" loading={saving} className="w-fit">
             Save review

@@ -47,11 +47,11 @@ export function AuthPanel({ heading, wide = false, children }: AuthPanelProps) {
           </span>
         </div>
         <div className="flex w-full max-w-xs items-center gap-4">
-          <span className="h-px flex-1 bg-linear-to-r from-transparent to-brass/50" />
+          <span className="h-px flex-1 bg-linear-to-r from-transparent to-accent/50" />
           <h1 className="text-[11px] font-semibold uppercase tracking-[0.3em] text-sage">
             {heading}
           </h1>
-          <span className="h-px flex-1 bg-linear-to-l from-transparent to-brass/50" />
+          <span className="h-px flex-1 bg-linear-to-l from-transparent to-accent/50" />
         </div>
       </div>
 

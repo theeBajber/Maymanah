@@ -39,12 +39,12 @@ function Hero() {
       />
       <div
         aria-hidden
-        className="absolute -top-32 left-1/2 h-[30rem] w-[42rem] max-w-full -translate-x-1/2 bg-[radial-gradient(closest-side,rgba(198,161,91,0.13),transparent)]"
+        className="absolute -top-32 left-1/2 h-[30rem] w-[42rem] max-w-full -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(var(--accent-rgb)_/_0.13),transparent)]"
       />
 
       <div className="stagger-fade relative mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-14 px-6 pt-16 pb-10 md:pt-24 lg:grid-cols-2 lg:gap-16 lg:px-8">
         <div className="flex flex-col items-start gap-6 text-left">
-          <p className="flex items-center gap-2 rounded-full border border-brass/25 bg-brass/5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+          <p className="flex items-center gap-2 rounded-full border border-accent/25 bg-accent/5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
             <Globe className="size-3.5" />A global spiritual sanctuary
           </p>
 
@@ -53,7 +53,7 @@ function Hero() {
           >
             The Quran
             <br />
-            <span className="text-brass">Without Borders.</span>
+            <span className="text-accent">Without Borders.</span>
           </h1>
 
           <p className="max-w-md text-balance text-base leading-relaxed text-sage md:text-lg">
@@ -105,7 +105,7 @@ function WorldPanel() {
         />
         <div
           aria-hidden
-          className="absolute inset-0 bg-brass/20 mix-blend-color"
+          className="absolute inset-0 bg-accent/20 mix-blend-color"
         />
       </div>
       <div
@@ -118,7 +118,7 @@ function WorldPanel() {
             <span className="relative inline-flex size-2.5 rounded-full bg-night-success" />
           </span>
           <div className="flex flex-col text-left">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-brass">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-accent">
               Live session
             </span>
             <span className="text-sm font-medium text-ivory">
@@ -142,7 +142,7 @@ function Quote() {
       <section className="relative mx-auto w-full max-w-4xl px-6 md:px-8">
         <span
           aria-hidden
-          className={`${elMessiri.className} pointer-events-none absolute -top-8 left-2 text-7xl text-brass/25 md:-top-12 md:left-0 md:text-8xl`}
+          className={`${elMessiri.className} pointer-events-none absolute -top-8 left-2 text-7xl text-accent/25 md:-top-12 md:left-0 md:text-8xl`}
         >
           &ldquo;
         </span>
@@ -154,7 +154,7 @@ function Quote() {
             &ldquo;The best of you are those who learn the Quran and teach
             it.&rdquo;
           </p>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
             Prophet Muhammad{" "}
             <span lang="ar" className="text-sm">
               ﷺ
@@ -163,7 +163,7 @@ function Quote() {
         </div>
         <span
           aria-hidden
-          className={`${elMessiri.className} pointer-events-none absolute -bottom-20 right-2 text-7xl text-brass/25 md:-bottom-24 md:right-0 md:text-8xl`}
+          className={`${elMessiri.className} pointer-events-none absolute -bottom-20 right-2 text-7xl text-accent/25 md:-bottom-24 md:right-0 md:text-8xl`}
         >
           &rdquo;
         </span>
@@ -183,7 +183,7 @@ function Principles() {
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-14 px-6 md:px-8">
         <div className="flex w-full flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="flex flex-col gap-4">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.3em] text-brass">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.3em] text-accent">
               Core principles
             </h2>
             <h3
@@ -265,7 +265,7 @@ function PrincipleCard({
 }) {
   return (
     <article
-      className={`glass-still hover-lift stagger-item group relative flex flex-col overflow-hidden rounded-2xl hover:border-brass/30 ${className}`}
+      className={`glass-still hover-lift stagger-item group relative flex flex-col overflow-hidden rounded-2xl hover:border-accent/30 ${className}`}
       style={{ "--i": index } as React.CSSProperties}
     >
       <div
@@ -294,7 +294,7 @@ function PrincipleCard({
         </p>
         <Link
           href={linkHref}
-          className="mt-1 flex w-fit items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-brass transition-all hover:gap-3.5 hover:text-ivory"
+          className="mt-1 flex w-fit items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent transition-all hover:gap-3.5 hover:text-ivory"
         >
           {linkLabel}
           <ArrowRight className="size-3.5" />
@@ -329,7 +329,7 @@ function Support() {
             <h2
               className={`${elMessiri.className} text-3xl font-bold text-ivory md:text-4xl`}
             >
-              Fuel the <span className="text-brass">mission</span>
+              Fuel the <span className="text-accent">mission</span>
             </h2>
 
             <p className="max-w-xl text-balance text-base leading-relaxed text-sage md:text-lg">
@@ -338,8 +338,8 @@ function Support() {
               worldwide, completely free of charge.
             </p>
 
-            <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
-              <span className="h-px w-8 bg-linear-to-r from-transparent to-brass/60" />
+            <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
+              <span className="h-px w-8 bg-linear-to-r from-transparent to-accent/60" />
               Sadaqah jariyah opportunity
             </p>
           </div>

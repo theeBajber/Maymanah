@@ -116,7 +116,7 @@ export default async function CourseDetailPage({
             </div>
             <Link
               href={`/certificates/${course.certificate.id}`}
-              className="shrink-0 rounded-xl bg-brass px-5 py-2.5 text-sm font-bold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+              className="shrink-0 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-text-inverse transition-all hover:brightness-95"
             >
               View Certificate
             </Link>
