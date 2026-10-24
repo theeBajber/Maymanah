@@ -60,14 +60,14 @@ export function TopNav({ className = "" }: { className?: string }) {
               key={link.path}
               href={link.path}
               className={`relative text-sm font-medium transition-colors ${
-                active ? "text-brass" : "text-sage hover:text-ivory"
+                active ? "text-accent" : "text-sage hover:text-ivory"
               }`}
             >
               {link.name}
               {active && (
                 <span
                   aria-hidden
-                  className="absolute -bottom-1.5 left-1/2 h-px w-4 -translate-x-1/2 bg-brass"
+                  className="absolute -bottom-1.5 left-1/2 h-px w-4 -translate-x-1/2 bg-accent"
                 />
               )}
             </Link>
@@ -180,7 +180,7 @@ export function MobileNav({
               onClick={onCloseAction}
               className="flex h-13 w-full items-center gap-4 rounded-xl px-4 text-sm font-medium text-sage transition-colors hover:bg-ivory/5 hover:text-ivory"
             >
-              <link.icon className="size-4.5 text-brass/70" />
+              <link.icon className="size-4.5 text-accent/70" />
               {link.name}
             </Link>
           ))}

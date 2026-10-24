@@ -57,12 +57,12 @@ function WhyItsFree() {
           </h2>
           <span
             aria-hidden
-            className="h-px w-20 bg-linear-to-r from-brass/60 to-transparent"
+            className="h-px w-20 bg-linear-to-r from-accent/60 to-transparent"
           />
           <div className="flex flex-col gap-5 text-[15px] leading-relaxed text-sage md:text-base">
             <p>
               Maymanah operates on the principle of{" "}
-              <span className="font-semibold text-brass">Sadaqah Jariyah</span>{" "}
+              <span className="font-semibold text-accent">Sadaqah Jariyah</span>{" "}
               (voluntary ongoing charity). We believe that the teaching of the
               Quran is a prophetic mission that should never be commodified.
             </p>
@@ -75,13 +75,13 @@ function WhyItsFree() {
           </div>
           <div className="flex flex-wrap gap-8 pt-2">
             <span className="flex items-center gap-3">
-              <HandHeart className="size-4.5 text-brass" />
+              <HandHeart className="size-4.5 text-accent" />
               <span className="text-sm font-medium text-ivory">
                 100% volunteer based
               </span>
             </span>
             <span className="flex items-center gap-3">
-              <Globe className="size-4.5 text-brass" />
+              <Globe className="size-4.5 text-accent" />
               <span className="text-sm font-medium text-ivory">
                 Global reach
               </span>
@@ -103,7 +103,7 @@ function WhyItsFree() {
               fade="bottom"
             />
           </div>
-          <h3 className="relative text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+          <h3 className="relative text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
             A vision for the ummah
           </h3>
           <AyahText size="sm" className="relative text-ivory/95">
@@ -162,7 +162,7 @@ function HowItWorks() {
         <ol className="relative grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
           <span
             aria-hidden
-            className="absolute left-[12.5%] right-[12.5%] top-1.25 hidden h-px bg-linear-to-r from-ivory/15 via-brass/40 to-brass/60 md:block"
+            className="absolute left-[12.5%] right-[12.5%] top-1.25 hidden h-px bg-linear-to-r from-ivory/15 via-accent/40 to-accent/60 md:block"
           />
           {steps.map((step, index) => (
             <li
@@ -173,8 +173,8 @@ function HowItWorks() {
                 aria-hidden
                 className={`absolute left-1/2 top-0 hidden size-2.75 -translate-x-1/2 rotate-45 md:block ${
                   index === steps.length - 1
-                    ? "bg-brass shadow-glow-brass"
-                    : "border border-brass/50 bg-layl"
+                    ? "bg-accent shadow-glow-accent"
+                    : "border border-accent/50 bg-layl"
                 }`}
               />
               <h3
@@ -229,7 +229,7 @@ function Excellence() {
           >
             Verified excellence
           </h2>
-          <p className="border-s-2 border-brass/50 ps-5 text-[15px] leading-relaxed text-sage md:text-base">
+          <p className="border-s-2 border-accent/50 ps-5 text-[15px] leading-relaxed text-sage md:text-base">
             Quality is never sacrificed for cost. Every teacher at Maymanah
             undergoes a rigorous screening process to ensure authentic
             transmission of knowledge.
@@ -238,7 +238,7 @@ function Excellence() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:w-2/3 md:gap-10">
           {standards.map((standard) => (
             <div key={standard.title} className="flex items-start gap-4">
-              <standard.icon className="mt-0.5 size-5 shrink-0 text-brass" />
+              <standard.icon className="mt-0.5 size-5 shrink-0 text-accent" />
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-lg font-semibold text-ivory">
                   {standard.title}

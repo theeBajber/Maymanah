@@ -27,7 +27,7 @@ import {
 import Link from "next/link";
 
 const QANDEEL = {
-  brass: "#C6A15B",
+  accent: "var(--accent)",
   lapis: "#8FA9D0",
   sage: "#93A5A8",
   nightSuccess: "#8FBF9A",
@@ -106,8 +106,8 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
     { label: "Total Users", value: overview.totalUsers, icon: Users, color: "text-lapis", href: "/admin/users" },
     { label: "Students", value: overview.totalStudents, icon: GraduationCap, color: "text-night-success", href: "/admin/users" },
     { label: "Teachers", value: overview.totalTeachers, icon: UserCheck, color: "text-lapis", href: "/admin/teachers" },
-    { label: "Courses", value: overview.totalCourses, icon: BookOpen, color: "text-brass", href: "/admin/courses" },
-    { label: "Enrollments", value: overview.totalEnrollments, icon: TrendingUp, color: "text-brass" },
+    { label: "Courses", value: overview.totalCourses, icon: BookOpen, color: "text-accent", href: "/admin/courses" },
+    { label: "Enrollments", value: overview.totalEnrollments, icon: TrendingUp, color: "text-accent" },
     { label: "Active Mentorships", value: overview.activeMentorships, icon: Activity, color: "text-night-success", href: "/admin/teachers" },
     { label: "Pending Teachers", value: overview.pendingTeachers, icon: Clock, color: "text-night-warning", href: "/admin/teachers" },
     {
@@ -179,10 +179,10 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
                 <Line
                   type="monotone"
                   dataKey="count"
-                  stroke={QANDEEL.brass}
+                  stroke={QANDEEL.accent}
                   strokeWidth={2.5}
-                  dot={{ r: 3, fill: QANDEEL.brass, strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: QANDEEL.brass, stroke: "var(--color-bg-card)", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: QANDEEL.accent, strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: QANDEEL.accent, stroke: "var(--color-bg-card)", strokeWidth: 2 }}
                   name="Enrollments"
                 />
               </LineChart>
@@ -208,7 +208,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
                   iconSize={8}
                 />
                 <Bar dataKey="students" fill={QANDEEL.lapis} name="Students" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                <Bar dataKey="teachers" fill={QANDEEL.brass} name="Teachers" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="teachers" fill={QANDEEL.accent} name="Teachers" radius={[4, 4, 0, 0]} maxBarSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -276,7 +276,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
                     tickLine={false}
                   />
                   <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--color-bg-hover)" }} />
-                  <Bar dataKey="enrollments" fill={QANDEEL.brass} name="Enrollments" radius={[0, 4, 4, 0]} maxBarSize={16} />
+                  <Bar dataKey="enrollments" fill={QANDEEL.accent} name="Enrollments" radius={[0, 4, 4, 0]} maxBarSize={16} />
                 </BarChart>
               </ResponsiveContainer>
             )}

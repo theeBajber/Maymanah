@@ -33,7 +33,7 @@ export default function RevisionComingSoon() {
 
           <div className="relative flex flex-col items-center gap-5">
             <span
-              className={`${amiri.className} text-2xl leading-relaxed text-brass/70`}
+              className={`${amiri.className} text-2xl leading-relaxed text-accent/70`}
               lang="ar"
               dir="rtl"
             >
@@ -46,7 +46,7 @@ export default function RevisionComingSoon() {
               >
                 Quran Revision
               </h1>
-              <div className="mx-auto h-px w-16 bg-brass/40" />
+              <div className="mx-auto h-px w-16 bg-accent/40" />
               <p className="max-w-md text-balance leading-relaxed text-sage/80 md:text-lg">
                 AI-powered memorization practice is being prepared. Check back
                 soon, and may Allah accept your efforts.
@@ -55,9 +55,9 @@ export default function RevisionComingSoon() {
           </div>
 
           <div className="relative flex items-center justify-center gap-3 text-[13px] text-sage/60">
-            <span className="size-1 rounded-full bg-brass/40" />
+            <span className="size-1 rounded-full bg-accent/40" />
             <span>Coming soon</span>
-            <span className="size-1 rounded-full bg-brass/40" />
+            <span className="size-1 rounded-full bg-accent/40" />
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export default function RevisionComingSoon() {
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-brass/50"
+            className="text-accent/50"
           >
             <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
           </svg>

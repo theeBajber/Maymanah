@@ -30,7 +30,7 @@ export default function Terms() {
           </h2>
           <span
             aria-hidden
-            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+            className="h-px w-12 bg-linear-to-r from-accent/50 to-transparent"
           />
           <p>
             By accessing or using Maymanah, you agree to be bound by these
@@ -48,7 +48,7 @@ export default function Terms() {
           </h2>
           <span
             aria-hidden
-            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+            className="h-px w-12 bg-linear-to-r from-accent/50 to-transparent"
           />
           <p>
             The materials provided on this platform are for educational and
@@ -65,7 +65,7 @@ export default function Terms() {
               <li key={item} className="flex items-start gap-3">
                 <span
                   aria-hidden
-                  className="mt-2 size-1.5 shrink-0 rotate-45 bg-brass/60"
+                  className="mt-2 size-1.5 shrink-0 rotate-45 bg-accent/60"
                 />
                 <span>{item}</span>
               </li>
@@ -81,7 +81,7 @@ export default function Terms() {
           </h2>
           <span
             aria-hidden
-            className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+            className="h-px w-12 bg-linear-to-r from-accent/50 to-transparent"
           />
           <p>
             Users are expected to conduct themselves with adab (etiquette)

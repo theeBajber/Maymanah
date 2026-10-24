@@ -15,7 +15,7 @@ const SIZES = {
 
 const VARIANTS = {
   primary:
-    "bg-brass text-layl-deep hover:bg-[#D2AF6B] hover:shadow-glow-brass",
+    "bg-accent text-text-inverse hover:brightness-95 hover:shadow-glow-accent",
   ghost: "border border-ivory/15 text-ivory hover:bg-ivory/5 hover:border-ivory/25",
   quiet: "text-lapis hover:text-ivory",
 };
@@ -58,7 +58,7 @@ export function Button({
       {...rest}
     >
       {variant === "primary" && (
-        /* brass sheen sweep on hover; static under reduced motion */
+        /* accent sheen sweep on hover; static under reduced motion */
         <span
           aria-hidden
           className="absolute inset-y-0 left-0 w-1/3 -translate-x-[150%] -skew-x-12 bg-linear-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out motion-safe:group-hover:translate-x-[400%]"

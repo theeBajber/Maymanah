@@ -6,7 +6,7 @@ type AyahTextProps = {
   className?: string;
   /** Optical sizes run ~125% of surrounding Latin — Arabic reads smaller at equal px. */
   size?: "sm" | "md" | "lg";
-  /** Gilded brass gradient — for the signature calligraphic element of a page. */
+  /** Accent gradient — for the signature calligraphic element of a page. */
   gilded?: boolean;
 };
 
@@ -32,7 +32,7 @@ export function AyahText({
       dir="rtl"
       className={`${amiri.className} ${SIZES[size]} [line-height:2] ${
         gilded
-          ? "bg-linear-to-b from-[#D8B97C] via-[#C6A15B] to-[#A9854B] bg-clip-text text-transparent"
+          ? "bg-linear-to-b from-accent-light via-accent to-primary-dark bg-clip-text text-transparent"
           : "text-ivory"
       } ${className}`}
     >

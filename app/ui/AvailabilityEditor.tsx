@@ -138,7 +138,7 @@ export function AvailabilityEditor() {
       <button
         onClick={handleSave}
         disabled={saving || loading}
-        className="mt-6 inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
+        className="mt-6 inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
       >
         <Save className="size-4" />
         {saving ? "Saving..." : "Save Availability"}

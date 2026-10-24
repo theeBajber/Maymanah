@@ -28,10 +28,10 @@ const socials = [
 export function Footer() {
   return (
     <footer className="relative w-full bg-layl-deep">
-      {/* brass light-leak divider */}
+      {/* accent light-leak divider */}
       <div
         aria-hidden
-        className="h-px w-full bg-linear-to-r from-transparent via-brass/40 to-transparent"
+        className="h-px w-full bg-linear-to-r from-transparent via-accent/40 to-transparent"
       />
       <div className="mx-auto flex w-full max-w-7xl flex-col px-8 py-12 md:py-16">
         <div className="flex w-full flex-col justify-between gap-10 border-b border-ivory/8 pb-10 md:flex-row">
@@ -60,7 +60,7 @@ export function Footer() {
                   key={social.name}
                   href={social.href}
                   aria-label={social.name}
-                  className="text-sage/70 transition-colors hover:text-brass"
+                  className="text-sage/70 transition-colors hover:text-accent"
                 >
                   <FontAwesomeIcon icon={social.icon} className="size-4.5" />
                 </Link>
@@ -69,7 +69,7 @@ export function Footer() {
           </div>
           <div className="flex flex-col gap-8 sm:flex-row md:gap-20">
             <div className="flex flex-col gap-4">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brass">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
                 Platform
               </h2>
               <div className="flex flex-wrap gap-x-6 gap-y-2.5 sm:flex-col">
@@ -85,7 +85,7 @@ export function Footer() {
               </div>
             </div>
             <div className="flex flex-col gap-4">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brass">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
                 Community
               </h2>
               <div className="flex flex-wrap gap-x-6 gap-y-2.5 sm:flex-col">

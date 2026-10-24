@@ -276,10 +276,10 @@ function AnalyticsTab({ firstName }: { firstName: string }) {
       <PortalHeader title={`${firstName}'s progress`} subtitle="Quiz results, completed modules, and active courses" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={ClipboardCheck} value={0} label="Quizzes Taken" tone="brass" />
+        <StatTile icon={ClipboardCheck} value={0} label="Quizzes Taken" tone="accent" />
         <StatTile icon={Award} value="0%" label="Avg Score" tone="success" />
         <StatTile icon={BookOpen} value={0} label="Modules Done" tone="info" />
-        <StatTile icon={GraduationCap} value="0/0" label="Passed" tone="brass" />
+        <StatTile icon={GraduationCap} value="0/0" label="Passed" tone="accent" />
       </div>
 
       <section className="flex flex-col gap-3">
@@ -326,7 +326,7 @@ async function TeacherDashboard({ userId, name, gender }: { userId: string; name
       <PortalHeader title={`Hello, ${title} ${firstName}`} subtitle="Here's your overview for today." />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile icon={BookOpen} value={activeStudents} label="Active Students" tone="brass" />
+        <StatTile icon={BookOpen} value={activeStudents} label="Active Students" tone="accent" />
         <StatTile icon={CheckSquare} value={sessionsThisMonth} label="Sessions This Month" tone="success" />
         <StatTile icon={ClipboardCheck} value={today.length} label="Today's Sessions" tone="info" />
       </div>

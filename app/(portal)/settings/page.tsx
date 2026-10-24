@@ -59,7 +59,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left ${
                 activeTab === tab.id
-                  ? "bg-primary text-text-inverse hover:shadow-glow-brass"
+                  ? "bg-primary text-text-inverse hover:shadow-glow-accent"
                   : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
               }`}
             >
@@ -100,7 +100,7 @@ export default function SettingsPage() {
               }}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left ${
                 activeTab === tab.id
-                  ? "bg-primary text-text-inverse hover:shadow-glow-brass"
+                  ? "bg-primary text-text-inverse hover:shadow-glow-accent"
                   : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
               }`}
             >
@@ -339,7 +339,7 @@ function ProfileSettings() {
                     isSelected
                       ? "bg-primary text-text-inverse"
                       : "border border-border text-text-secondary hover:border-primary"
-                  } ${isGenderLocked ? "opacity-60 cursor-not-allowed hover:border-border hover:shadow-none" : "hover:shadow-glow-brass"}`}
+                  } ${isGenderLocked ? "opacity-60 cursor-not-allowed hover:border-border hover:shadow-none" : "hover:shadow-glow-accent"}`}
                 >
                   {g === "male" ? "Male" : "Female"}
                 </button>
@@ -423,7 +423,7 @@ function ProfileSettings() {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
         >
           <Save className="size-4" />
           {loading ? "Saving..." : "Save Changes"}
@@ -493,7 +493,7 @@ function TimezoneSetting() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass shrink-0"
+          className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent shrink-0"
         >
           {saving ? "Saving..." : "Save"}
         </button>
@@ -734,7 +734,7 @@ function SecuritySettings() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
+              className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
             >
               {loading ? "Updating..." : "Update Password"}
             </button>
@@ -1003,7 +1003,7 @@ function NotificationsSettings() {
       <button
         onClick={handleSave}
         disabled={loading}
-        className="mt-5 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
+        className="mt-5 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
       >
         {loading ? "Saving..." : "Save Preferences"}
       </button>
@@ -1115,7 +1115,7 @@ function InterfaceSettings() {
       <button
         onClick={handleSave}
         disabled={loading}
-        className="mt-6 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-brass"
+        className="mt-6 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
       >
         {loading ? "Saving..." : "Save Settings"}
       </button>

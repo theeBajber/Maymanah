@@ -33,14 +33,14 @@ export default function AuthLayout({
         fade="radial"
         animate
       />
-      {/* two soft brass light sources */}
+      {/* two soft accent light sources */}
       <div
         aria-hidden
-        className="absolute -top-40 left-1/2 h-[32rem] w-[44rem] -translate-x-1/2 bg-[radial-gradient(closest-side,rgba(198,161,91,0.14),transparent)]"
+        className="absolute -top-40 left-1/2 h-[32rem] w-[44rem] -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(var(--accent-rgb)_/_0.14),transparent)]"
       />
       <div
         aria-hidden
-        className="absolute -bottom-48 -right-32 h-[28rem] w-[36rem] bg-[radial-gradient(closest-side,rgba(198,161,91,0.07),transparent)]"
+        className="absolute -bottom-48 -right-32 h-[28rem] w-[36rem] bg-[radial-gradient(closest-side,rgb(var(--accent-rgb)_/_0.07),transparent)]"
       />
       <div className="relative z-10 flex min-h-svh w-full items-center justify-center p-4 py-10 sm:p-6">
         {children}

@@ -3,7 +3,7 @@ import { BRAND_COLORS } from "@/lib/seo";
 
 /**
  * Renders the brand mark — a rotated square (a single unit of the
- * 8-fold khatam lattice) in brass on Layl — at any size. Used for the
+ * 8-fold khatam lattice) in accent on Layl — at any size. Used for the
  * favicon, apple touch icon, and PWA manifest icons so every surface
  * shares one generated source instead of hand-exported PNGs.
  */
@@ -30,14 +30,14 @@ export function renderBrandIcon(size: number) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            border: `${ring}px solid ${BRAND_COLORS.brass}`,
+            border: `${ring}px solid ${BRAND_COLORS.accent}`,
             transform: "rotate(45deg)",
           }}
         >
           <span
             style={{
               transform: "rotate(-45deg)",
-              color: BRAND_COLORS.brass,
+              color: BRAND_COLORS.accent,
               fontSize: Math.round(size * 0.34),
               fontWeight: 700,
             }}

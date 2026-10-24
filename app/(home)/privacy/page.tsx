@@ -28,7 +28,7 @@ function LegalSection({
       </h2>
       <span
         aria-hidden
-        className="h-px w-12 bg-linear-to-r from-brass/50 to-transparent"
+        className="h-px w-12 bg-linear-to-r from-accent/50 to-transparent"
       />
       {children}
     </section>
@@ -40,7 +40,7 @@ function LegalItem({ children }: { children: React.ReactNode }) {
     <li className="flex items-start gap-3">
       <span
         aria-hidden
-        className="mt-2 size-1.5 shrink-0 rotate-45 bg-brass/60"
+        className="mt-2 size-1.5 shrink-0 rotate-45 bg-accent/60"
       />
       <span>{children}</span>
     </li>

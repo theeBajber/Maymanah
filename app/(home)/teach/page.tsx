@@ -60,7 +60,7 @@ function Calling() {
           </div>
         </div>
         <div className="glass-still relative flex flex-col gap-5 overflow-hidden rounded-2xl p-6 md:p-8">
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brass">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
             What we ask of you
           </h3>
           <ul className="flex flex-col gap-4">
@@ -73,7 +73,7 @@ function Calling() {
               <li key={item} className="flex items-start gap-3">
                 <span
                   aria-hidden
-                  className="mt-1.75 size-2 shrink-0 rotate-45 border border-brass/60 bg-layl"
+                  className="mt-1.75 size-2 shrink-0 rotate-45 border border-accent/60 bg-layl"
                 />
                 <span className="text-[15px] leading-relaxed text-ivory/90">
                   {item}
@@ -132,7 +132,7 @@ function VettingPath() {
         <ol className="relative flex flex-col gap-9">
           <span
             aria-hidden
-            className="absolute bottom-4 left-1.25 top-4 w-px bg-linear-to-b from-ivory/10 via-ivory/20 to-brass/60"
+            className="absolute bottom-4 left-1.25 top-4 w-px bg-linear-to-b from-ivory/10 via-ivory/20 to-accent/60"
           />
           {steps.map((item, index) => (
             <li key={item.title} className="relative flex flex-col gap-1.5 ps-9">
@@ -140,11 +140,11 @@ function VettingPath() {
                 aria-hidden
                 className={`absolute left-0 top-1.5 size-2.75 rotate-45 ${
                   index === steps.length - 1
-                    ? "bg-brass shadow-glow-brass"
-                    : "border border-brass/50 bg-layl"
+                    ? "bg-accent shadow-glow-accent"
+                    : "border border-accent/50 bg-layl"
                 }`}
               />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-brass">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-accent">
                 {item.step}
               </span>
               <h3

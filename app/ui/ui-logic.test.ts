@@ -10,13 +10,13 @@ describe("buttonClasses", () => {
 
     expect(classes).toContain("inline-flex");
     expect(classes).toContain("h-11");
-    expect(classes).toContain("bg-brass");
+    expect(classes).toContain("bg-accent");
   });
 
   it("keeps the ghost and quiet treatments distinct", () => {
     expect(buttonClasses("ghost", "md")).toContain("border");
     expect(buttonClasses("quiet", "md")).toContain("text-lapis");
-    expect(buttonClasses("quiet", "md")).not.toContain("bg-brass");
+    expect(buttonClasses("quiet", "md")).not.toContain("bg-accent");
   });
 
   it("appends extra classes without dropping the base", () => {

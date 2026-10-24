@@ -137,15 +137,15 @@ export default function Register() {
     return (
       <AuthPanel heading="Check your email" wide>
         <div className="flex flex-col items-center gap-6 py-4 text-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-brass/10">
-            <FontAwesomeIcon icon={faEnvelope} className="size-7 text-brass" />
+          <div className="flex size-16 items-center justify-center rounded-full bg-accent/10">
+            <FontAwesomeIcon icon={faEnvelope} className="size-7 text-accent" />
           </div>
           <p className="text-sm text-sage leading-relaxed max-w-sm">
             We sent a verification link to{" "}
             <strong className="text-ivory">{registeredEmail}</strong>.
             Click the link to activate your account.
           </p>
-          <p className="text-xs text-sage/60">
+          <p className="text-xs text-text-secondary/80">
             Didn&apos;t get the email? Check your spam folder or{" "}
             <button
               type="button"
@@ -176,7 +176,7 @@ export default function Register() {
           </p>
           <Link
             href="/login"
-            className="mt-2 inline-flex h-11 items-center justify-center rounded-[10px] bg-brass px-6 text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+            className="mt-2 inline-flex h-11 items-center justify-center rounded-[10px] bg-accent px-6 text-sm font-semibold text-text-inverse transition-all hover:brightness-95"
           >
             Go to Login
           </Link>

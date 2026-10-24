@@ -36,7 +36,7 @@ export const SITE_KEYWORDS = [
 export const BRAND_COLORS = {
   layl: "#0B151B",
   laylDeep: "#060D11",
-  brass: "#C6A15B",
+  accent: "#7FB5A6",
   ivory: "#EAE6DA",
   sage: "#93A5A8",
 };

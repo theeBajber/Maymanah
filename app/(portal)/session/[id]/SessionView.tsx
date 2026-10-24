@@ -74,7 +74,7 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
         <p className="text-sm text-text-secondary">{error}</p>
         <button
           onClick={() => router.push("/dashboard")}
-          className="inline-flex h-11 items-center rounded-[10px] bg-brass px-6 text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+          className="inline-flex h-11 items-center rounded-[10px] bg-accent px-6 text-sm font-semibold text-text-inverse transition-all hover:brightness-95"
         >
           Back to dashboard
         </button>
@@ -119,7 +119,7 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
           </p>
           <button
             onClick={() => setInCall(true)}
-            className="inline-flex h-12 items-center rounded-[10px] bg-brass px-8 text-sm font-semibold text-layl-deep transition-all hover:bg-[#D2AF6B]"
+            className="inline-flex h-12 items-center rounded-[10px] bg-accent px-8 text-sm font-semibold text-text-inverse transition-all hover:brightness-95"
           >
             Join now
           </button>
@@ -174,7 +174,7 @@ function PlanEditor({
     }
   }
 
-  const field = "w-20 rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 py-2 text-sm text-ivory focus:border-brass/60 focus:outline-none";
+  const field = "w-20 rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-3 py-2 text-sm text-ivory focus:border-accent/60 focus:outline-none";
 
   return (
     <GlassCard className="p-5">
