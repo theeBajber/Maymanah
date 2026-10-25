@@ -17,6 +17,9 @@ const ALLOWED_AUDIO_HOSTS = new Set([
   "audio.qurancdn.com",
   "audio-cdn.tilawat.com",
   "cdn.tilawat.com",
+  "verses.quran.foundation",
+  "mirrors.quranicaudio.com",
+  "download.quranicaudio.com",
 ]);
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -37,19 +40,37 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   try {
+    const range = request.headers.get("range");
     const upstream = await fetch(target.toString(), {
-      headers: { "User-Agent": "Mozilla/5.0", Accept: "audio/mpeg" },
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        Accept: "audio/mpeg",
+        ...(range ? { Range: range } : {}),
+      },
     });
 
     if (!upstream.ok || !upstream.body) {
       return NextResponse.json({ error: "That audio could not be loaded" }, { status: 502 });
     }
 
+    const headers = new Headers({
+      "Content-Type": upstream.headers.get("content-type") ?? "audio/mpeg",
+      "Cache-Control": "public, max-age=86400",
+      "Accept-Ranges": upstream.headers.get("accept-ranges") ?? "bytes",
+    });
+    for (const name of [
+      "content-range",
+      "content-length",
+      "etag",
+      "last-modified",
+    ]) {
+      const value = upstream.headers.get(name);
+      if (value) headers.set(name, value);
+    }
+
     return new NextResponse(upstream.body, {
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Cache-Control": "public, max-age=86400",
-      },
+      status: upstream.status,
+      headers,
     });
   } catch {
     return NextResponse.json({ error: "That audio could not be loaded" }, { status: 502 });

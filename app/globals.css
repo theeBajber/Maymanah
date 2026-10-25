@@ -543,13 +543,13 @@ button {
     outline-offset: 2px;
 }
 
-/* Suppress native focus-visible on custom Input wrapper elements — the parent
-   div (or the element's own focus:ring) already handles focus indication.
-   Scoped to the outline-none utility itself (rather than a page wrapper like
-   .night-scene) so every field built on this pattern gets it, not just auth
-   pages — otherwise the element's own outline-none is overridden by the
-   :focus-visible rule above (same specificity, later in the cascade),
-   producing a double ring around form fields site-wide. */
+/* Custom fields draw their own focus ring on the wrapper (or use focus:ring
+   on the control itself). Suppress the global outline inside night scenes for
+   raw inputs such as the OTP boxes, and on any element carrying the literal
+   outline-none utility — otherwise the unlayered :focus-visible rule above
+   overrides those layered utilities and produces a second ring. */
+.night-scene input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
+.night-scene textarea:focus-visible,
 .outline-none:focus-visible {
     outline: none;
 }

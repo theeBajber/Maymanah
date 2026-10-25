@@ -176,7 +176,7 @@ export function TopNav() {
   }, [profileOpen, notifOpen]);
 
   return (
-    <header className="glass-veil fixed left-0 right-0 top-0 z-50 h-16">
+    <header className="fixed left-0 right-0 top-0 z-50 h-16 bg-bg-primary">
       <div className="flex h-full items-center justify-between gap-4 px-6 border-b border-border">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Image

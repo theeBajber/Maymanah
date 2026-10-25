@@ -38,6 +38,17 @@ const JUZ_ENDS: { surah: number; verse: number }[] = [
   { surah: 78, verse: 46 },
 ];
 
+/** The first page of each part in the Madani mushaf. */
+const JUZ_START_PAGES = [
+  1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262, 282, 302,
+  322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582,
+];
+
+/** The page where a part opens, clamped to the thirty known parts. */
+export function getJuzStartPage(juz: number): number {
+  return JUZ_START_PAGES[Math.min(Math.max(juz, 1), JUZ_START_PAGES.length) - 1];
+}
+
 /**
  * Which part a chapter and verse fall in.
  *

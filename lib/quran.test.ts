@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { getJuzNumber, hasCompletedNewJuz, TOTAL_SURAHS } from "./quran";
+import {
+  getJuzNumber,
+  getJuzStartPage,
+  hasCompletedNewJuz,
+  TOTAL_SURAHS,
+} from "./quran";
 
 describe("getJuzNumber", () => {
   it("places the opening chapter in the first part", () => {
@@ -26,6 +31,23 @@ describe("getJuzNumber", () => {
       expect(juz).toBeGreaterThanOrEqual(1);
       expect(juz).toBeLessThanOrEqual(30);
     }
+  });
+});
+
+describe("getJuzStartPage", () => {
+  it("returns the first page of the opening part", () => {
+    expect(getJuzStartPage(1)).toBe(1);
+  });
+
+  it("returns the known opening page of later parts", () => {
+    expect(getJuzStartPage(2)).toBe(22);
+    expect(getJuzStartPage(27)).toBe(522);
+    expect(getJuzStartPage(30)).toBe(582);
+  });
+
+  it("clamps values outside the thirty parts", () => {
+    expect(getJuzStartPage(0)).toBe(1);
+    expect(getJuzStartPage(99)).toBe(582);
   });
 });
 

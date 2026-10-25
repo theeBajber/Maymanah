@@ -65,7 +65,7 @@ export function Input({
     <div
       className={`group flex items-center gap-3 h-12 px-4 rounded-[10px] border bg-bg-elevated/60 transition-all duration-300 ${
         invalid
-          ? "border-danger/60"
+          ? "border-danger/60 focus-within:border-danger"
           : "border-border focus-within:border-accent/60 focus-within:shadow-[0_0_0_3px_rgb(var(--accent-rgb)_/_0.12),0_0_28px_-8px_rgb(var(--accent-rgb)_/_0.35)]"
       } ${className}`}
     >
@@ -75,7 +75,7 @@ export function Input({
         </span>
       )}
       <input
-        className="w-full min-w-0 bg-transparent text-[15px] text-text-primary placeholder:text-text-secondary/80 focus:outline-none focus-visible:outline-none"
+        className="w-full min-w-0 bg-transparent text-[15px] text-text-primary placeholder:text-text-secondary/80 outline-none"
         aria-invalid={invalid || undefined}
         {...rest}
       />
