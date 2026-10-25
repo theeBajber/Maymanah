@@ -1,7 +1,14 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 
 import { amiri } from "@/app/ui/fonts";
 import { Skeleton } from "@/app/ui/Skeleton";
@@ -11,6 +18,7 @@ import { getJuzStartPage } from "@/lib/quran";
 import type {
   QfChapter,
   QfJuz,
+  QfRecitation,
   QuranCatalog,
   ReaderAudioFile,
   ReaderPage,
@@ -27,6 +35,14 @@ import {
 } from "./audio-utils";
 import { ReadingPage } from "./ReadingPage";
 import { ReaderHeader, type ReaderMode } from "./ReaderHeader";
+import { ReaderSettingsDialog } from "./ReaderSettingsDialog";
+import {
+  arabicSizeCss,
+  DEFAULT_READER_SETTINGS,
+  loadReaderSettings,
+  saveReaderSettings,
+  type ReaderSettings,
+} from "./reader-settings";
 import {
   isJustifiedPage,
   pageChapter,
@@ -39,7 +55,6 @@ import { VerseRow } from "./VerseRow";
 
 const TRANSLATION_ID =
   Number(process.env.NEXT_PUBLIC_QF_TRANSLATION_ID) || 85;
-const RECITER_ID = 8;
 const MAX_READING_FONT_SIZE = 52;
 
 const BISMILLAH = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
@@ -132,6 +147,15 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
   const [pageError, setPageError] = useState("");
   const [requestVersion, setRequestVersion] = useState(0);
   const [readerMode, setReaderMode] = useState<ReaderMode>("verse");
+  const [settings, setSettings] = useState<ReaderSettings>(
+    DEFAULT_READER_SETTINGS,
+  );
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsHydrated, setSettingsHydrated] = useState(false);
+  const [recitations, setRecitations] = useState<QfRecitation[] | null>(null);
+  const [recitationsLoading, setRecitationsLoading] = useState(false);
+  const [recitationsError, setRecitationsError] = useState("");
+  const [recitationsVersion, setRecitationsVersion] = useState(0);
   const [readingPages, setReadingPages] = useState<ReaderPage[] | null>(null);
   const [readingError, setReadingError] = useState<{
     chapterId: number;
@@ -157,6 +181,80 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
   const readingRootRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
   const pendingPlayRef = useRef<PendingPlay | null>(null);
+  const lastReciterRef = useRef(settings.reciterId);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSettings(loadReaderSettings());
+      setSettingsHydrated(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!settingsHydrated) return;
+    saveReaderSettings(settings);
+  }, [settings, settingsHydrated]);
+
+  useEffect(() => {
+    if (!settingsOpen || recitations) return;
+
+    const controller = new AbortController();
+
+    fetch("/api/quran/recitations", { signal: controller.signal })
+      .then(async (response) => {
+        const body = (await response.json().catch(() => ({}))) as {
+          recitations?: QfRecitation[];
+          error?: string;
+        };
+        if (!response.ok || !body.recitations) {
+          throw new Error(
+            body.error ?? "The reciter list could not be loaded.",
+          );
+        }
+        return body.recitations;
+      })
+      .then((rows) => {
+        if (!controller.signal.aborted) setRecitations(rows);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        if (!controller.signal.aborted) {
+          setRecitationsError(
+            error instanceof Error
+              ? error.message
+              : "The reciter list could not be loaded.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setRecitationsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [recitations, recitationsVersion, settingsOpen]);
+
+  useEffect(() => {
+    if (lastReciterRef.current === settings.reciterId) return;
+    lastReciterRef.current = settings.reciterId;
+
+    const element = audioRef.current;
+    if (element) {
+      element.pause();
+      element.removeAttribute("src");
+      element.load();
+    }
+
+    pendingPlayRef.current = null;
+    setAudioByVerse(new Map());
+    setAudioError("");
+    setPlayerOpen(false);
+    setIsPlaying(false);
+    setPlayingVerseKey(null);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [settings.reciterId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -461,7 +559,7 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
     Promise.all(
       audioChapterIds.map(async (chapterId) => {
         const response = await fetch(
-          `/api/quran/recitations/${RECITER_ID}/chapters/${chapterId}`,
+          `/api/quran/recitations/${settings.reciterId}/chapters/${chapterId}`,
           { signal: controller.signal },
         );
         const body = (await response.json().catch(() => ({}))) as {
@@ -503,7 +601,7 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
       });
 
     return () => controller.abort();
-  }, [audioChapterIds]);
+  }, [audioChapterIds, settings.reciterId]);
 
   const maxPage = useMemo(() => {
     const pages = chapters.flatMap((row) => row.pages);
@@ -1059,6 +1157,30 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
     [toast],
   );
 
+  const toggleSettings = useCallback(() => {
+    if (!settingsOpen && !recitations) {
+      setRecitationsError("");
+      setRecitationsLoading(true);
+    }
+    setSettingsOpen((open) => !open);
+  }, [recitations, settingsOpen]);
+
+  const updateSettings = useCallback((patch: Partial<ReaderSettings>) => {
+    setSettings((current) => ({ ...current, ...patch }));
+  }, []);
+
+  const resetSettings = useCallback(() => {
+    setSettings({ ...DEFAULT_READER_SETTINGS });
+  }, []);
+
+  const readerStyle = useMemo(
+    () =>
+      ({
+        "--verse-arabic-size": arabicSizeCss(settings.arabicSize),
+      }) as CSSProperties,
+    [settings.arabicSize],
+  );
+
   const comingSoon = useCallback(
     (label: string) => {
       toast({
@@ -1071,7 +1193,7 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
   );
 
   return (
-    <div className="min-h-screen bg-bg-primary">
+    <div className="min-h-screen bg-bg-primary" style={readerStyle}>
       <ReaderHeader
         catalog={catalog}
         chapter={chapter}
@@ -1089,7 +1211,8 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
         }}
         mode={readerMode}
         onModeChange={setReaderMode}
-        onSettings={() => comingSoon("Reader settings")}
+        settingsOpen={settingsOpen}
+        onSettings={toggleSettings}
       />
 
       {catalogError ? (
@@ -1193,6 +1316,8 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
                     highlightRange={
                       playingVerseKey === verse.key ? activeRange : null
                     }
+                    showTranslation={settings.showTranslation}
+                    showWordTooltips={settings.showWordTooltips}
                     onPlay={(row) => playVerse(row.key)}
                     onToggleBookmark={(row) => void toggleBookmark(row)}
                     onCopy={copyVerse}
@@ -1222,6 +1347,23 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
           ) : null}
         </div>
       ) : null}
+
+      <ReaderSettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onChange={updateSettings}
+        onReset={resetSettings}
+        recitations={recitations}
+        recitationsLoading={recitationsLoading}
+        recitationsError={recitationsError}
+        onRetryRecitations={() => {
+          setRecitations(null);
+          setRecitationsError("");
+          setRecitationsLoading(true);
+          setRecitationsVersion((version) => version + 1);
+        }}
+      />
 
       {playerOpen && playingVerseKey ? (
         <AudioPlayer

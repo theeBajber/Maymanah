@@ -26,6 +26,7 @@ interface ReaderHeaderProps {
   onToggleBookmark: () => void;
   mode: ReaderMode;
   onModeChange: (mode: ReaderMode) => void;
+  settingsOpen: boolean;
   onSettings: () => void;
 }
 
@@ -42,6 +43,7 @@ export function ReaderHeader({
   onToggleBookmark,
   mode,
   onModeChange,
+  settingsOpen,
   onSettings,
 }: ReaderHeaderProps) {
   const pageNumber = page?.page.pageNumber;
@@ -97,8 +99,14 @@ export function ReaderHeader({
             type="button"
             onClick={onSettings}
             aria-label="Reader settings"
-            title="Reader settings arrive in Phase 5"
-            className="flex size-9 items-center justify-center rounded-lg border border-border bg-bg-elevated text-text-secondary transition-colors hover:border-primary/50 hover:text-text-primary"
+            aria-haspopup="dialog"
+            aria-expanded={settingsOpen}
+            title="Reader settings"
+            className={`flex size-9 items-center justify-center rounded-lg border transition-colors ${
+              settingsOpen
+                ? "border-primary bg-primary-muted text-primary"
+                : "border-border bg-bg-elevated text-text-secondary hover:border-primary/50 hover:text-text-primary"
+            }`}
           >
             <Settings2 className="size-4" />
           </button>

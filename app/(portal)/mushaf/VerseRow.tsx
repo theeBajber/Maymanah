@@ -26,6 +26,8 @@ interface VerseRowProps {
   bookmarked: boolean;
   isPlaying?: boolean;
   highlightRange?: { start: number; end: number } | null;
+  showTranslation?: boolean;
+  showWordTooltips?: boolean;
   onPlay: (verse: ReaderVerse) => void;
   onToggleBookmark: (verse: ReaderVerse) => void;
   onCopy: (verse: ReaderVerse) => void;
@@ -171,6 +173,8 @@ export function VerseRow({
   bookmarked,
   isPlaying = false,
   highlightRange = null,
+  showTranslation = true,
+  showWordTooltips = true,
   onPlay,
   onToggleBookmark,
   onCopy,
@@ -294,7 +298,7 @@ export function VerseRow({
       <div
         dir="rtl"
         lang="ar"
-        className={`${amiri.className} mt-4 text-right text-[2rem] leading-[2.55] text-text-primary md:text-[2.35rem] md:leading-[2.6]`}
+        className={`${amiri.className} mt-4 text-right text-[length:var(--verse-arabic-size,2rem)] leading-[2.55] text-text-primary`}
       >
         {words.length > 0 ? (
           words.map((word) => {
@@ -313,6 +317,22 @@ export function VerseRow({
                 : null;
             const showTooltip =
               activeWord === word.key || hoveredWord === word.key;
+
+            if (!showWordTooltips) {
+              return (
+                <span key={word.key}>
+                  <span
+                    className={
+                      highlighted
+                        ? "rounded-sm bg-secondary-muted text-secondary"
+                        : undefined
+                    }
+                  >
+                    {text}
+                  </span>{" "}
+                </span>
+              );
+            }
 
             return (
               <span key={word.key}>
@@ -367,9 +387,11 @@ export function VerseRow({
         </span>
       </div>
 
-      <div className="mt-3 max-w-3xl">
-        <TranslationText verse={verse} />
-      </div>
+      {showTranslation ? (
+        <div className="mt-3 max-w-3xl">
+          <TranslationText verse={verse} />
+        </div>
+      ) : null}
 
     </article>
   );
