@@ -1306,7 +1306,7 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
             <>
               {showsBismillah(readerPage.verses) ? <BismillahHeader /> : null}
 
-              <div className="rounded-2xl border border-border bg-bg-elevated shadow-rest">
+              <div className="shadow-rest">
                 {readerPage.verses.map((verse) => (
                   <VerseRow
                     key={verse.id}
@@ -1367,7 +1367,6 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
 
       {playerOpen && playingVerseKey ? (
         <AudioPlayer
-          verseKey={playingVerseKey}
           isPlaying={isPlaying}
           currentTime={playerCurrentTime}
           duration={playerDuration}

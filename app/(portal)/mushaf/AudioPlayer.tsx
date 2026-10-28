@@ -20,7 +20,6 @@ import { formatTime } from "./audio-utils";
 const RATES = [0.75, 1, 1.25, 1.5, 2] as const;
 
 interface AudioPlayerProps {
-  verseKey: string;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -102,7 +101,6 @@ function MenuToggle({
 }
 
 export function AudioPlayer({
-  verseKey,
   isPlaying,
   currentTime,
   duration,
@@ -172,11 +170,7 @@ export function AudioPlayer({
           </span>
         </div>
 
-        <div className="mt-2 flex items-center gap-1.5">
-          <span className="mr-auto truncate font-mono text-[10px] font-semibold tracking-[0.08em] text-text-muted">
-            {verseKey}
-          </span>
-
+        <div className="mt-2 flex items-center justify-center gap-1.5">
           <div ref={menuRef} className="relative">
             <PlayerButton
               label="Playback options"
