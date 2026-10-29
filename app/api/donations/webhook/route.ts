@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 import { db } from "@/lib/db";
+import { mpesaResultHint } from "@/lib/mpesa";
 
 /**
  * Records provider callbacks about money.
@@ -16,7 +17,11 @@ import { db } from "@/lib/db";
 export async function POST(request: Request): Promise<NextResponse> {
   const signature = request.headers.get("stripe-signature");
 
-  if (signature && process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET) {
+  if (signature) {
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+      return NextResponse.json({ error: "Card webhooks are not configured" }, { status: 503 });
+    }
+
     return handleStripe(request, signature);
   }
 
@@ -32,7 +37,13 @@ async function handleMpesa(request: Request): Promise<NextResponse> {
   }
 
   const callback = (body ?? {}) as {
-    Body?: { stkCallback?: { CheckoutRequestID?: string; ResultCode?: number; ResultDesc?: string } };
+    Body?: {
+      stkCallback?: {
+        CheckoutRequestID?: string;
+        ResultCode?: number | string;
+        ResultDesc?: string;
+      };
+    };
   };
   const stk = callback.Body?.stkCallback;
 
@@ -40,10 +51,46 @@ async function handleMpesa(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Not an M-Pesa callback" }, { status: 400 });
   }
 
-  await db.donation.updateMany({
-    where: { reference: stk.CheckoutRequestID },
-    data: { status: stk.ResultCode === 0 ? "COMPLETED" : "FAILED" },
+  const resultCode = String(stk.ResultCode ?? "");
+  if (!resultCode) {
+    console.error("M-Pesa callback had no result code", {
+      checkoutRequestId: stk.CheckoutRequestID,
+    });
+    return NextResponse.json({ error: "M-Pesa callback had no result code" }, { status: 400 });
+  }
+
+  const status = resultCode === "0" ? "COMPLETED" : "FAILED";
+  const updated = await db.donation.updateMany({
+    where: { reference: stk.CheckoutRequestID, status: { not: "COMPLETED" } },
+    data: { status },
   });
+
+  if (updated.count === 0) {
+    const existing = await db.donation.findUnique({
+      where: { reference: stk.CheckoutRequestID },
+      select: { status: true },
+    });
+
+    if (!existing) {
+      console.error("M-Pesa callback did not match a donation", {
+        checkoutRequestId: stk.CheckoutRequestID,
+        resultCode,
+      });
+    } else if (resultCode !== "0") {
+      console.warn("M-Pesa failure callback for an already completed donation", {
+        checkoutRequestId: stk.CheckoutRequestID,
+        hint: mpesaResultHint(resultCode),
+        description: stk.ResultDesc,
+      });
+    }
+  } else if (resultCode !== "0") {
+    console.warn("M-Pesa payment failed", {
+      checkoutRequestId: stk.CheckoutRequestID,
+      resultCode,
+      hint: mpesaResultHint(resultCode),
+      description: stk.ResultDesc,
+    });
+  }
 
   // Safaricom expects this exact shape back, or it retries the callback.
   return NextResponse.json({ ResultCode: 0, ResultDesc: "Success" });

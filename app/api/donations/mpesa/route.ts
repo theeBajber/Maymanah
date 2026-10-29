@@ -69,6 +69,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       amountKes,
       phone: cleanPhone,
       callbackUrl: configured.config.callbackUrl,
+      transactionType: configured.config.transactionType,
+      partyB: configured.config.partyB,
     });
 
     await db.donation.update({ where: { id: donation.id }, data: { reference: checkoutRequestId } });
