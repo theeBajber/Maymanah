@@ -67,9 +67,7 @@ function DonatePageContent() {
   const [isCustom, setIsCustom] = useState(false);
   const [anonymous, setAnonymous] = useState(false);
   const [phone, setPhone] = useState("");
-  const [loading, setLoading] = useState<
-    "stripe" | "paypal" | "mpesa" | "pesapal" | null
-  >(null);
+  const [loading, setLoading] = useState<"mpesa" | null>(null);
   const [showMpesaPhone, setShowMpesaPhone] = useState(false);
 
   const success = searchParams.get("success") === "true";
@@ -149,7 +147,7 @@ function DonatePageContent() {
             variant: "error",
             title: "M-Pesa payment failed",
             description:
-              "The payment was not completed. Please try again or use another method.",
+              "The payment was not completed. Please try again.",
           });
           return;
         }
@@ -179,102 +177,11 @@ function DonatePageContent() {
     stopMpesaPolling();
   }
 
-  async function handleStripeDonate() {
-    stopMpesaPolling();
-    setLoading("stripe");
-
-    try {
-      const res = await fetch("/api/donations/stripe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, currency, anonymous }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast({
-          variant: "error",
-          title: "Card payment failed",
-          description:
-            data.error || "Could not start card payment. Please try again.",
-        });
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast({
-          variant: "error",
-          title: "Card payment failed",
-          description: "Could not start card payment. Please try again.",
-        });
-      }
-    } catch {
-      toast({
-        variant: "error",
-        title: "Network error",
-        description: "Please check your connection and try again.",
-      });
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function handlePesapalDonate() {
-    stopMpesaPolling();
-    setLoading("pesapal");
-
-    try {
-      const res = await fetch("/api/donations/pesapal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount,
-          currency,
-          anonymous,
-          phone: phone.trim() || undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast({
-          variant: "error",
-          title: "Pesapal payment failed",
-          description:
-            data.error || "Could not start Pesapal checkout. Please try again.",
-        });
-        return;
-      }
-
-      if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
-      } else {
-        toast({
-          variant: "error",
-          title: "Pesapal payment failed",
-          description: "Could not start Pesapal checkout. Please try again.",
-        });
-      }
-    } catch {
-      toast({
-        variant: "error",
-        title: "Network error",
-        description: "Please check your connection and try again.",
-      });
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  function handlePayPalDonate() {
+  function showComingSoon(method: "Card" | "PayPal") {
     toast({
       variant: "info",
-      title: "PayPal coming soon",
-      description: "Please use Card or M-Pesa for now.",
+      title: `${method} coming soon`,
+      description: `${method} payments are coming soon. Please use M-Pesa for now.`,
     });
   }
 
@@ -489,17 +396,15 @@ function DonatePageContent() {
           <div className="flex gap-2.5">
             <button
               type="button"
-              disabled={loading !== null}
-              onClick={handleStripeDonate}
+              onClick={() => showComingSoon("Card")}
               className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[10px] bg-accent font-semibold text-text-inverse transition-all duration-300 hover:brightness-95 hover:shadow-glow-accent active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
             >
               <CreditCard className="size-4" />
-              {loading === "stripe" ? "Redirecting" : "Card"}
+              Card
             </button>
             <button
               type="button"
-              disabled={loading !== null}
-              onClick={handlePayPalDonate}
+              onClick={() => showComingSoon("PayPal")}
               className="flex h-12 flex-1 items-center justify-center rounded-[10px] border border-ivory/15 font-semibold italic text-ivory transition-colors hover:bg-ivory/5 active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
             >
               PayPal
@@ -524,14 +429,6 @@ function DonatePageContent() {
             {loading === "mpesa" && (
               <span className="sr-only">Sending M-Pesa prompt</span>
             )}
-          </button>
-          <button
-            type="button"
-            disabled={loading !== null}
-            onClick={handlePesapalDonate}
-            className="flex h-12 w-full items-center justify-center rounded-[10px] border border-ivory/15 font-semibold text-ivory transition-colors hover:bg-ivory/5 active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
-          >
-            {loading === "pesapal" ? "Redirecting" : "Pay with Pesapal (Card, Mobile Money)"}
           </button>
         </div>
 

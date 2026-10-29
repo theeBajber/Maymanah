@@ -4,7 +4,7 @@
  * Only the presentation-facing values live here: what the preset buttons offer,
  * and the range a contribution must fall within. Talking to a payment provider
  * is a separate concern that arrives with the provider itself, so nothing in
- * this file knows that Stripe, M-Pesa, or Pesapal exist.
+ * this file knows that Stripe or M-Pesa exist.
  */
 
 /** Preset amounts offered in the interface, in each supported currency. */
@@ -80,12 +80,6 @@ export function mpesaTimestamp(at: Date = new Date()): string {
   }).formatToParts(at);
   const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
   return `${get("year")}${get("month")}${get("day")}${get("hour")}${get("minute")}${get("second")}`;
-}
-
-/** Pesapal API base, sandbox unless production is configured. */
-export function pesapalBaseUrl(): string {
-  if (process.env.PESAPAL_BASE_URL) return process.env.PESAPAL_BASE_URL.replace(/\/$/, "");
-  return process.env.PESAPAL_ENV === "production" ? "https://pay.pesapal.com/v3" : "https://cybqa.pesapal.com/pesapalv3";
 }
 
 /** Stripe currency code, lowercase as the API requires. */
