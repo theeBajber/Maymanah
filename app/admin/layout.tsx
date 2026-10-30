@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     <div className="min-h-screen bg-bg-primary">
       <AdminTopBar user={user} pendingApprovals={pendingApprovals} />
       <AdminSidebar />
-      <main className="md:pl-16 pt-16">
+      <main className="pt-16 pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pl-16 md:pb-0">
         <div className="max-w-screen-2xl mx-auto p-6">{children}</div>
       </main>
     </div>

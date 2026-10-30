@@ -70,7 +70,7 @@ export function AdminSidebar() {
         </div>
       </aside>
 
-      <nav className="border-t border-border bg-bg-primary/95 fixed bottom-0 left-0 right-0 h-14 md:hidden z-40 flex items-center justify-around px-2 safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[calc(3.5rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t border-border bg-bg-primary/95 px-2 pb-[env(safe-area-inset-bottom,0px)] md:hidden">
         {links.map((link) => {
           const isActive =
             link.href === "/admin"

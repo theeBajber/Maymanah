@@ -30,7 +30,7 @@ export default async function PortalLayout({ children }: { children: React.React
       <TopNavProvider>
         <TopNav />
         <SideNav />
-        <main className="md:pl-16 pt-16">
+        <main className="pt-16 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pl-16 md:pb-0">
           {user.emailVerified ? null : (
             <div className="border-b border-warning/30 bg-warning/10 px-6 py-2.5 text-center text-sm text-text-secondary">
               Your email address is not confirmed yet.{" "}

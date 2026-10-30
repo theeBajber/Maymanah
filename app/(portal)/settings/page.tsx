@@ -49,7 +49,7 @@ export default function SettingsPage() {
       : baseTabs;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full">
+    <div className="flex h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] w-full md:h-[calc(100dvh-4rem)]">
       <aside className="hidden md:flex md:w-56 border-r border-border bg-bg-elevated p-5 flex-col shrink-0">
         <h2 className="text-lg font-bold text-text-primary mb-5">Settings</h2>
         <nav className="space-y-1">
@@ -77,7 +77,7 @@ export default function SettingsPage() {
         />
       )}
       <aside
-        className={`fixed top-16 left-0 bottom-0 w-56 border-r border-border bg-bg-elevated p-5 overflow-y-auto md:hidden transition-transform z-40 ${
+        className={`fixed top-16 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 w-56 border-r border-border bg-bg-elevated p-5 overflow-y-auto md:hidden transition-transform z-40 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -126,12 +126,7 @@ export default function SettingsPage() {
           <div className="w-5" />
         </div>
 
-        {/* pb-24 clears the fixed mobile bottom nav bar (h-16, ~64px) — this
-            panel's own height is capped to exactly the viewport, so without
-            it the last element in a tab (usually a Save button) rendered
-            right at the scroll bottom sat underneath that bar on small
-            screens, unreachable. Desktop has no such bar, hence md:pb-8. */}
-        <div key={activeTab} className="flex-1 overflow-y-auto p-4 pb-24 md:p-8">
+        <div key={activeTab} className="flex-1 overflow-y-auto p-4 md:p-8">
           {activeTab === "profile" && <ProfileSettings />}
           {activeTab === "preferences" && <PreferencesSettings />}
           {activeTab === "account" && <AccountSettings />}
