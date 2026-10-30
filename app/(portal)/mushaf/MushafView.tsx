@@ -34,7 +34,8 @@ import {
   timelineDuration,
 } from "./audio-utils";
 import { ReadingPage } from "./ReadingPage";
-import { ReaderHeader, type ReaderMode } from "./ReaderHeader";
+import { ReaderHeader } from "./ReaderHeader";
+import { loadReaderProgress, saveReaderProgress } from "./reader-progress";
 import { ReaderSettingsDialog } from "./ReaderSettingsDialog";
 import {
   arabicSizeCss,
@@ -97,7 +98,7 @@ function ReaderSkeleton() {
 
 function BismillahHeader() {
   return (
-    <div className="px-4 py-7 text-center md:py-9">
+    <div className="px-4 pt-4 text-center md:pt-7">
       <p
         lang="ar"
         dir="rtl"
@@ -142,14 +143,15 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
   const [catalog, setCatalog] = useState<QuranCatalog | null>(null);
   const [catalogError, setCatalogError] = useState("");
   const [pageNumber, setPageNumber] = useState(initialPage);
+  const [progressHydrated, setProgressHydrated] = useState(false);
   const [readerPage, setReaderPage] = useState<ReaderPage | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState("");
   const [requestVersion, setRequestVersion] = useState(0);
-  const [readerMode, setReaderMode] = useState<ReaderMode>("verse");
   const [settings, setSettings] = useState<ReaderSettings>(
     DEFAULT_READER_SETTINGS,
   );
+  const readerMode = settings.mode;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const [recitations, setRecitations] = useState<QfRecitation[] | null>(null);
@@ -173,15 +175,20 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [muted, setMuted] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [repeatVerse, setRepeatVerse] = useState(false);
-  const [autoplayNext, setAutoplayNext] = useState(true);
+  const muted = settings.muted;
+  const playbackRate = settings.playbackRate;
+  const repeatVerse = settings.repeatVerse;
+  const autoplayNext = settings.autoplayNext;
   const audioRef = useRef<HTMLAudioElement>(null);
+  const contentRootRef = useRef<HTMLDivElement>(null);
   const readingRootRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
   const pendingPlayRef = useRef<PendingPlay | null>(null);
   const lastReciterRef = useRef(settings.reciterId);
+  const lastVerseRef = useRef<string | null>(null);
+  const restoreVerseRef = useRef<string | null>(null);
+  const pageNumberRef = useRef(pageNumber);
+  const progressHydratedRef = useRef(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -196,6 +203,46 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
     if (!settingsHydrated) return;
     saveReaderSettings(settings);
   }, [settings, settingsHydrated]);
+
+  const recordVerse = useCallback((verseKey: string) => {
+    lastVerseRef.current = verseKey;
+    if (!progressHydratedRef.current) return;
+    saveReaderProgress({
+      pageNumber: pageNumberRef.current,
+      verseKey,
+    });
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const saved = params.has("page") ? null : loadReaderProgress();
+
+      if (saved) {
+        pageNumberRef.current = saved.pageNumber;
+        lastVerseRef.current = saved.verseKey;
+        restoreVerseRef.current = saved.verseKey;
+        setPageNumber(saved.pageNumber);
+      }
+
+      progressHydratedRef.current = true;
+      setProgressHydrated(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    pageNumberRef.current = pageNumber;
+  }, [pageNumber]);
+
+  useEffect(() => {
+    if (!progressHydrated) return;
+    saveReaderProgress({
+      pageNumber,
+      verseKey: lastVerseRef.current,
+    });
+  }, [pageNumber, progressHydrated]);
 
   useEffect(() => {
     if (!settingsOpen || recitations) return;
@@ -310,6 +357,8 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
   }, []);
 
   useEffect(() => {
+    if (!progressHydrated) return;
+
     const controller = new AbortController();
 
     fetch(
@@ -345,9 +394,11 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
       });
 
     return () => controller.abort();
-  }, [pageNumber, requestVersion]);
+  }, [pageNumber, progressHydrated, requestVersion]);
 
   useEffect(() => {
+    if (!progressHydrated) return;
+
     const url = new URL(window.location.href);
     url.searchParams.set("page", String(pageNumber));
     window.history.replaceState(
@@ -355,14 +406,14 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
       "",
       `${url.pathname}${url.search}${url.hash}`,
     );
-  }, [pageNumber]);
+  }, [pageNumber, progressHydrated]);
 
   useEffect(() => {
     const hash = window.location.hash;
-    if (!readerPage || !hash) return;
+    if (!readerPage || !progressHydrated || !hash) return;
     const target = document.getElementById(hash.slice(1));
     if (target) target.scrollIntoView({ block: "start" });
-  }, [readerPage]);
+  }, [readerPage, progressHydrated]);
 
   const chapters = useMemo(() => catalog?.chapters ?? [], [catalog]);
   const chapter = useMemo(
@@ -416,6 +467,49 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
     readingError && readingError.chapterId === chapterId
       ? readingError.message
       : "";
+
+  useEffect(() => {
+    const key = restoreVerseRef.current;
+    if (!progressHydrated || !settingsHydrated || !key) return;
+    if (!readerPage && activeReadingPages.length === 0) return;
+
+    const target = document.getElementById(
+      `verse-${key.replace(":", "-")}`,
+    );
+    if (!target) return;
+
+    restoreVerseRef.current = null;
+    lastVerseRef.current = key;
+    target.scrollIntoView({ block: "center" });
+    saveReaderProgress({
+      pageNumber: pageNumberRef.current,
+      verseKey: key,
+    });
+  }, [activeReadingPages, progressHydrated, readerPage, settingsHydrated]);
+
+  useEffect(() => {
+    const root = contentRootRef.current;
+    if (!root) return;
+
+    const elements = root.querySelectorAll<HTMLElement>("[data-verse-key]");
+    if (elements.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const next = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort(
+            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
+          )[0];
+        const key = next?.target.getAttribute("data-verse-key");
+        if (key) recordVerse(key);
+      },
+      { rootMargin: "-12% 0px -65% 0px" },
+    );
+
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [activeReadingPages, readerMode, readerPage, recordVerse]);
 
   useEffect(() => {
     if (readerMode !== "reading") return;
@@ -624,6 +718,12 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
   const playingIndex = playingVerseKey
     ? verseKeys.indexOf(playingVerseKey)
     : -1;
+  const playingChapterId = playingVerseKey
+    ? Number(playingVerseKey.split(":")[0])
+    : null;
+  const playingChapterIndex = playingChapterId
+    ? chapters.findIndex((row) => row.id === playingChapterId)
+    : -1;
   const activeAudio = playingVerseKey
     ? audioByVerse.get(playingVerseKey)
     : undefined;
@@ -649,15 +749,13 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
       ? activeWordRange(activeAudio.segments, currentTime)
       : null;
   const canPrevious = Boolean(
-    playingVerseKey &&
-      !pageLoading &&
-      (playingIndex > 0 || pageNumber > 1),
+    playingVerseKey && !pageLoading && playingChapterIndex > 0,
   );
   const canNext = Boolean(
     playingVerseKey &&
       !pageLoading &&
-      ((playingIndex >= 0 && playingIndex < verseKeys.length - 1) ||
-        pageNumber < maxPage),
+      playingChapterIndex >= 0 &&
+      playingChapterIndex < chapters.length - 1,
   );
 
   const stopPlayback = useCallback(() => {
@@ -755,6 +853,7 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
         stopPlayback();
       }
 
+      lastVerseRef.current = null;
       setPageNumber(target);
       setReaderPage(null);
       setPageLoading(true);
@@ -838,48 +937,36 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
     ],
   );
 
-  const playPrevious = useCallback(() => {
-    if (!playingVerseKey) return;
+  const playSurah = useCallback(
+    (direction: 1 | -1) => {
+      if (playingChapterIndex < 0) return;
 
-    if (playingIndex > 0) {
-      playVerse(verseKeys[playingIndex - 1]);
-      return;
-    }
+      const target = chapters[playingChapterIndex + direction];
+      const targetPage = target?.pages[0];
+      if (!target || !targetPage) return;
 
-    if (pageNumber > 1) {
-      pendingPlayRef.current = "last";
-      goToPage(pageNumber - 1, { preservePlayback: true });
-    }
-  }, [
-    goToPage,
-    pageNumber,
-    playVerse,
-    playingIndex,
-    playingVerseKey,
-    verseKeys,
-  ]);
+      const targetKey = `${target.id}:1`;
 
-  const playNext = useCallback(() => {
-    if (!playingVerseKey) return;
+      if (targetPage === pageNumber) {
+        playVerse(targetKey);
+        return;
+      }
 
-    if (playingIndex >= 0 && playingIndex < verseKeys.length - 1) {
-      playVerse(verseKeys[playingIndex + 1]);
-      return;
-    }
+      pendingPlayRef.current = { verseKey: targetKey, startAt: 0 };
+      goToPage(targetPage, { preservePlayback: true });
+    },
+    [
+      chapters,
+      goToPage,
+      pageNumber,
+      playVerse,
+      playingChapterIndex,
+    ],
+  );
 
-    if (pageNumber < maxPage) {
-      pendingPlayRef.current = "first";
-      goToPage(pageNumber + 1, { preservePlayback: true });
-    }
-  }, [
-    goToPage,
-    maxPage,
-    pageNumber,
-    playVerse,
-    playingIndex,
-    playingVerseKey,
-    verseKeys,
-  ]);
+  const playPrevious = useCallback(() => playSurah(-1), [playSurah]);
+
+  const playNext = useCallback(() => playSurah(1), [playSurah]);
 
   const handleEnded = useCallback(() => {
     if (!playingVerseKey) return;
@@ -922,7 +1009,7 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
     const element = audioRef.current;
     const next = !muted;
     if (element) element.muted = next;
-    setMuted(next);
+    setSettings((current) => ({ ...current, muted: next }));
   }, [muted]);
 
   const changeRate = useCallback((rate: number) => {
@@ -931,7 +1018,7 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
       element.playbackRate = rate;
       element.defaultPlaybackRate = rate;
     }
-    setPlaybackRate(rate);
+    setSettings((current) => ({ ...current, playbackRate: rate }));
   }, []);
 
   const handleAudioError = useCallback(() => {
@@ -992,6 +1079,10 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
     playingVerseKey,
     readerMode,
   ]);
+
+  useEffect(() => {
+    if (playingVerseKey) recordVerse(playingVerseKey);
+  }, [playingVerseKey, recordVerse]);
 
   useEffect(() => {
     if (!playingVerseKey) return;
@@ -1210,7 +1301,9 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
           if (firstVerse) void toggleBookmark(firstVerse);
         }}
         mode={readerMode}
-        onModeChange={setReaderMode}
+        onModeChange={(mode) =>
+          setSettings((current) => ({ ...current, mode }))
+        }
         settingsOpen={settingsOpen}
         onSettings={toggleSettings}
       />
@@ -1248,26 +1341,20 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
 
       {(readerPage || activeReadingPages.length > 0) && !pageError ? (
         <div
+          ref={contentRootRef}
           className={`mx-auto w-full max-w-4xl px-4 pt-5 md:px-6 ${
-            playerOpen ? "pb-48 md:pb-40" : "pb-16"
+            playerOpen ? "pb-32 md:pb-40" : "pb-8 md:pb-16"
           }`}
         >
           {readerMode === "reading" ? (
-            <div ref={readingRootRef} className="space-y-6">
+            <div ref={readingRootRef} className="space-y-2">
               {activeReadingPages[0] &&
               showsBismillah(activeReadingPages[0].verses) ? (
                 <BismillahHeader />
               ) : null}
 
-              <p className="text-center text-[11px] text-text-muted">
-                Tap an ayah number to play it.
-              </p>
 
-              {readingPagesLoading ? (
-                <p className="text-center text-xs text-text-muted">
-                  Loading surah pages…
-                </p>
-              ) : null}
+
 
               {readingPageError ? (
                 <p
@@ -1383,8 +1470,18 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
           onClose={stopPlayback}
           onToggleMute={toggleMute}
           onRateChange={changeRate}
-          onToggleRepeat={() => setRepeatVerse((value) => !value)}
-          onToggleAutoplay={() => setAutoplayNext((value) => !value)}
+          onToggleRepeat={() =>
+            setSettings((current) => ({
+              ...current,
+              repeatVerse: !current.repeatVerse,
+            }))
+          }
+          onToggleAutoplay={() =>
+            setSettings((current) => ({
+              ...current,
+              autoplayNext: !current.autoplayNext,
+            }))
+          }
         />
       ) : null}
 

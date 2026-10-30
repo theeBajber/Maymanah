@@ -9,9 +9,10 @@ import type {
   ReaderPage,
 } from "@/lib/qf/types";
 
+import type { ReaderMode } from "./reader-settings";
 import { SurahPicker } from "./SurahPicker";
 
-export type ReaderMode = "verse" | "reading";
+export type { ReaderMode } from "./reader-settings";
 
 interface ReaderHeaderProps {
   catalog: QuranCatalog | null;

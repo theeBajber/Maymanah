@@ -139,6 +139,7 @@ export function ReadingPage({
                     <button
                       key={word.key}
                       id={`verse-${word.verseKey.replace(":", "-")}`}
+                      data-verse-key={word.verseKey}
                       type="button"
                       onClick={() => onPlayVerse(word.verseKey)}
                       aria-label={`Play verse ${word.verseKey}`}
@@ -159,6 +160,7 @@ export function ReadingPage({
                   <button
                     key={word.key}
                     id={`verse-${word.verseKey.replace(":", "-")}`}
+                    data-verse-key={word.verseKey}
                     type="button"
                     onClick={() => onPlayVerse(word.verseKey)}
                     aria-label={`Play verse ${word.verseKey}`}
@@ -197,8 +199,8 @@ export function ReadingPage({
                   data-reading-word
                   aria-label={text}
                   style={displayGlyph && qcfFont ? { fontFamily: qcfFont } : undefined}
-                  className={`shrink-0 rounded-sm transition-colors ${
-                    highlighted ? "bg-secondary-muted text-secondary" : ""
+                  className={`shrink-0 transition-colors ${
+                    highlighted ? "text-secondary" : ""
                   }`}
                 >
                   {displayGlyph ? (

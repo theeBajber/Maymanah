@@ -215,6 +215,7 @@ export function VerseRow({
   return (
     <article
       id={`verse-${verse.key.replace(":", "-")}`}
+      data-verse-key={verse.key}
       className={`scroll-mt-36 border-b border-border/70 px-4 py-6 last:border-b-0 md:px-7 md:py-7 ${
         isPlaying ? "bg-bg-hover/70" : ""
       }`}
@@ -322,11 +323,7 @@ export function VerseRow({
               return (
                 <span key={word.key}>
                   <span
-                    className={
-                      highlighted
-                        ? "rounded-sm bg-secondary-muted text-secondary"
-                        : undefined
-                    }
+                    className={highlighted ? "text-secondary" : undefined}
                   >
                     {text}
                   </span>{" "}
@@ -349,9 +346,7 @@ export function VerseRow({
                   onBlur={() => setHoveredWord(null)}
                   aria-label={tooltip ? `${text}: ${tooltip}` : `Word ${text}`}
                   className={`relative inline-block rounded-md px-0.5 align-baseline transition-colors hover:bg-primary/10 focus-visible:bg-primary/10 ${
-                    highlighted
-                      ? "bg-secondary-muted text-secondary"
-                      : ""
+                    highlighted ? "text-secondary" : ""
                   }`}
                 >
                   {text}

@@ -122,6 +122,10 @@ export function AudioPlayer({
 }: AudioPlayerProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const progress =
+    duration > 0
+      ? Math.min(100, Math.max(0, (currentTime / duration) * 100))
+      : 0;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -147,24 +151,31 @@ export function AudioPlayer({
   return (
     <section
       aria-label="Audio player"
-      className="fixed right-0 bottom-16 left-0 z-30 border-t border-border bg-bg-elevated/95 shadow-float backdrop-blur-md md:bottom-0 md:left-16"
+      className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 z-30 border-t border-border bg-bg-elevated/95 shadow-float backdrop-blur-md md:bottom-0 md:left-16"
     >
       <div className="mx-auto w-full max-w-4xl px-4 py-3 md:px-6">
         <div className="flex items-center gap-3">
           <span className="w-14 shrink-0 font-mono text-[11px] font-semibold tabular-nums text-text-muted">
             {formatTime(currentTime)}
           </span>
-          <input
-            type="range"
-            min={0}
-            max={duration || 1}
-            step={0.1}
-            value={Math.min(currentTime, duration || 0)}
-            onChange={(event) => onSeek(Number(event.target.value))}
-            disabled={!duration}
-            aria-label="Audio progress"
-            className="h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-border accent-primary disabled:cursor-not-allowed"
-          />
+          <div className="relative h-1.5 min-w-0 flex-1">
+            <div
+              aria-hidden="true"
+              className="absolute inset-y-0 left-0 rounded-full bg-primary"
+              style={{ width: `${progress}%` }}
+            />
+            <input
+              type="range"
+              min={0}
+              max={duration || 1}
+              step={0.1}
+              value={Math.min(currentTime, duration || 0)}
+              onChange={(event) => onSeek(Number(event.target.value))}
+              disabled={!duration}
+              aria-label="Audio progress"
+              className="absolute inset-x-0 top-1/2 h-3 w-full -translate-y-1/2 cursor-pointer appearance-none bg-transparent disabled:cursor-not-allowed [&::-moz-range-thumb]:size-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+            />
+          </div>
           <span className="w-14 shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums text-text-muted">
             {formatTime(duration)}
           </span>
@@ -238,7 +249,7 @@ export function AudioPlayer({
           </PlayerButton>
 
           <PlayerButton
-            label="Previous verse"
+            label="Previous surah"
             disabled={!canPrevious}
             onClick={onPrevious}
           >
@@ -258,7 +269,7 @@ export function AudioPlayer({
             )}
           </button>
 
-          <PlayerButton label="Next verse" disabled={!canNext} onClick={onNext}>
+          <PlayerButton label="Next surah" disabled={!canNext} onClick={onNext}>
             <SkipForward className="size-4" />
           </PlayerButton>
 

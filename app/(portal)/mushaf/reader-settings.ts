@@ -1,5 +1,11 @@
 export const READER_SETTINGS_STORAGE_KEY = "maymanah.reader-settings.v1";
 
+export const READER_MODES = ["verse", "reading"] as const;
+
+export type ReaderMode = (typeof READER_MODES)[number];
+
+export const READER_PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const;
+
 export const READER_ARABIC_SIZES = [
   {
     value: "small",
@@ -30,6 +36,11 @@ export interface ReaderSettings {
   showTranslation: boolean;
   showWordTooltips: boolean;
   reciterId: number;
+  mode: ReaderMode;
+  playbackRate: number;
+  muted: boolean;
+  repeatVerse: boolean;
+  autoplayNext: boolean;
 }
 
 export const DEFAULT_READER_SETTINGS: ReaderSettings = {
@@ -37,6 +48,11 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   showTranslation: true,
   showWordTooltips: true,
   reciterId: 7,
+  mode: "verse",
+  playbackRate: 1,
+  muted: false,
+  repeatVerse: false,
+  autoplayNext: true,
 };
 
 export interface ReaderSettingsStorage {
@@ -46,6 +62,14 @@ export interface ReaderSettingsStorage {
 
 function isArabicSize(value: unknown): value is ReaderArabicSize {
   return READER_ARABIC_SIZES.some((size) => size.value === value);
+}
+
+function isReaderMode(value: unknown): value is ReaderMode {
+  return READER_MODES.some((mode) => mode === value);
+}
+
+function isPlaybackRate(value: unknown): value is number {
+  return READER_PLAYBACK_RATES.some((rate) => rate === value);
 }
 
 export function normalizeReaderSettings(value: unknown): ReaderSettings {
@@ -59,6 +83,7 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
     Number.isInteger(reciter) && reciter > 0 && reciter <= 9_999
       ? reciter
       : DEFAULT_READER_SETTINGS.reciterId;
+  const playbackRate = Number(record.playbackRate);
 
   return {
     arabicSize: isArabicSize(record.arabicSize)
@@ -73,6 +98,24 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
         ? record.showWordTooltips
         : DEFAULT_READER_SETTINGS.showWordTooltips,
     reciterId,
+    mode: isReaderMode(record.mode)
+      ? record.mode
+      : DEFAULT_READER_SETTINGS.mode,
+    playbackRate: isPlaybackRate(playbackRate)
+      ? playbackRate
+      : DEFAULT_READER_SETTINGS.playbackRate,
+    muted:
+      typeof record.muted === "boolean"
+        ? record.muted
+        : DEFAULT_READER_SETTINGS.muted,
+    repeatVerse:
+      typeof record.repeatVerse === "boolean"
+        ? record.repeatVerse
+        : DEFAULT_READER_SETTINGS.repeatVerse,
+    autoplayNext:
+      typeof record.autoplayNext === "boolean"
+        ? record.autoplayNext
+        : DEFAULT_READER_SETTINGS.autoplayNext,
   };
 }
 

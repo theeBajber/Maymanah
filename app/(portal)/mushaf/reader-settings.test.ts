@@ -28,12 +28,22 @@ describe("normalizeReaderSettings", () => {
         showTranslation: false,
         showWordTooltips: false,
         reciterId: 7,
+        mode: "reading",
+        playbackRate: 1.5,
+        muted: true,
+        repeatVerse: true,
+        autoplayNext: false,
       }),
     ).toEqual({
       arabicSize: "large",
       showTranslation: false,
       showWordTooltips: false,
       reciterId: 7,
+      mode: "reading",
+      playbackRate: 1.5,
+      muted: true,
+      repeatVerse: true,
+      autoplayNext: false,
     });
   });
 
@@ -44,6 +54,11 @@ describe("normalizeReaderSettings", () => {
         showTranslation: "yes",
         showWordTooltips: 0,
         reciterId: -4,
+        mode: "scroll",
+        playbackRate: 3,
+        muted: "no",
+        repeatVerse: 1,
+        autoplayNext: null,
       }),
     ).toEqual(DEFAULT_READER_SETTINGS);
   });
@@ -68,6 +83,11 @@ describe("loadReaderSettings", () => {
         showTranslation: false,
         showWordTooltips: true,
         reciterId: 3,
+        mode: "reading",
+        playbackRate: 2,
+        muted: true,
+        repeatVerse: false,
+        autoplayNext: false,
       }),
     });
 
@@ -76,6 +96,11 @@ describe("loadReaderSettings", () => {
       showTranslation: false,
       showWordTooltips: true,
       reciterId: 3,
+      mode: "reading",
+      playbackRate: 2,
+      muted: true,
+      repeatVerse: false,
+      autoplayNext: false,
     });
   });
 
@@ -98,6 +123,11 @@ describe("saveReaderSettings", () => {
         showTranslation: true,
         showWordTooltips: false,
         reciterId: 12,
+        mode: "reading",
+        playbackRate: 0.75,
+        muted: false,
+        repeatVerse: true,
+        autoplayNext: true,
       },
       storage,
     );
@@ -109,6 +139,11 @@ describe("saveReaderSettings", () => {
       showTranslation: true,
       showWordTooltips: false,
       reciterId: 12,
+      mode: "reading",
+      playbackRate: 0.75,
+      muted: false,
+      repeatVerse: true,
+      autoplayNext: true,
     });
   });
 
