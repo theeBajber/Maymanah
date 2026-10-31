@@ -1,6 +1,6 @@
 "use client";
 import { ArrowRight, Lock, Mail } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, useEffect, useCallback } from "react";
@@ -26,6 +26,20 @@ function LoginForm() {
     }
   }, [searchParams, toast]);
 
+  const redirectAfterSignIn = useCallback(async () => {
+    const requested = searchParams.get("callbackUrl");
+    const safeCallback =
+      requested && requested.startsWith("/") && !requested.startsWith("//")
+        ? requested
+        : "/dashboard";
+
+    // The role is only known after the session cookie is refreshed. Admins go
+    // straight to their own shell instead of flashing the student dashboard.
+    const session = await getSession();
+    router.push(session?.user?.role === "ADMIN" ? "/admin" : safeCallback);
+    router.refresh();
+  }, [router, searchParams]);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -49,9 +63,8 @@ function LoginForm() {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
-  }, [email, password, toast, router]);
+    await redirectAfterSignIn();
+  }, [email, password, toast, redirectAfterSignIn]);
 
   const handleOtpSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,9 +85,8 @@ function LoginForm() {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
-  }, [email, password, otpCode, toast, router]);
+    await redirectAfterSignIn();
+  }, [email, password, otpCode, toast, redirectAfterSignIn]);
 
   return (
     <AuthPanel heading={step === "otp" ? "Enter verification code" : "Continue your journey"}>

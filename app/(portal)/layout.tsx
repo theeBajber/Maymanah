@@ -25,6 +25,10 @@ export default async function PortalLayout({ children }: { children: React.React
   const user = await getCurrentUser(session);
   if (!user) redirect("/login");
 
+  // Administrators have their own shell; keeping them out of the student and
+  // teacher portal avoids two competing navigation systems.
+  if (user.role === "ADMIN") redirect("/admin");
+
   return (
     <div className="min-h-screen bg-bg-primary">
       <TopNavProvider>
