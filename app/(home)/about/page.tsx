@@ -12,8 +12,6 @@ import { AyahText } from "@/app/ui/ayah";
 import { GirihField } from "@/app/ui/girih";
 import { PageHeader } from "@/app/ui/page-header";
 import { Reveal } from "@/app/ui/reveal";
-import { Reviews } from "./Reviews";
-
 export const metadata: Metadata = {
   title: "About Us",
   description:
@@ -38,9 +36,6 @@ export default function About() {
       <WhyItsFree />
       <HowItWorks />
       <Excellence />
-      <Reveal className="w-full">
-        <Reviews />
-      </Reveal>
     </main>
   );
 }

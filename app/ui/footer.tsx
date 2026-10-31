@@ -12,7 +12,6 @@ const platformLinks = [
 
 const communityLinks = [
   { name: "Donate", href: "/donate" },
-  { name: "Success Stories", href: "/stories" },
   { name: "Contact Us", href: "/contact" },
 ];
 
