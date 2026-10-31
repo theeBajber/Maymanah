@@ -457,12 +457,6 @@ export function MushafView({ initialPage = 1 }: { initialPage?: number }) {
         ?.page.pageNumber,
     [activeReadingPages],
   );
-  const readingPagesLoading = Boolean(
-    readerMode === "reading" &&
-      chapterId &&
-      readingChapterId !== chapterId &&
-      readingError?.chapterId !== chapterId,
-  );
   const readingPageError =
     readingError && readingError.chapterId === chapterId
       ? readingError.message
