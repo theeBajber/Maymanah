@@ -6,6 +6,7 @@ import {
   faBookOpen,
   faChalkboardUser,
   faUsers,
+  faReceipt,
   faAward,
   faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
@@ -16,6 +17,7 @@ const links = [
   { name: "Courses", href: "/admin/courses", icon: faBookOpen },
   { name: "Teachers", href: "/admin/teachers", icon: faChalkboardUser },
   { name: "Users", href: "/admin/users", icon: faUsers },
+  { name: "Donations", href: "/admin/donations", icon: faReceipt },
   { name: "Certificates", href: "/admin/certificates", icon: faAward },
 ];
 

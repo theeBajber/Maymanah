@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { CourseCategory, UserRole } from "@prisma/client";
+import type { CourseCategory, Prisma, UserRole } from "@prisma/client";
 
 import { auth } from "./auth";
 import { recentAuditEvents, logAuditEvent } from "./audit";
@@ -33,6 +33,74 @@ export async function requireAdmin() {
     throw new UnauthorizedError();
   }
   return session;
+}
+
+// ─── Donations ───
+
+export type AdminDonationStatusFilter = "ALL" | "COMPLETED" | "PENDING" | "FAILED";
+export type AdminDonationProviderFilter = "ALL" | "mpesa" | "stripe";
+
+export async function getAdminDonations({
+  page = 1,
+  pageSize = 20,
+  status = "ALL",
+  provider = "ALL",
+  search = "",
+}: {
+  page?: number;
+  pageSize?: number;
+  status?: AdminDonationStatusFilter;
+  provider?: AdminDonationProviderFilter;
+  search?: string;
+}) {
+  await requireAdmin();
+
+  const safePage = Math.max(1, Math.floor(page) || 1);
+  const safePageSize = Math.min(100, Math.max(1, Math.floor(pageSize) || 20));
+  const query = search.trim();
+
+  const where: Prisma.DonationWhereInput = {
+    ...(status !== "ALL" ? { status } : {}),
+    ...(provider !== "ALL" ? { provider } : {}),
+    ...(query
+      ? {
+          OR: [
+            { reference: { contains: query, mode: "insensitive" } },
+            {
+              donor: {
+                is: {
+                  OR: [
+                    { name: { contains: query, mode: "insensitive" } },
+                    { email: { contains: query, mode: "insensitive" } },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [donations, total] = await Promise.all([
+    db.donation.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (safePage - 1) * safePageSize,
+      take: safePageSize,
+      include: {
+        donor: { select: { id: true, name: true, email: true } },
+      },
+    }),
+    db.donation.count({ where }),
+  ]);
+
+  return {
+    donations,
+    total,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+  };
 }
 
 // ─── Courses ───
@@ -325,7 +393,7 @@ export async function getAnalytics() {
     activeMentorships,
     completedMentorships,
     totalDonations,
-    donationRevenue,
+    donationRevenueByCurrency,
     pendingTeachers,
     newUsers30d,
     newEnrollments30d,
@@ -345,7 +413,11 @@ export async function getAnalytics() {
     db.mentorship.count({ where: { status: "ACTIVE" } }),
     db.mentorship.count({ where: { status: "COMPLETED" } }),
     db.donation.count({ where: { status: "COMPLETED" } }),
-    db.donation.aggregate({ where: { status: "COMPLETED" }, _sum: { amount: true } }),
+    db.donation.groupBy({
+      by: ["currency"],
+      where: { status: "COMPLETED" },
+      _sum: { amount: true },
+    }),
     db.ustadhProfile.count({ where: { isApproved: false, rejectedAt: null } }),
     db.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     db.enrollment.count({ where: { enrolledAt: { gte: thirtyDaysAgo } } }),
@@ -398,7 +470,10 @@ export async function getAnalytics() {
       activeMentorships,
       completedMentorships,
       totalDonations,
-      donationRevenue: donationRevenue._sum.amount ?? 0,
+      donationRevenue: donationRevenueByCurrency.map((entry) => ({
+        currency: entry.currency,
+        amount: entry._sum.amount ?? 0,
+      })),
       pendingTeachers,
       newUsers30d,
       newEnrollments30d,

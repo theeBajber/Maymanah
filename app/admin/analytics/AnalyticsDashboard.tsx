@@ -49,7 +49,7 @@ type AnalyticsData = {
     activeMentorships: number;
     completedMentorships: number;
     totalDonations: number;
-    donationRevenue: number;
+    donationRevenue: { currency: string; amount: number }[];
     pendingTeachers: number;
     newUsers30d: number;
     newEnrollments30d: number;
@@ -99,6 +99,20 @@ function QandeelAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: 
   );
 }
 
+function formatRevenue(entries: { currency: string; amount: number }[]) {
+  if (entries.length === 0) return "—";
+
+  return entries
+    .sort((a, b) => a.currency.localeCompare(b.currency))
+    .map(
+      ({ currency, amount }) =>
+        `${currency} ${new Intl.NumberFormat("en-KE", {
+          maximumFractionDigits: 2,
+        }).format(amount)}`,
+    )
+    .join(" · ");
+}
+
 export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
   const { overview, trends, courses, exams, recentAuditLog } = data;
 
@@ -111,10 +125,11 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
     { label: "Active Mentorships", value: overview.activeMentorships, icon: Activity, color: "text-night-success", href: "/admin/teachers" },
     { label: "Pending Teachers", value: overview.pendingTeachers, icon: Clock, color: "text-night-warning", href: "/admin/teachers" },
     {
-      label: "Revenue",
-      value: `$${overview.donationRevenue.toFixed(0)}`,
+      label: "Donations",
+      value: formatRevenue(overview.donationRevenue),
       icon: DollarSign,
       color: "text-night-success",
+      href: "/admin/donations",
     },
   ];
 

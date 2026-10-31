@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, CreditCard } from "lucide-react";
+import { ArrowRight, ChartColumn, CreditCard, Loader2 } from "lucide-react";
 import { useToast } from "@/app/ui/toast";
 import {
   KES_PRESETS,
@@ -61,6 +61,12 @@ function DonatePageContent() {
   const { toast } = useToast();
   const { data: session } = useSession();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activeReferenceRef = useRef<string | null>(null);
+  const notifiedReferenceRef = useRef<string | null>(null);
+  const successToastShownRef = useRef(false);
+  const canceledToastShownRef = useRef(false);
+  const submittingRef = useRef(false);
+  const phoneInputRef = useRef<HTMLInputElement | null>(null);
 
   const [currency, setCurrency] = useState<DonationCurrency>("USD");
   const [amount, setAmount] = useState<number>(USD_PRESETS[0]);
@@ -82,29 +88,47 @@ function DonatePageContent() {
   }, []);
 
   useEffect(() => {
-    if (success) {
-      toast({
-        variant: "success",
-        title: "Thank you for your donation!",
-        description:
-          "Your payment was successful. May Allah accept your sadaqah and reward you abundantly.",
-        duration: 7000,
-      });
-      router.replace("/donate", { scroll: false });
+    if (!success) {
+      successToastShownRef.current = false;
+      return;
     }
+
+    if (successToastShownRef.current) return;
+    successToastShownRef.current = true;
+
+    toast({
+      variant: "success",
+      title: "Thank you for your donation!",
+      description:
+        "Your payment was successful. May Allah accept your sadaqah and reward you abundantly.",
+      duration: 7000,
+    });
+    router.replace("/donate", { scroll: false });
   }, [success, toast, router]);
 
   useEffect(() => {
-    if (canceled && !success) {
-      toast({
-        variant: "warning",
-        title: "Payment canceled",
-        description:
-          "No charge was made. You can try again whenever you're ready.",
-      });
-      router.replace("/donate", { scroll: false });
+    if (!canceled || success) {
+      canceledToastShownRef.current = false;
+      return;
     }
+
+    if (canceledToastShownRef.current) return;
+    canceledToastShownRef.current = true;
+
+    toast({
+      variant: "warning",
+      title: "Payment canceled",
+      description:
+        "No charge was made. You can try again whenever you're ready.",
+    });
+    router.replace("/donate", { scroll: false });
   }, [canceled, success, toast, router]);
+
+  useEffect(() => {
+    if (showMpesaPhone) {
+      phoneInputRef.current?.focus();
+    }
+  }, [showMpesaPhone]);
 
   const presets = currency === "USD" ? USD_PRESETS : KES_PRESETS;
   const currencySymbol = currency === "USD" ? "$" : "KES ";
@@ -114,13 +138,17 @@ function DonatePageContent() {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
+    activeReferenceRef.current = null;
   }
 
   function pollMpesaStatus(reference: string) {
     stopMpesaPolling();
+    activeReferenceRef.current = reference;
 
     let attempts = 0;
     pollRef.current = setInterval(async () => {
+      if (activeReferenceRef.current !== reference) return;
+
       attempts += 1;
 
       try {
@@ -129,7 +157,16 @@ function DonatePageContent() {
         );
         const data = await res.json();
 
+        // A later donation may have started while this request was in flight.
+        if (activeReferenceRef.current !== reference) return;
+
         if (data.status === "COMPLETED") {
+          if (notifiedReferenceRef.current === reference) {
+            stopMpesaPolling();
+            return;
+          }
+
+          notifiedReferenceRef.current = reference;
           stopMpesaPolling();
           toast({
             variant: "success",
@@ -142,6 +179,12 @@ function DonatePageContent() {
         }
 
         if (data.status === "FAILED") {
+          if (notifiedReferenceRef.current === reference) {
+            stopMpesaPolling();
+            return;
+          }
+
+          notifiedReferenceRef.current = reference;
           stopMpesaPolling();
           toast({
             variant: "error",
@@ -196,6 +239,10 @@ function DonatePageContent() {
       return;
     }
 
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
+    notifiedReferenceRef.current = null;
     stopMpesaPolling();
     setLoading("mpesa");
 
@@ -235,6 +282,7 @@ function DonatePageContent() {
         description: "Please check your connection and try again.",
       });
     } finally {
+      submittingRef.current = false;
       setLoading(null);
     }
   }
@@ -344,31 +392,49 @@ function DonatePageContent() {
         </div>
 
         {(showMpesaPhone || phone) && (
-          <div className="relative flex flex-col gap-2">
+          <form
+            className="relative flex flex-col gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleMpesaDonate();
+            }}
+          >
             <label
               htmlFor="mpesa-phone"
               className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent"
             >
               M-Pesa phone number
             </label>
-            <div className="flex h-12 items-center rounded-[10px] border border-ivory/10 bg-ivory/[0.04] px-4 transition-all duration-300 focus-within:border-accent/60 focus-within:shadow-[0_0_0_3px_rgb(var(--accent-rgb)_/_0.12)]">
+            <div className="flex h-12 items-center rounded-[10px] border border-ivory/10 bg-ivory/[0.04] pl-4 pr-1.5 transition-all duration-300 focus-within:border-accent/60 focus-within:shadow-[0_0_0_3px_rgb(var(--accent-rgb)_/_0.12)]">
               <input
+                ref={phoneInputRef}
                 id="mpesa-phone"
                 type="tel"
                 inputMode="tel"
+                autoComplete="tel"
                 placeholder="2547XXXXXXXX"
                 value={phone}
                 onChange={(e) => {
                   setPhone(e.target.value);
                   setShowMpesaPhone(true);
                 }}
-                className="w-full bg-transparent text-[15px] text-ivory placeholder:text-sage/40 focus:outline-none"
+                className="w-full min-w-0 bg-transparent text-[15px] text-ivory placeholder:text-sage/40 focus:outline-none"
               />
+              <button
+                type="submit"
+                disabled={loading !== null}
+                aria-label="Send M-Pesa payment request"
+                aria-busy={loading === "mpesa"}
+                className="group/arrow m-2 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-text-inverse transition-all duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-layl active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {loading === "mpesa" ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="size-4 transition-transform duration-200 motion-safe:group-hover/arrow:translate-x-0.5" />
+                )}
+              </button>
             </div>
-            <p className="text-[13px] text-sage/70">
-              Required for M-Pesa. Use Safaricom format: 2547XXXXXXXX
-            </p>
-          </div>
+          </form>
         )}
 
         <label className="relative flex cursor-pointer items-start gap-3">
@@ -413,10 +479,7 @@ function DonatePageContent() {
           <button
             type="button"
             disabled={loading !== null}
-            onClick={() => {
-              setShowMpesaPhone(true);
-              handleMpesaDonate();
-            }}
+            onClick={() => setShowMpesaPhone(true)}
             className="flex h-12 w-full items-center justify-center rounded-[10px] bg-[#0C8A1B] transition-colors hover:bg-[#0A7517] active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
           >
             <Image
