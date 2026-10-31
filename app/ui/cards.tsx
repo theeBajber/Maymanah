@@ -16,12 +16,14 @@ export function CourseCard({
   lessons,
   href,
   image,
+  badge,
 }: {
   title: string;
   progress: number;
   lessons: number;
   href: string;
   image?: string | null;
+  badge?: string;
 }) {
   const pct = clampPercent(progress);
 
@@ -38,6 +40,11 @@ export function CourseCard({
             <span className={`${amiri.className} text-4xl text-primary/40`}>ٱقْرَأْ</span>
           </div>
         )}
+        {badge ? (
+          <span className="absolute right-2 top-2 rounded-full bg-warning-muted px-2.5 py-1 text-[11px] font-semibold text-warning shadow-sm">
+            {badge}
+          </span>
+        ) : null}
       </div>
       <div className="flex flex-col gap-2 p-4">
         <p className="truncate text-sm font-semibold text-text-primary">{title}</p>

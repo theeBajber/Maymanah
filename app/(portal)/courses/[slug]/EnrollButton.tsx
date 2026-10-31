@@ -13,7 +13,15 @@ import { useToast } from "@/app/ui/toast";
  * history rather than starting over. Leaving keeps lesson progress, so
  * rejoining later resumes.
  */
-export function EnrollButton({ slug, isEnrolled }: { slug: string; isEnrolled: boolean }) {
+export function EnrollButton({
+  slug,
+  isEnrolled,
+  enrollmentOpen,
+}: {
+  slug: string;
+  isEnrolled: boolean;
+  enrollmentOpen: boolean;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [enrolled, setEnrolled] = useState(isEnrolled);
@@ -55,8 +63,21 @@ export function EnrollButton({ slug, isEnrolled }: { slug: string; isEnrolled: b
     );
   }
 
+  function handleEnroll() {
+    if (!enrollmentOpen) {
+      toast({
+        title: "Coming soon",
+        description: "Enrolment for this course has not opened yet.",
+        variant: "info",
+      });
+      return;
+    }
+
+    void act("enroll");
+  }
+
   return (
-    <Button variant="primary" size="lg" loading={loading} onClick={() => act("enroll")} className="w-full sm:w-auto">
+    <Button variant="primary" size="lg" loading={loading} onClick={handleEnroll} className="w-full sm:w-auto">
       Enrol now — free
     </Button>
   );

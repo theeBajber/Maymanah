@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { CourseCard } from "@/app/ui/cards";
@@ -17,6 +16,7 @@ interface CourseItem {
   lessonCount: number;
   enrolled: boolean;
   progress: number;
+  enrollmentOpen: boolean;
 }
 
 /**
@@ -71,7 +71,9 @@ export function CoursesView() {
   }
 
   const enrolled = filtered.filter((course) => course.enrolled);
-  const available = filtered.filter((course) => !course.enrolled);
+  const available = filtered
+    .filter((course) => !course.enrolled)
+    .sort((a, b) => Number(b.enrollmentOpen) - Number(a.enrollmentOpen));
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-8">
@@ -129,18 +131,12 @@ export function CoursesView() {
                 lessons={course.lessonCount}
                 href={`/courses/${course.slug}`}
                 image={course.image}
+                badge={course.enrollmentOpen ? undefined : "Coming soon"}
               />
             ))}
           </div>
         )}
       </section>
-
-      <p className="text-center text-sm text-text-secondary">
-        Looking for a teacher rather than a course?{" "}
-        <Link href="/dashboard" className="font-semibold text-primary hover:underline">
-          Go to your dashboard
-        </Link>
-      </p>
     </div>
   );
 }

@@ -42,7 +42,14 @@ export default async function CourseDetailPage({
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
       <GlassCard grade="lantern" mashrabiya className="p-6 md:p-8">
         <div className="flex flex-col gap-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage">{course.category}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage">{course.category}</p>
+            {!course.enrollmentOpen ? (
+              <span className="rounded-full bg-warning-muted px-2.5 py-1 text-[11px] font-semibold text-warning">
+                Coming soon
+              </span>
+            ) : null}
+          </div>
           <h1 className="text-3xl font-bold tracking-tight text-text-primary md:text-4xl">{course.title}</h1>
           {course.description ? (
             <p className="max-w-2xl text-sm leading-relaxed text-text-secondary">{course.description}</p>
@@ -61,7 +68,11 @@ export default async function CourseDetailPage({
             ) : null}
           </div>
           <div className="mt-2">
-            <EnrollButton slug={course.slug} isEnrolled={course.enrolled} />
+            <EnrollButton
+              slug={course.slug}
+              isEnrolled={course.enrolled}
+              enrollmentOpen={course.enrollmentOpen}
+            />
           </div>
         </div>
       </GlassCard>
@@ -102,7 +113,11 @@ export default async function CourseDetailPage({
           </Panel>
         )}
         {!course.enrolled && course.lessons.length > 0 ? (
-          <p className="text-sm text-text-secondary">Enrol above to read the lessons and track your progress.</p>
+          <p className="text-sm text-text-secondary">
+            {course.enrollmentOpen
+              ? "Enrol above to read the lessons and track your progress."
+              : "This course is coming soon. Enrolment has not opened yet."}
+          </p>
         ) : null}
       </section>
 

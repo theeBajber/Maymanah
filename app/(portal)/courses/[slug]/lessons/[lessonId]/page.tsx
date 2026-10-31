@@ -28,7 +28,7 @@ export default async function LessonPage({
   const { slug, lessonId } = await params;
 
   const lesson = await db.lesson.findFirst({
-    where: { id: lessonId, isPublished: true, course: { slug, isPublished: true, isActive: true } },
+    where: { id: lessonId, isPublished: true, course: { slug, isPublished: true } },
     select: {
       id: true,
       title: true,

@@ -269,36 +269,42 @@ export function CourseForm({ course }: { course?: CourseData }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.isPublished}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    isPublished: e.target.checked,
-                  }))
-                }
-                className="size-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-primary">Published</span>
-            </label>
+          <div className="space-y-2">
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isPublished}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      isPublished: e.target.checked,
+                    }))
+                  }
+                  className="size-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-text-primary">Published</span>
+              </label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    isActive: e.target.checked,
-                  }))
-                }
-                className="size-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-primary">Active</span>
-            </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      isActive: e.target.checked,
+                    }))
+                  }
+                  className="size-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-text-primary">Enrolment open</span>
+              </label>
+            </div>
+            <p className="text-xs text-text-muted">
+              Unpublished courses stay hidden. When enrolment is closed, a published course appears
+              as coming soon; existing students keep access.
+            </p>
           </div>
         </div>
 

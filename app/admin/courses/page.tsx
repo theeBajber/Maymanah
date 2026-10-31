@@ -97,9 +97,9 @@ export default async function AdminCoursesPage() {
                     )}
                     {course.isPublished ? "Published" : "Draft"}
                   </span>
-                  {!course.isActive && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-danger-muted text-danger ml-1.5">
-                      Inactive
+                  {course.isPublished && !course.isActive && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-warning-muted text-warning ml-1.5">
+                      Coming soon
                     </span>
                   )}
                 </td>

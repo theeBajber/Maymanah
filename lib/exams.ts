@@ -76,11 +76,12 @@ export async function submitExam(
       totalMarks: true,
       startTime: true,
       endTime: true,
+      course: { select: { isPublished: true } },
       questions: { select: { id: true, questionType: true, options: true, correctAnswer: true, marks: true } },
     },
   });
 
-  if (!exam || !exam.isPublished) return { ok: false, reason: "missing" };
+  if (!exam || !exam.isPublished || !exam.course.isPublished) return { ok: false, reason: "missing" };
 
   const now = Date.now();
   if (exam.startTime && exam.startTime.getTime() > now) return { ok: false, reason: "closed" };

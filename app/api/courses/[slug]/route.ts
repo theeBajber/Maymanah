@@ -66,7 +66,10 @@ export async function POST(
       return NextResponse.json({ error: "That course could not be found" }, { status: 404 });
     }
     if (result.reason === "inactive") {
-      return NextResponse.json({ error: "That course is not currently offered" }, { status: 410 });
+      return NextResponse.json(
+        { error: "This course is coming soon. Enrolment has not opened yet." },
+        { status: 410 },
+      );
     }
     if (result.reason === "key_required") {
       return NextResponse.json({ error: "That course needs an enrolment key" }, { status: 403 });

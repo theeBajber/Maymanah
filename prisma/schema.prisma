@@ -416,9 +416,10 @@ enum SubmissionStatus {
 /// A course: an ordered set of lessons, optionally examined and reviewed.
 ///
 /// Visibility is two switches, not one. Published means students can see it;
-/// active means it is currently taught. An unfinished course stays unpublished
-/// while it is written, and a retired one is deactivated without deleting the
-/// records of everyone who took it.
+/// active means enrolment is open. An unfinished course stays unpublished
+/// while it is written. A published but inactive course is a coming-soon
+/// preview: students can read the overview but cannot enrol, while existing
+/// enrolments keep their access.
 model Course {
   id            String         @id @default(cuid())
   title         String

@@ -23,7 +23,7 @@ export default async function FinalExamPage({
 
   const { slug } = await params;
   const course = await db.course.findFirst({
-    where: { slug, isPublished: true, isActive: true },
+    where: { slug, isPublished: true },
     select: { id: true, title: true, slug: true },
   });
   if (!course) notFound();

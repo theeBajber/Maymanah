@@ -20,13 +20,14 @@ export interface CourseSummary {
   lessonCount: number;
   enrolled: boolean;
   progress: number;
+  enrollmentOpen: boolean;
 }
 
 export async function listCourses(session: SessionLike | null): Promise<CourseSummary[]> {
   const user = await getCurrentUser(session);
 
   const courses = await db.course.findMany({
-    where: { isPublished: true, isActive: true },
+    where: { isPublished: true },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -35,6 +36,7 @@ export async function listCourses(session: SessionLike | null): Promise<CourseSu
       description: true,
       category: true,
       image: true,
+      isActive: true,
       _count: { select: { lessons: { where: { isPublished: true } } } },
       enrollments: user ? { where: { userId: user.id }, select: { progress: true } } : false,
     },
@@ -50,6 +52,7 @@ export async function listCourses(session: SessionLike | null): Promise<CourseSu
     lessonCount: course._count.lessons,
     enrolled: course.enrollments.length > 0,
     progress: course.enrollments[0]?.progress ?? 0,
+    enrollmentOpen: course.isActive,
   }));
 }
 
@@ -87,7 +90,7 @@ export async function getCourseDetail(
     },
   });
 
-  if (!course || !course.isPublished || !course.isActive) return null;
+  if (!course || !course.isPublished) return null;
 
   const completed = user
     ? await db.lessonProgress.findMany({
@@ -116,6 +119,7 @@ export async function getCourseDetail(
     lessonCount: course.lessons.length,
     enrolled: course.enrollments.length > 0,
     progress: course.enrollments[0]?.progress ?? 0,
+    enrollmentOpen: course.isActive,
     lessons: course.lessons.map((lesson) => ({ ...lesson, completed: done.has(lesson.id) })),
     averageRating: ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null,
     reviewCount: ratings.length,
@@ -192,9 +196,9 @@ export async function completeLesson(
 
   const lesson = await db.lesson.findUnique({
     where: { id: lessonId },
-    select: { id: true, courseId: true, isPublished: true },
+    select: { id: true, courseId: true, isPublished: true, course: { select: { isPublished: true } } },
   });
-  if (!lesson || !lesson.isPublished) return { ok: false, reason: "missing" };
+  if (!lesson || !lesson.isPublished || !lesson.course.isPublished) return { ok: false, reason: "missing" };
 
   const enrollment = await db.enrollment.findUnique({
     where: { userId_courseId: { userId: user.id, courseId: lesson.courseId } },
