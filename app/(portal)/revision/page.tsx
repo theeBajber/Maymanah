@@ -8,7 +8,7 @@ export default function RevisionComingSoon() {
     <div className="relative mx-auto flex min-h-[60vh] w-full max-w-3xl flex-col items-center justify-center gap-8 px-6 py-20">
       <div
         aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(90%_55%_at_50%_40%,#0E1B23_0%,transparent_100%)]"
+        className="absolute inset-0 bg-[radial-gradient(90%_55%_at_50%_40%,var(--bg-secondary)_0%,transparent_100%)]"
       />
       <GirihField
         className="absolute inset-0"
@@ -33,7 +33,7 @@ export default function RevisionComingSoon() {
 
           <div className="relative flex flex-col items-center gap-5">
             <span
-              className={`${amiri.className} text-2xl leading-relaxed text-accent/70`}
+              className={`${amiri.className} text-2xl leading-relaxed text-accent`}
               lang="ar"
               dir="rtl"
             >
@@ -42,26 +42,26 @@ export default function RevisionComingSoon() {
 
             <div className="flex flex-col items-center gap-2 text-center">
               <h1
-                className={`${elMessiri.className} text-4xl font-semibold text-ivory md:text-5xl`}
+                className={`${elMessiri.className} text-4xl font-semibold text-text-primary md:text-5xl`}
               >
                 Quran Revision
               </h1>
               <div className="mx-auto h-px w-16 bg-accent/40" />
-              <p className="max-w-md text-balance leading-relaxed text-sage/80 md:text-lg">
+              <p className="max-w-md text-balance leading-relaxed text-text-secondary md:text-lg">
                 AI-powered memorization practice is being prepared. Check back
                 soon, and may Allah accept your efforts.
               </p>
             </div>
           </div>
 
-          <div className="relative flex items-center justify-center gap-3 text-[13px] text-sage/60">
+          <div className="relative flex items-center justify-center gap-3 text-[13px] text-text-secondary">
             <span className="size-1 rounded-full bg-accent/40" />
             <span>Coming soon</span>
             <span className="size-1 rounded-full bg-accent/40" />
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-sage/50">
+        <div className="flex items-center gap-2 text-xs text-text-secondary">
           <svg
             width="16"
             height="16"
@@ -71,7 +71,7 @@ export default function RevisionComingSoon() {
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-accent/50"
+            className="text-accent"
           >
             <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
           </svg>
