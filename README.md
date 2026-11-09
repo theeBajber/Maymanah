@@ -32,112 +32,265 @@ and scheduling and payments handled by the platform.
 - **Volunteer teachers (Ustadh)** — qualified teachers who want students without
   having to run their own admin.
 - **Supporting donors** — funding the platform so students pay nothing.
+- **Administrators** — reviewing teachers, managing courses, and keeping the
+  platform healthy.
 
 ---
 
 ## Current status
 
-This is an early build. **The landing page and design foundation are complete;
-the application backend is not yet implemented.**
+**Active development.** The public site and the core student, teacher and admin
+flows are implemented against a real database, but the platform is **not
+production-complete**. Some features are deliberately partial or placeholders,
+and deployment hardening is still outstanding.
 
-| Area | Status |
-| --- | --- |
-| Landing page (hero, principles, donation CTA) | Done |
-| Automatic dark/light theme | Done |
-| Responsive navigation and footer | Done |
-| Authentication (register/login) | Not built — route group scaffolded only |
-| Teacher/student portal | Not built — route group scaffolded only |
-| Video sessions, courses, exams, payments | Not built |
+| Area | Status | Notes |
+| --- | --- | --- |
+| Public marketing site | Implemented, still being refined | Home, about, curriculum, teach, contact, donate, privacy and terms |
+| Authentication and account security | Implemented, hardening ongoing | Registration, sign-in, email verification, password reset, optional two-factor authentication, session/device management |
+| Student portal | Implemented, still expanding | Dashboard, courses, lessons, assessments, certificates, Mushaf reader, messages, sessions and reports |
+| Teacher portal | Implemented, still expanding | Dashboard, students, availability, session plans, notes, rescheduling and pairing |
+| Admin portal | Implemented, still expanding | Teachers, users, courses, lessons, exams, donations, certificates, analytics and audit log |
+| Scheduling and live sessions | Implemented with external dependency | LiveKit credentials are required for video |
+| Donations | Partial | M-Pesa is wired up; card and PayPal are still marked coming soon |
+| Revision / AI tutor | Placeholder | The route exists, but the feature is not built |
+| Production deployment | Not finalised | Hosting, backups, monitoring and operational runbooks still need work |
 
-The route groups `(auth)`, `(home)` and `(portal)` are already in place, so the
-structure for those areas is decided and ready to be filled in.
+This is not a finished product. Treat the status table as a map of what exists
+in the codebase, not as a release checklist that has been signed off.
 
 ## Tech stack
 
-- **Next.js 16.2.4** — App Router, Turbopack
+- **Next.js 16.2.4** — App Router, server components, server actions and route handlers
 - **React 19.2.4**
 - **TypeScript 5**
 - **Tailwind CSS v4** — design tokens defined as CSS variables
+- **Prisma 7** with the Neon serverless adapter
+- **NextAuth / Auth.js 5** — JWT sessions and credentials
+- **Neon PostgreSQL**
+- **LiveKit** — one-to-one video sessions
+- **Vercel Blob** — course images and certificate uploads
+- **Nodemailer** — transactional email
+- **M-Pesa Daraja** — donation payments
+- **Quran Foundation Content API** — Mushaf pages, translations and audio
+- **Vitest** and **Playwright** — unit and end-to-end tests
 - **Font Awesome** and **Lucide** — iconography
 - **pnpm** — package manager
 
 ## Getting started
 
-Requires Node.js 20 or newer and pnpm.
+Requires Node.js **20.19 or newer**, pnpm, and a PostgreSQL database. Neon is
+the expected provider, but any PostgreSQL database supported by Prisma should
+work.
 
 ```bash
 git clone https://github.com/theeBajber/Maymanah.git
 cd Maymanah
 pnpm install
+cp .env.example .env
+pnpm exec prisma migrate deploy
+pnpm db:seed
 pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
+`pnpm install` runs `prisma generate` automatically. The seed script is optional
+but useful for local catalogue data.
+
 ### Environment variables
 
-**None required at this stage.** The current code is frontend-only, so you can
-clone and run it without configuring a database, payment provider or any
-external service. A `.env.example` will be added when the backend lands.
+`.env.example` is the starting point, but some features validate their own
+credentials when first used, so not every integration variable is listed there.
+
+The application cannot start without:
+
+```bash
+DATABASE_URL=       # pooled Neon connection used at runtime
+DIRECT_URL=         # direct Neon connection used by Prisma migrations
+AUTH_SECRET=        # at least 32 characters; generate with `openssl rand -base64 32`
+APP_URL=http://localhost:3000
+```
+
+Optional integration variables include:
+
+- `SMTP_*` — transactional email. Without them, mail is written to the server log.
+- `LIVEKIT_*` — live video sessions.
+- `BLOB_READ_WRITE_TOKEN` — course image and certificate uploads.
+- `QF_*` — Quran Foundation catalog, pages, translations and audio.
+- `MPESA_*` — M-Pesa donations and callbacks.
+- `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` — AI-assisted book import.
+- `CRON_SECRET` — protected reminder endpoint.
+- `TEST_MODE=true` — relaxes rate limits and diverts mail for the end-to-end suite.
+
+### Database
+
+The schema lives in `prisma/schema.prisma`, with migrations under
+`prisma/migrations/`.
+
+```bash
+pnpm exec prisma migrate dev       # create and apply a migration during development
+pnpm exec prisma migrate deploy    # apply existing migrations
+pnpm db:seed                       # seed the course catalogue
+pnpm exec prisma studio            # inspect data
+```
 
 ### Available scripts
 
 ```bash
-pnpm dev     # start the dev server
-pnpm build   # production build
-pnpm start   # run the production build
-pnpm lint    # run ESLint
+pnpm dev          # start the development server
+pnpm build        # create a production build
+pnpm start        # run the production build
+pnpm lint         # run ESLint
+pnpm test         # run Vitest unit tests once
+pnpm test:watch   # run Vitest in watch mode
+pnpm test:e2e     # run the Playwright end-to-end suite
+pnpm test:e2e:ui  # run Playwright with its UI
+pnpm db:seed      # seed courses
+pnpm mpesa:test   # run the M-Pesa STK diagnostic script
 ```
+
+TypeScript can be checked with `pnpm exec tsc --noEmit`.
 
 ---
 
-## Features implemented
+## What is implemented
 
-- **Landing page** — hero with call-to-action, core principles section, and a
-  donation CTA
-- **Automatic theme switching** — light and dark palettes driven by
-  `prefers-color-scheme`, no toggle or flash on load
-- **Design system foundation** — colour, spacing and typography tokens
-  centralised in `app/globals.css`
-- **Arabic typography** — Amiri, loaded through `next/font`
-- **Shared navigation** — desktop bar and mobile drawer
-- **Route groups** — `(auth)`, `(home)` and `(portal)` separation ready for
-  upcoming features
+### Public site
+
+- Landing page, about page, curriculum, teach, contact and legal pages
+- Donation page with M-Pesa STK push and payment-status polling
+- Responsive navigation, footer, and automatic light/dark theming
+- SEO metadata, sitemap, robots rules, Open Graph and Twitter images
+- Web app manifest and generated icons
+
+### Authentication and account
+
+- Credentials registration and sign-in
+- Email verification and resend flow
+- Forgot-password and reset-password flow
+- Optional two-factor authentication with one-time codes
+- Login session/device listing and revocation
+- Profile, avatar, gender, timezone and preference settings
+- Password change and account deletion
+- Role-aware routing for students, teachers and admins
+- Rate limiting and audit logging for sensitive operations
+
+### Student experience
+
+- Student dashboard with upcoming sessions, leaderboard and empty states
+- Course catalogue and course detail pages
+- Enrolment, lesson reading, lesson progress and course progress
+- Lesson quizzes and final exams
+- Course reviews
+- Certificates and public certificate verification
+- Bookmarks and notifications
+- Messages with teachers
+- Session list, session detail, notes and plans
+- Availability and rescheduling flows
+- Report submission
+- Mushaf reader with Quran Foundation pages, translations, audio, bookmarks,
+  reader settings and locally persisted reading position
+- Revision route currently exists as a placeholder
+
+### Teacher experience
+
+- Teacher dashboard
+- Student list and student detail pages
+- Availability management
+- Pairing with students
+- Session plans, notes and rescheduling
+- Teacher notes for students
+- Settings for teaching preferences
+
+### Admin experience
+
+- Admin dashboard and analytics
+- Teacher approval, rejection and detail review
+- User search, detail view and role management
+- Course, lesson, quiz and exam management
+- Lesson reordering and AI-assisted book import
+- Course image uploads
+- Donations ledger with status/provider filters, search and pagination
+- Certificate management
+- Audit log visibility
+
+### Scheduling, messaging and video
+
+- Mentorship pairing and re-pairing
+- Recurring availability slots
+- Appointment creation, rescheduling and daily session flows
+- Session plans and private notes
+- LiveKit video rooms
+- In-app messaging and notifications
+- Reminder cron endpoint
+
+### Donations and email
+
+- M-Pesa Daraja STK push, callback handling and status polling
+- Admin donation ledger and currency-aware analytics
+- Transactional email through SMTP, with console fallback when SMTP is unset
+- Contact form delivery
+
+## In progress or not finished
+
+- **Card and PayPal donations.** The UI marks them as coming soon. A Stripe
+  route exists, but the checkout path is not currently exposed as a working
+  option.
+- **Revision and AI tutoring.** The revision page is a placeholder.
+- **Some Mushaf tools.** Verse notes and a few reader actions still show
+  “coming soon”.
+- **Reader sync.** Mushaf reading position and reader preferences are stored in
+  browser localStorage, not synchronised across devices.
+- **Dashboard reporting.** Several dashboard and analytics areas are still
+  first-pass and rely on empty states or limited data.
+- **Production operations.** Backups, monitoring, alerting, load testing and a
+  deployment runbook are not yet in place.
+- **CI.** There is no committed CI workflow that runs lint, type checks and the
+  test suites on every change.
+- **Broader browser coverage.** The end-to-end suite currently runs in desktop
+  Firefox only.
+
+## Testing
+
+The repository has both unit and end-to-end coverage:
+
+```bash
+pnpm test
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm test:e2e
+```
+
+The Vitest suite currently contains 287 tests across authentication, payments,
+scheduling, Quran reader utilities, validation and other library modules.
+
+The Playwright suite covers student, teacher, admin, notes, pairing and
+assessment journeys. It uses `TEST_MODE=true` and writes test users/courses to
+the configured database, so **run it against a disposable test database**, not
+production.
 
 ## Roadmap
 
-- Authentication (Auth.js) with student and teacher roles
-- Teacher vetting and approval workflow
-- Teacher/student portal with session scheduling
-- Live one-on-one video sessions
-- Course curriculum, lessons and exams with progress tracking
-- Donation and course payments (M-Pesa and card)
-- Admin dashboard
+- Finish and expose card/PayPal donation checkout
+- Build the revision and AI tutoring experience
+- Complete the remaining Mushaf tools and server-side reading sync
+- Harden dashboards and analytics with real operational data
+- Add CI for lint, type checks and test suites
+- Add mobile and cross-browser end-to-end coverage
+- Finalise production hosting, backups, monitoring and deployment documentation
 
 ## Known limitations
 
-Stated plainly, because they are real:
-
-- **Nav links 404.** Curriculum, About, Register and Donate are linked but the
-  pages do not exist yet. Only the landing page renders.
-- **No backend.** There is no database, no API and no persistence. All content
-  is static and hardcoded in the page components.
-- **No authentication or user roles.** The `(auth)` and `(portal)` route groups
-  are empty layouts.
-- **No tests.** No test runner is configured yet.
-- **Donations are not functional.** The Donate button links to a page that does
-  not exist. No payment provider is integrated.
-- **Theme is automatic only.** There is no manual light/dark toggle, so it
-  always follows the operating system setting.
-- **Placeholder imagery.** Some stats and teacher portraits in the landing page
-  are illustrative, not real user data.
-
-## Screenshots
-
-> To be added once the application is running end to end. Real screenshots of
-> the working app will be committed here.
-
----
+- Several integrations require credentials that are not included in the
+  repository; features fail gracefully or report that they are not connected.
+- M-Pesa callbacks require a publicly reachable HTTPS URL.
+- Video sessions require a LiveKit project and credentials.
+- Uploads require a Vercel Blob token.
+- Local development without SMTP logs email instead of sending it.
+- The platform has not been load-tested or operated at production scale.
+- No part of this repository should be treated as a completed, production-ready
+  release.
 
 ## AI use
 
@@ -151,11 +304,10 @@ AI coding assistants were used during development of this project.
   and acceptance of every change were made by the developer, who reviewed and
   is accountable for all code in this repository.
 
-AI use is disclosed here in line with the hackathon's requirements.
-
 ## Contributing
 
-This is a hackathon project. Issues and pull requests are welcome.
+Issues and pull requests are welcome. Before opening a pull request, run the
+lint, type-check and unit-test commands above.
 
 ## License
 
