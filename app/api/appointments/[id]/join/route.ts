@@ -87,6 +87,14 @@ export async function GET(
   const isTeacher = appointment.teacherId === user.id;
   const roomName = roomNameFor(appointment.id);
 
+  // The click is recorded independently of the provider result, so a student
+  // whose camera never connected still has an honest join timestamp.
+  try {
+    await db.lessonJoin.create({ data: { appointmentId: id, userId: user.id } });
+  } catch (error) {
+    console.error("Could not record lesson join", error);
+  }
+
   let token: string;
   try {
     token = await generateSessionToken({ userId: user.id, name: user.name, roomName });
