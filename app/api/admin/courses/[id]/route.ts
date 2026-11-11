@@ -16,6 +16,7 @@ const updateSchema = z.object({
   enrollmentKey: z.string().optional(),
   isPublished: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  requiresMentor: z.boolean().optional(),
 });
 
 type RouteContext = {

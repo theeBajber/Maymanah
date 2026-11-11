@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { getTeacherProfile, requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
+import { usedSeats } from "@/lib/mentoring";
 import { getReliabilityScore } from "@/lib/mentorship";
 
 import { TeacherDetail } from "./TeacherDetail";
@@ -19,7 +20,7 @@ export default async function AdminTeacherDetailPage({
   const teacher = await getTeacherProfile(id);
   if (!teacher) notFound();
 
-  const [students, recentSessions, computedReliability] = await Promise.all([
+  const [students, recentSessions, computedReliability, seatsUsed] = await Promise.all([
     db.mentorship.findMany({
       where: { teacherId: id, status: "ACTIVE" },
       include: { student: { select: { id: true, name: true, email: true } } },
@@ -32,6 +33,7 @@ export default async function AdminTeacherDetailPage({
       take: 10,
     }),
     getReliabilityScore(id).catch(() => null),
+    usedSeats(id),
   ]);
 
   return (
@@ -40,6 +42,7 @@ export default async function AdminTeacherDetailPage({
       students={students}
       recentSessions={recentSessions}
       computedReliability={computedReliability}
+      seatsUsed={seatsUsed}
     />
   );
 }

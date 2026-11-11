@@ -34,6 +34,10 @@ const serverEnvSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().min(1).default("noreply@maymanah.org"),
+  /** How long a reserved teaching seat waits for a timetable before lapsing. */
+  MENTOR_RESERVATION_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+  /** How long a paused student keeps their seat before it is released. */
+  MENTOR_PAUSED_SEAT_DAYS: z.coerce.number().int().min(1).max(365).default(30),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

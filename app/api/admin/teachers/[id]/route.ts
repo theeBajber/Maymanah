@@ -8,9 +8,10 @@ import { db } from "@/lib/db";
 import { mailer, teacherApprovalEmailContent, teacherRejectionEmailContent } from "@/lib/mailer";
 
 const putSchema = z.object({
-  action: z.enum(["approve", "reject"]),
+  action: z.enum(["approve", "reject", "capacity"]),
   reason: z.string().optional(),
   reliabilityScore: z.number().min(0).max(100).optional(),
+  maxStudents: z.number().int().min(1).max(50).optional(),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -45,7 +46,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       );
     }
 
-    const { action, reason, reliabilityScore } = parsed.data;
+    const { action, reason, reliabilityScore, maxStudents } = parsed.data;
 
     const teacher = await db.user.findUnique({
       where: { id, role: "TEACHER" },
@@ -101,6 +102,30 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         console.error("Could not send teacher rejection email", error);
       }
 
+      revalidatePath("/admin/teachers");
+    } else {
+      if (maxStudents === undefined) {
+        return NextResponse.json(
+          { error: "Set how many students this teacher can carry" },
+          { status: 400 },
+        );
+      }
+
+      // Lowering capacity never removes a student who already holds a seat;
+      // it only stops new ones being placed until usage falls below the limit.
+      await db.ustadhProfile.update({
+        where: { userId: id },
+        data: { maxStudents },
+      });
+
+      await logAuditEvent({
+        action: "ADMIN_TEACHER_CAPACITY_UPDATED",
+        userId: session.user.id,
+        email: session.user.email,
+        metadata: { teacherId: id, teacherName: teacher.name, maxStudents },
+      });
+
+      revalidatePath(`/admin/teachers/${id}`);
       revalidatePath("/admin/teachers");
     }
 

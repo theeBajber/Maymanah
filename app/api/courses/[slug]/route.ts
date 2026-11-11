@@ -74,6 +74,21 @@ export async function POST(
     if (result.reason === "key_required") {
       return NextResponse.json({ error: "That course needs an enrolment key" }, { status: 403 });
     }
+    if (result.reason === "full") {
+      return NextResponse.json(
+        { error: "Every teaching seat is currently taken. No place is free to reserve." },
+        { status: 409 },
+      );
+    }
+    if (result.reason === "gender_missing") {
+      return NextResponse.json(
+        { error: "Add your gender to your profile before enrolling in this course" },
+        { status: 400 },
+      );
+    }
+    if (result.reason === "not_student") {
+      return NextResponse.json({ error: "Only student accounts can enrol in this course" }, { status: 403 });
+    }
     return NextResponse.json({ error: "That enrolment key is not right" }, { status: 403 });
   }
 

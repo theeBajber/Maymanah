@@ -14,6 +14,8 @@ export interface SeedCourse {
   description: string;
   image: string;
   category: "Quran" | "Fiqh" | "History" | "Arabic" | "Aqeedah";
+  /** Whether enrolment takes one of a teacher's limited seats. */
+  requiresMentor?: boolean;
   lessons: SeedLesson[];
 }
 

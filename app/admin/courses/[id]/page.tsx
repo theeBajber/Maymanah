@@ -42,6 +42,7 @@ export default async function EditCoursePage({ params }: Props) {
           enrollmentKey: course.enrollmentKey ?? "",
           isPublished: course.isPublished,
           isActive: course.isActive,
+          requiresMentor: course.requiresMentor,
         }}
       />
 

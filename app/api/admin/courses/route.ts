@@ -14,6 +14,7 @@ const createSchema = z.object({
   enrollmentKey: z.string().optional(),
   isPublished: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  requiresMentor: z.boolean().optional(),
 });
 
 export async function GET() {
