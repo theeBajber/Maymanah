@@ -16,6 +16,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   const user = await getCurrentUser(await auth());
   if (!user) return NextResponse.json({ error: "Sign in to do this" }, { status: 401 });
 
+  if (user.standing === "DISABLED") {
+    return NextResponse.json(
+      { error: "Your account is disabled and cannot start sessions." },
+      { status: 403 },
+    );
+  }
+
   const isTest = new URL(request.url).searchParams.get("test") === "1";
   if (isTest && process.env.TEST_MODE !== "true") {
     return NextResponse.json({ error: "Test sessions are not enabled" }, { status: 403 });

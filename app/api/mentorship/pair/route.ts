@@ -17,6 +17,13 @@ export async function POST(): Promise<NextResponse> {
   const user = await getCurrentUser(await auth());
   if (!user) return NextResponse.json({ error: "Sign in to do this" }, { status: 401 });
 
+  if (user.standing === "DISABLED") {
+    return NextResponse.json(
+      { error: "Your account is disabled and cannot be paired with a teacher." },
+      { status: 403 },
+    );
+  }
+
   const availability = await db.availability.count({ where: { userId: user.id, isRecurring: true } });
   if (availability === 0) {
     return NextResponse.json({ error: "Set your availability first" }, { status: 400 });

@@ -120,7 +120,8 @@ Optional integration variables include:
 - `QF_*` — Quran Foundation catalog, pages, translations and audio.
 - `MPESA_*` — M-Pesa donations and callbacks.
 - `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` — AI-assisted book import.
-- `CRON_SECRET` — protected reminder endpoint.
+- `CRON_SECRET` — protects the hourly job endpoint (`/api/cron/hourly`).
+- `STANDING_*` — attendance ladder thresholds. Defaults are a warning at two missed sessions, paused bookings at three, and a proposed disable at five, counted over 30 days. `STANDING_SHADOW_MODE` defaults to `true`, which records decisions without applying them.
 - `TEST_MODE=true` — relaxes rate limits and diverts mail for the end-to-end suite.
 
 ### Database
@@ -223,7 +224,8 @@ TypeScript can be checked with `pnpm exec tsc --noEmit`.
 - Session plans and private notes
 - LiveKit video rooms
 - In-app messaging and notifications
-- Reminder cron endpoint
+- Hourly housekeeping job: session reminders, missed-session marking, and seat expiry
+- Attendance standing: warnings, paused bookings, and an admin-confirmed disable queue
 
 ### Donations and email
 

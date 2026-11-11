@@ -6,6 +6,7 @@ import { auth } from "./auth";
 import { recentAuditEvents, logAuditEvent } from "./audit";
 import type { LessonPreview } from "./book-import";
 import { db } from "./db";
+import { pendingStandingEvents } from "./standing";
 
 /** Raised when a caller reaches an admin surface without the standing for it. */
 export class UnauthorizedError extends Error {
@@ -190,6 +191,14 @@ export async function getTeacherProfile(userId: string) {
       },
     },
   });
+}
+
+// ─── Standing confirmation queue ───
+
+/** Disables proposed by the attendance sweep and waiting on an administrator. */
+export async function getStandingQueue() {
+  await requireAdmin();
+  return pendingStandingEvents();
 }
 
 export async function approveTeacher(userId: string) {

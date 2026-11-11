@@ -31,6 +31,13 @@ export async function POST(
   const user = await getCurrentUser(await auth());
   if (!user) return NextResponse.json({ error: "Sign in to do this" }, { status: 401 });
 
+  if (user.standing === "DISABLED") {
+    return NextResponse.json(
+      { error: "Your account is disabled and cannot change its timetable." },
+      { status: 403 },
+    );
+  }
+
   const { id } = await params;
   const mentorship = await db.mentorship.findFirst({
     where: { id, studentId: user.id, status: "ACTIVE" },

@@ -1,139 +1,23 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
-import { baseUrl, mailer } from "@/lib/mailer";
-import { expireStaleReservations, releaseStalePausedSeats } from "@/lib/mentoring";
-import { createNotification } from "@/lib/notifications";
+import { authoriseCron, runHourlyJobs } from "@/lib/cron";
 
 export const maxDuration = 60;
 
 /**
- * Reminds both sides of sessions starting within the hour, and marks
- * sessions whose time passed without a join as missed.
+ * Earlier name for the hourly job, kept so existing schedules keep working.
  *
- * Guarded by a shared secret, since anyone able to call this could spam
- * every user with reminders. Without the secret configured the endpoint
- * refuses rather than running open.
+ * Both this endpoint and `/api/cron/hourly` run the same idempotent work.
+ * Schedule only one of them; running both would send the same reminder twice.
  */
 export async function GET(request: Request): Promise<NextResponse> {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: "Reminders are not configured" }, { status: 503 });
+  const authorisation = authoriseCron(request);
+  if (authorisation === "unconfigured") {
+    return NextResponse.json({ error: "Cron jobs are not configured" }, { status: 503 });
   }
-
-  const provided =
-    request.headers.get("authorization")?.replace(/^Bearer /, "") ??
-    new URL(request.url).searchParams.get("secret");
-
-  if (provided !== secret) {
+  if (authorisation === "unauthorized") {
     return NextResponse.json({ error: "Not authorised" }, { status: 401 });
   }
 
-  const now = new Date();
-  const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
-
-  // Seats that were never claimed by a timetable, or were left paused for too
-  // long, are given back here. Both are idempotent: a seat already released is
-  // no longer matched by either query.
-  const [expiredReservations, releasedPaused] = await Promise.all([
-    expireStaleReservations(now),
-    releaseStalePausedSeats(now),
-  ]);
-  const releasedSeats = [
-    ...expiredReservations.map((seat) => ({ ...seat, reason: "reservation" as const })),
-    ...releasedPaused.map((seat) => ({ ...seat, reason: "paused" as const })),
-  ];
-
-  for (const seat of releasedSeats) {
-    const student = await db.user.findUnique({
-      where: { id: seat.studentId },
-      select: { id: true, email: true, name: true, profile: { select: { emailNotifications: true } } },
-    });
-    if (!student) continue;
-
-    const title =
-      seat.reason === "reservation"
-        ? "Your reserved teaching place has expired"
-        : "Your teaching place has been released";
-    const body =
-      seat.reason === "reservation"
-        ? "You enrolled but did not choose a timetable in time, so your reserved place has been given to another student. You can enrol again when a place opens."
-        : "Your pairing was paused for longer than the grace period, so your teaching place has been released. Your course progress is kept, and you can re-enrol when a place opens.";
-
-    await createNotification({
-      userId: student.id,
-      type: "mentorship_released",
-      title,
-      body,
-      metadata: { mentorshipId: seat.mentorshipId, link: "/courses" },
-    });
-
-    if (student.profile?.emailNotifications === false) continue;
-    try {
-      await mailer.send({
-        to: student.email,
-        subject: title,
-        text: `Assalamu alaikum ${student.name},\n\n${body}\n\nYour courses: ${baseUrl()}/courses`,
-      });
-    } catch (error) {
-      console.error("Could not send seat release email", error);
-    }
-  }
-
-  // Sessions whose time passed without anyone joining are missed, not
-  // pending: leaving them scheduled would keep them bookable forever.
-  const missed = await db.appointment.updateMany({
-    where: { status: "SCHEDULED", endTime: { lt: now } },
-    data: { status: "CANCELLED", missed: true },
-  });
-
-  const upcoming = await db.appointment.findMany({
-    where: { status: "SCHEDULED", startTime: { gte: now, lte: inOneHour }, joinedAt: null },
-    select: {
-      id: true,
-      title: true,
-      startTime: true,
-      teacher: { select: { id: true, email: true, name: true, profile: { select: { emailNotifications: true } } } },
-      mentorship: {
-        select: { student: { select: { id: true, email: true, name: true, profile: { select: { emailNotifications: true } } } } },
-      },
-    },
-  });
-
-  let remindersSent = 0;
-
-  for (const appointment of upcoming) {
-    const when = appointment.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-    const title = appointment.title ?? "Session";
-
-    await createNotification({
-      userId: appointment.teacher.id,
-      type: "session_reminder",
-      title: `${title} starts at ${when}`,
-      metadata: { appointmentId: appointment.id },
-    });
-    await createNotification({
-      userId: appointment.mentorship.student.id,
-      type: "session_reminder",
-      title: `${title} starts at ${when}`,
-      metadata: { appointmentId: appointment.id },
-    });
-
-    for (const person of [appointment.teacher, appointment.mentorship.student]) {
-      if (person.profile?.emailNotifications === false) continue;
-      try {
-        await mailer.send({
-          to: person.email,
-          subject: `Reminder: ${title} at ${when}`,
-          text: `Assalamu alaikum ${person.name},\n\nThis is a reminder that ${title} starts at ${when}.\n\nOpen your sessions list to join on time.`,
-        });
-      } catch (error) {
-        console.error("Could not send session reminder", error);
-      }
-    }
-
-    remindersSent += 1;
-  }
-
-  return NextResponse.json({ ok: true, missedMarked: missed.count, remindersSent, seatsReleased: releasedSeats.length });
+  return NextResponse.json({ ok: true, ...(await runHourlyJobs()) });
 }

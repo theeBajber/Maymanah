@@ -172,7 +172,8 @@ export type EnrollmentFailure =
   | "wrong_key"
   | "full"
   | "gender_missing"
-  | "not_student";
+  | "not_student"
+  | "disabled";
 
 /**
  * Enrolls the signed-in user, or returns the existing enrollment.
@@ -193,6 +194,8 @@ export async function enrollInCourse(
 ): Promise<{ ok: true; id: string } | { ok: false; reason: EnrollmentFailure }> {
   const user = await getCurrentUser(session);
   if (!user) throw new Error("enrollInCourse requires a signed-in user");
+
+  if (user.standing === "DISABLED") return { ok: false, reason: "disabled" };
 
   const course = await db.course.findUnique({
     where: { slug },

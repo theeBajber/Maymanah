@@ -17,6 +17,8 @@ export interface CurrentUser {
   image: string | null;
   gender: string | null;
   xp: number;
+  standing: "GOOD" | "WARNED" | "PAUSED" | "DISABLED";
+  standingReason: string | null;
 }
 
 export interface SessionLike {
@@ -50,6 +52,8 @@ export const getCurrentUser = cache(async (session: SessionLike | null): Promise
       image: true,
       gender: true,
       xp: true,
+      standing: true,
+      standingReason: true,
     },
   });
 
