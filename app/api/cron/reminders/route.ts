@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { mailer } from "@/lib/mailer";
+import { baseUrl, mailer } from "@/lib/mailer";
+import { expireStaleReservations, releaseStalePausedSeats } from "@/lib/mentoring";
 import { createNotification } from "@/lib/notifications";
 
 export const maxDuration = 60;
@@ -30,6 +31,54 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const now = new Date();
   const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
+
+  // Seats that were never claimed by a timetable, or were left paused for too
+  // long, are given back here. Both are idempotent: a seat already released is
+  // no longer matched by either query.
+  const [expiredReservations, releasedPaused] = await Promise.all([
+    expireStaleReservations(now),
+    releaseStalePausedSeats(now),
+  ]);
+  const releasedSeats = [
+    ...expiredReservations.map((seat) => ({ ...seat, reason: "reservation" as const })),
+    ...releasedPaused.map((seat) => ({ ...seat, reason: "paused" as const })),
+  ];
+
+  for (const seat of releasedSeats) {
+    const student = await db.user.findUnique({
+      where: { id: seat.studentId },
+      select: { id: true, email: true, name: true, profile: { select: { emailNotifications: true } } },
+    });
+    if (!student) continue;
+
+    const title =
+      seat.reason === "reservation"
+        ? "Your reserved teaching place has expired"
+        : "Your teaching place has been released";
+    const body =
+      seat.reason === "reservation"
+        ? "You enrolled but did not choose a timetable in time, so your reserved place has been given to another student. You can enrol again when a place opens."
+        : "Your pairing was paused for longer than the grace period, so your teaching place has been released. Your course progress is kept, and you can re-enrol when a place opens.";
+
+    await createNotification({
+      userId: student.id,
+      type: "mentorship_released",
+      title,
+      body,
+      metadata: { mentorshipId: seat.mentorshipId, link: "/courses" },
+    });
+
+    if (student.profile?.emailNotifications === false) continue;
+    try {
+      await mailer.send({
+        to: student.email,
+        subject: title,
+        text: `Assalamu alaikum ${student.name},\n\n${body}\n\nYour courses: ${baseUrl()}/courses`,
+      });
+    } catch (error) {
+      console.error("Could not send seat release email", error);
+    }
+  }
 
   // Sessions whose time passed without anyone joining are missed, not
   // pending: leaving them scheduled would keep them bookable forever.
@@ -86,5 +135,5 @@ export async function GET(request: Request): Promise<NextResponse> {
     remindersSent += 1;
   }
 
-  return NextResponse.json({ ok: true, missedMarked: missed.count, remindersSent });
+  return NextResponse.json({ ok: true, missedMarked: missed.count, remindersSent, seatsReleased: releasedSeats.length });
 }

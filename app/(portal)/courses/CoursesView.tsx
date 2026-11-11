@@ -17,6 +17,8 @@ interface CourseItem {
   enrolled: boolean;
   progress: number;
   enrollmentOpen: boolean;
+  requiresMentor: boolean;
+  seatsAvailable: number | null;
 }
 
 /**
@@ -131,7 +133,13 @@ export function CoursesView() {
                 lessons={course.lessonCount}
                 href={`/courses/${course.slug}`}
                 image={course.image}
-                badge={course.enrollmentOpen ? undefined : "Coming soon"}
+                badge={
+                  course.enrollmentOpen
+                    ? undefined
+                    : course.requiresMentor && course.seatsAvailable === 0
+                      ? "Fully booked"
+                      : "Coming soon"
+                }
               />
             ))}
           </div>

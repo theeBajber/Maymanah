@@ -190,6 +190,8 @@ model UstadhProfile {
   ijazah               String?
   qiraah               String?
   availableForTeaching Boolean   @default(false)
+  /// How many students this teacher can carry at once, across every course.
+  maxStudents          Int       @default(4)
   reliabilityScore     Float?
 
   createdAt DateTime @default(now())
@@ -224,9 +226,11 @@ model Availability {
 }
 
 enum MentorshipStatus {
+  RESERVED
   ACTIVE
   PAUSED
   COMPLETED
+  EXPIRED
 }
 
 enum AppointmentStatus {
@@ -246,16 +250,24 @@ enum AppointmentSessionType {
 
 /// An ongoing teacher-student pairing.
 ///
-/// One active pairing per teacher and student. Sessions are booked against the
-/// pairing rather than against either person directly, so ending the pairing
-/// ends future sessions without touching either account.
+/// A seat is held from the moment a student enrols, before a timetable exists.
+/// That is why RESERVED exists: it counts against the teacher's capacity while
+/// the student chooses availability, and it lapses if they never do. PAUSED is
+/// a deliberate interruption and keeps the seat for a while before it is
+/// released, so returning students are not pushed to the back of the queue.
 model Mentorship {
-  id        String           @id @default(cuid())
-  teacherId String
-  studentId String
-  status    MentorshipStatus @default(ACTIVE)
-  startedAt DateTime         @default(now())
-  endedAt   DateTime?
+  id            String           @id @default(cuid())
+  teacherId     String
+  studentId     String
+  status        MentorshipStatus @default(ACTIVE)
+  /// When a RESERVED seat lapses if no timetable has been agreed.
+  reservedUntil DateTime?
+  /// When the pairing was paused. A paused seat is released after the grace period.
+  pausedAt      DateTime?
+  startedAt     DateTime         @default(now())
+  endedAt       DateTime?
+  /// Why a pairing ended, so a released seat can be explained later.
+  endReason     String?
 
   teacher        User            @relation("TeacherMentorships", fields: [teacherId], references: [id], onDelete: Cascade)
   student        User            @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
@@ -265,6 +277,9 @@ model Mentorship {
   @@unique([teacherId, studentId])
   @@index([teacherId])
   @@index([studentId])
+  @@index([status])
+  @@index([reservedUntil])
+  @@index([pausedAt])
 }
 
 /// One booked session.
@@ -421,17 +436,19 @@ enum SubmissionStatus {
 /// preview: students can read the overview but cannot enrol, while existing
 /// enrolments keep their access.
 model Course {
-  id            String         @id @default(cuid())
-  title         String
-  slug          String         @unique
-  description   String?
-  category      CourseCategory
-  image         String?
-  enrollmentKey String?        @unique
-  isPublished   Boolean        @default(true)
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  title          String
+  slug           String         @unique
+  description    String?
+  category       CourseCategory
+  image          String?
+  enrollmentKey  String?        @unique
+  isPublished    Boolean        @default(true)
+  isActive       Boolean        @default(true)
+  /// Whether enrolling consumes one of a teacher's limited seats.
+  requiresMentor Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   enrollments Enrollment[]
   lessons     Lesson[]

@@ -17,15 +17,20 @@ export function EnrollButton({
   slug,
   isEnrolled,
   enrollmentOpen,
+  requiresMentor,
+  seatsAvailable,
 }: {
   slug: string;
   isEnrolled: boolean;
   enrollmentOpen: boolean;
+  requiresMentor: boolean;
+  seatsAvailable: number | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [enrolled, setEnrolled] = useState(isEnrolled);
   const [loading, setLoading] = useState(false);
+  const full = !enrolled && requiresMentor && seatsAvailable === 0;
 
   async function act(action: "enroll" | "drop") {
     setLoading(true);
@@ -59,6 +64,14 @@ export function EnrollButton({
     return (
       <Button variant="ghost" size="md" loading={loading} onClick={() => act("drop")}>
         Leave course
+      </Button>
+    );
+  }
+
+  if (full) {
+    return (
+      <Button variant="ghost" size="lg" disabled className="w-full sm:w-auto">
+        Fully booked
       </Button>
     );
   }

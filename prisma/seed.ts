@@ -31,6 +31,7 @@ async function seedCourse(course: SeedCourse): Promise<void> {
     category: course.category,
     isPublished: true,
     isActive: true,
+    requiresMentor: course.requiresMentor ?? false,
   };
 
   const row = await db.course.upsert({
@@ -124,6 +125,7 @@ async function main(): Promise<void> {
     description: hifdhCourse.description,
     image: "/quran-hifdh.jpg",
     category: "Quran",
+    requiresMentor: true,
     lessons: hifdhCourse.lessons,
   });
 

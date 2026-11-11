@@ -17,6 +17,7 @@ export function TeacherDetail({
   students,
   recentSessions,
   computedReliability,
+  seatsUsed,
 }: {
   teacher: TeacherWithDetails;
   students: (Mentorship & { student: { id: string; name: string; email: string } })[];
@@ -24,12 +25,14 @@ export function TeacherDetail({
     mentorship: { student: { id: string; name: string } };
   })[];
   computedReliability: number | null;
+  seatsUsed: number;
 }) {
   const router = useRouter();
   const [updating, setUpdating] = useState(false);
   const [reliabilityScore, setReliabilityScore] = useState(
     teacher.ustadhProfile?.reliabilityScore ?? null,
   );
+  const [maxStudents, setMaxStudents] = useState(teacher.ustadhProfile?.maxStudents ?? 4);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -94,6 +97,24 @@ export function TeacherDetail({
       });
       if (!res.ok) throw new Error("Failed to save");
       toast({ title: "Reliability score saved", variant: "success" });
+      router.refresh();
+    } catch {
+      toast({ title: "Failed to save", variant: "error" });
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  async function handleSaveCapacity() {
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/admin/teachers/${teacher.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "capacity", maxStudents }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      toast({ title: "Teaching capacity saved", variant: "success" });
       router.refresh();
     } catch {
       toast({ title: "Failed to save", variant: "error" });
@@ -269,6 +290,34 @@ export function TeacherDetail({
               ) : (
                 "No session history yet to compute an attendance-based reference."
               )}
+            </p>
+          </div>
+
+          {/* Teaching Capacity */}
+          <div className="bg-bg-card border border-border rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-text-primary mb-4">Teaching Capacity</h2>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={maxStudents}
+                onChange={(e) => setMaxStudents(Math.max(1, Number(e.target.value) || 1))}
+                className="w-24 px-3 py-2 rounded-lg border border-border bg-bg-primary text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <button
+                onClick={handleSaveCapacity}
+                disabled={updating || maxStudents === (profile?.maxStudents ?? 4)}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+            <p className="text-xs text-text-secondary mt-3">
+              Holding <span className="font-semibold text-text-primary">{seatsUsed}</span> of{" "}
+              <span className="font-semibold text-text-primary">{profile?.maxStudents ?? 4}</span>{" "}
+              seats across every course. Reserved, active, and recently paused students all count.
+              Lowering the limit does not remove a student who already holds a seat.
             </p>
           </div>
         </div>

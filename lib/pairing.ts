@@ -1,14 +1,13 @@
 import "server-only";
 
 import { db } from "./db";
+import { env } from "./env";
+import { activateMentorship, seatHoldingWhere } from "./mentoring";
 import { formatZonedTime, zonedParts, weekdayOfDate, zonedTimeToUtc } from "./timezone";
 
 /** A daily memorisation slot is short; a review is an hour. */
 const DAILY_DURATION = 15;
 const MURAJA_DURATION = 60;
-
-/** A teacher takes at most this many students before being passed over. */
-const MAX_STUDENTS_PER_TEACHER = 10;
 
 /** How many days ahead a pairing is planned, and appointments materialised. */
 const HORIZON_DAYS = 7;
@@ -317,10 +316,15 @@ interface Candidate {
  */
 export async function pairHifdhStudent(studentId: string): Promise<StudentSchedule | null> {
   const existing = await db.mentorship.findFirst({
-    where: { studentId, status: "ACTIVE" },
-    select: { id: true, teacherId: true, _count: { select: { recurringSlots: true } } },
+    where: { studentId, status: { in: ["RESERVED", "ACTIVE"] } },
+    select: {
+      id: true,
+      teacherId: true,
+      status: true,
+      _count: { select: { recurringSlots: true } },
+    },
   });
-  if (existing && existing._count.recurringSlots > 0) {
+  if (existing?.status === "ACTIVE" && existing._count.recurringSlots > 0) {
     return getStudentSchedule(studentId);
   }
 
@@ -354,13 +358,19 @@ export async function pairHifdhStudent(studentId: string): Promise<StudentSchedu
         gender: student.gender,
         ustadhProfile: { isApproved: true, availableForTeaching: true },
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, ustadhProfile: { select: { maxStudents: true } } },
     });
     if (teachers.length === 0) return null;
 
+    // A seat is held by a reservation, an active pairing, or a pause still
+    // inside its grace period. Counting all three is what keeps a teacher at
+    // their real capacity rather than only the pairings that already started.
     const counts = await db.mentorship.groupBy({
       by: ["teacherId"],
-      where: { teacherId: { in: teachers.map((teacher) => teacher.id) }, status: "ACTIVE" },
+      where: {
+        teacherId: { in: teachers.map((teacher) => teacher.id) },
+        ...seatHoldingWhere(now, env().MENTOR_PAUSED_SEAT_DAYS),
+      },
       _count: { _all: true },
     });
     const countByTeacher = new Map(counts.map((row) => [row.teacherId, row._count._all]));
@@ -368,7 +378,8 @@ export async function pairHifdhStudent(studentId: string): Promise<StudentSchedu
     const candidates: Candidate[] = [];
     for (const teacher of teachers) {
       const studentCount = countByTeacher.get(teacher.id) ?? 0;
-      if (studentCount >= MAX_STUDENTS_PER_TEACHER) continue;
+      const maxStudents = teacher.ustadhProfile?.maxStudents ?? 4;
+      if (studentCount >= maxStudents) continue;
 
       const zone = await timeZoneFor(teacher.id);
       const intervals = expandWindows(await availabilityFor(teacher.id), zone, now, HORIZON_DAYS);
@@ -471,7 +482,10 @@ export async function unpairStudent(studentId: string, mentorshipId: string): Pr
 
   const now = new Date();
   await db.$transaction([
-    db.mentorship.update({ where: { id: mentorshipId }, data: { status: "PAUSED" } }),
+    db.mentorship.update({
+      where: { id: mentorshipId },
+      data: { status: "PAUSED", pausedAt: now, reservedUntil: null },
+    }),
     db.recurringSlot.deleteMany({ where: { mentorshipId } }),
     db.appointment.deleteMany({ where: { mentorshipId, status: "SCHEDULED", startTime: { gte: now } } }),
     db.availability.deleteMany({ where: { userId: studentId, isRecurring: true } }),
@@ -495,6 +509,24 @@ async function allocate(
     // same free window before either had written it.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${teacherId}, 0))`;
 
+    // The candidate list was read outside the lock, so capacity is checked once
+    // more here: another enrolment may have taken the last seat in between.
+    // This student's own row is excluded because activating it does not consume
+    // a second seat.
+    const teacher = await tx.user.findUnique({
+      where: { id: teacherId },
+      select: { ustadhProfile: { select: { maxStudents: true } } },
+    });
+    const maxStudents = teacher?.ustadhProfile?.maxStudents ?? 4;
+    const heldByOthers = await tx.mentorship.count({
+      where: {
+        teacherId,
+        studentId: { not: studentId },
+        ...seatHoldingWhere(now, env().MENTOR_PAUSED_SEAT_DAYS),
+      },
+    });
+    if (heldByOthers >= maxStudents) return null;
+
     const existingSlots = await tx.recurringSlot.findMany({
       where: {
         type: "DAILY_HIFDH",
@@ -514,9 +546,13 @@ async function allocate(
       : await tx.mentorship.upsert({
           where: { teacherId_studentId: { teacherId, studentId } },
           create: { teacherId, studentId },
-          update: { status: "ACTIVE" },
+          update: {},
           select: { id: true },
         });
+
+    // The timetable and the status change commit together, so a pairing is
+    // never ACTIVE without slots and a reservation becomes active exactly once.
+    await activateMentorship(tx, mentorship.id);
 
     await tx.recurringSlot.deleteMany({ where: { mentorshipId: mentorship.id } });
     await tx.recurringSlot.createMany({

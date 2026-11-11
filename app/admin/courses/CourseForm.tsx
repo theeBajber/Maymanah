@@ -18,6 +18,7 @@ type CourseData = {
   enrollmentKey: string;
   isPublished: boolean;
   isActive: boolean;
+  requiresMentor: boolean;
 };
 
 export function CourseForm({ course }: { course?: CourseData }) {
@@ -36,6 +37,7 @@ export function CourseForm({ course }: { course?: CourseData }) {
       enrollmentKey: "",
       isPublished: true,
       isActive: true,
+      requiresMentor: false,
     },
   );
 
@@ -270,7 +272,7 @@ export function CourseForm({ course }: { course?: CourseData }) {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -300,10 +302,26 @@ export function CourseForm({ course }: { course?: CourseData }) {
                 />
                 <span className="text-sm text-text-primary">Enrolment open</span>
               </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.requiresMentor}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      requiresMentor: e.target.checked,
+                    }))
+                  }
+                  className="size-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-text-primary">Takes a teaching seat</span>
+              </label>
             </div>
             <p className="text-xs text-text-muted">
               Unpublished courses stay hidden. When enrolment is closed, a published course appears
-              as coming soon; existing students keep access.
+              as coming soon; existing students keep access. A course that takes a teaching seat
+              closes when every eligible teacher is at capacity, and enrolment reserves that seat.
             </p>
           </div>
         </div>

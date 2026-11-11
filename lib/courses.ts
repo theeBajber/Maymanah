@@ -2,6 +2,7 @@ import "server-only";
 
 import { issueCertificate } from "./certificate";
 import { db } from "./db";
+import { availableSeats, releaseStudentSeats, reserveMentor } from "./mentoring";
 import { getCurrentUser, type SessionLike } from "./session";
 
 /**
@@ -21,6 +22,26 @@ export interface CourseSummary {
   enrolled: boolean;
   progress: number;
   enrollmentOpen: boolean;
+  /** Whether joining takes one of a teacher's limited seats. */
+  requiresMentor: boolean;
+  /**
+   * Free teaching seats across the teachers this reader could be paired with.
+   * Null when the course does not use mentors, or when the reader is not signed
+   * in and their gender is therefore unknown.
+   */
+  seatsAvailable: number | null;
+}
+
+/**
+ * Free seats for this reader, or null when the answer is not theirs to see.
+ *
+ * Capacity is gendered, so an anonymous visitor cannot be shown a truthful
+ * count. They see the course as open and are told the real position after
+ * signing in.
+ */
+async function mentorSeatsFor(user: { gender: string | null } | null): Promise<number | null> {
+  if (!user?.gender) return null;
+  return availableSeats(user.gender);
 }
 
 export async function listCourses(session: SessionLike | null): Promise<CourseSummary[]> {
@@ -37,23 +58,35 @@ export async function listCourses(session: SessionLike | null): Promise<CourseSu
       category: true,
       image: true,
       isActive: true,
+      requiresMentor: true,
       _count: { select: { lessons: { where: { isPublished: true } } } },
       enrollments: user ? { where: { userId: user.id }, select: { progress: true } } : false,
     },
   });
 
-  return courses.map((course) => ({
-    id: course.id,
-    title: course.title,
-    slug: course.slug,
-    description: course.description,
-    category: course.category,
-    image: course.image,
-    lessonCount: course._count.lessons,
-    enrolled: course.enrollments.length > 0,
-    progress: course.enrollments[0]?.progress ?? 0,
-    enrollmentOpen: course.isActive,
-  }));
+  // Capacity is shared by every mentor course, so it is counted once rather
+  // than once per row.
+  const mentorSeats = courses.some((course) => course.requiresMentor) ? await mentorSeatsFor(user) : null;
+
+  return courses.map((course) => {
+    const enrolled = course.enrollments.length > 0;
+    const seatsAvailable = course.requiresMentor ? mentorSeats : null;
+
+    return {
+      id: course.id,
+      title: course.title,
+      slug: course.slug,
+      description: course.description,
+      category: course.category,
+      image: course.image,
+      lessonCount: course._count.lessons,
+      enrolled,
+      progress: course.enrollments[0]?.progress ?? 0,
+      enrollmentOpen: course.isActive && (!course.requiresMentor || enrolled || seatsAvailable !== 0),
+      requiresMentor: course.requiresMentor,
+      seatsAvailable,
+    };
+  });
 }
 
 export interface CourseDetail extends CourseSummary {
@@ -80,6 +113,7 @@ export async function getCourseDetail(
       image: true,
       isPublished: true,
       isActive: true,
+      requiresMentor: true,
       lessons: {
         where: { isPublished: true },
         orderBy: { order: "asc" },
@@ -108,6 +142,8 @@ export async function getCourseDetail(
     : null;
 
   const ratings = course.reviews.map((review) => review.rating);
+  const enrolled = course.enrollments.length > 0;
+  const seatsAvailable = course.requiresMentor ? await mentorSeatsFor(user) : null;
 
   return {
     id: course.id,
@@ -117,9 +153,11 @@ export async function getCourseDetail(
     category: course.category,
     image: course.image,
     lessonCount: course.lessons.length,
-    enrolled: course.enrollments.length > 0,
+    enrolled,
     progress: course.enrollments[0]?.progress ?? 0,
-    enrollmentOpen: course.isActive,
+    enrollmentOpen: course.isActive && (!course.requiresMentor || enrolled || seatsAvailable !== 0),
+    requiresMentor: course.requiresMentor,
+    seatsAvailable,
     lessons: course.lessons.map((lesson) => ({ ...lesson, completed: done.has(lesson.id) })),
     averageRating: ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null,
     reviewCount: ratings.length,
@@ -127,7 +165,14 @@ export async function getCourseDetail(
   };
 }
 
-export type EnrollmentFailure = "missing" | "inactive" | "key_required" | "wrong_key";
+export type EnrollmentFailure =
+  | "missing"
+  | "inactive"
+  | "key_required"
+  | "wrong_key"
+  | "full"
+  | "gender_missing"
+  | "not_student";
 
 /**
  * Enrolls the signed-in user, or returns the existing enrollment.
@@ -135,6 +180,11 @@ export type EnrollmentFailure = "missing" | "inactive" | "key_required" | "wrong
  * Enrolling twice returns the row rather than starting over, so a double
  * submit keeps one history. An enrollment key, when the course has one,
  * gates enrolment; without it anyone may join.
+ *
+ * A course taught one-to-one also claims a teaching seat at the same moment.
+ * The seat is a reservation until a timetable exists, so a student who enrols
+ * and then disappears holds capacity for a limited time rather than forever.
+ * No seat means no enrolment: there is no waitlist.
  */
 export async function enrollInCourse(
   session: SessionLike | null,
@@ -144,13 +194,38 @@ export async function enrollInCourse(
   const user = await getCurrentUser(session);
   if (!user) throw new Error("enrollInCourse requires a signed-in user");
 
-  const course = await db.course.findUnique({ where: { slug }, select: { id: true, isPublished: true, isActive: true, enrollmentKey: true } });
+  const course = await db.course.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      isPublished: true,
+      isActive: true,
+      enrollmentKey: true,
+      requiresMentor: true,
+    },
+  });
   if (!course || !course.isPublished) return { ok: false, reason: "missing" };
   if (!course.isActive) return { ok: false, reason: "inactive" };
 
   if (course.enrollmentKey) {
     if (!key) return { ok: false, reason: "key_required" };
     if (key !== course.enrollmentKey) return { ok: false, reason: "wrong_key" };
+  }
+
+  const existing = await db.enrollment.findUnique({
+    where: { userId_courseId: { userId: user.id, courseId: course.id } },
+    select: { id: true },
+  });
+  if (existing) return { ok: true, id: existing.id };
+
+  if (course.requiresMentor) {
+    const seat = await reserveMentor(user.id);
+    if (!seat.ok) {
+      if (seat.reason === "gender_missing" || seat.reason === "not_student") {
+        return { ok: false, reason: seat.reason };
+      }
+      return { ok: false, reason: "full" };
+    }
   }
 
   const enrollment = await db.enrollment.upsert({
@@ -167,17 +242,30 @@ export async function enrollInCourse(
  * Leaves a course.
  *
  * Dropping removes the enrollment row. Lesson progress stays, so rejoining
- * later resumes rather than restarts — the work was done either way.
+ * later resumes rather than restarts — the work was done either way. Leaving
+ * the last mentor-taught course gives the teaching seat back, along with the
+ * sessions that were planned against it.
  */
 export async function dropCourse(session: SessionLike | null, slug: string): Promise<boolean> {
   const user = await getCurrentUser(session);
   if (!user) throw new Error("dropCourse requires a signed-in user");
 
-  const course = await db.course.findUnique({ where: { slug }, select: { id: true } });
+  const course = await db.course.findUnique({ where: { slug }, select: { id: true, requiresMentor: true } });
   if (!course) return false;
 
   const result = await db.enrollment.deleteMany({ where: { userId: user.id, courseId: course.id } });
-  return result.count > 0;
+  if (result.count === 0) return false;
+
+  if (course.requiresMentor) {
+    const remaining = await db.enrollment.count({
+      where: { userId: user.id, course: { requiresMentor: true } },
+    });
+    if (remaining === 0) {
+      await releaseStudentSeats(user.id, "course_dropped");
+    }
+  }
+
+  return true;
 }
 
 /**

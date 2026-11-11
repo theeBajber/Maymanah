@@ -46,7 +46,7 @@ export default async function CourseDetailPage({
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage">{course.category}</p>
             {!course.enrollmentOpen ? (
               <span className="rounded-full bg-warning-muted px-2.5 py-1 text-[11px] font-semibold text-warning">
-                Coming soon
+                {course.requiresMentor && course.seatsAvailable === 0 ? "Fully booked" : "Coming soon"}
               </span>
             ) : null}
           </div>
@@ -66,12 +66,21 @@ export default async function CourseDetailPage({
             {course.enrolled && course.progress > 0 ? (
               <span className="font-semibold text-primary">{course.progress}% complete</span>
             ) : null}
+            {course.requiresMentor && !course.enrolled && course.seatsAvailable !== null ? (
+              <span>
+                {course.seatsAvailable === 0
+                  ? "No teaching seats free"
+                  : `${course.seatsAvailable} teaching ${course.seatsAvailable === 1 ? "seat" : "seats"} left`}
+              </span>
+            ) : null}
           </div>
           <div className="mt-2">
             <EnrollButton
               slug={course.slug}
               isEnrolled={course.enrolled}
               enrollmentOpen={course.enrollmentOpen}
+              requiresMentor={course.requiresMentor}
+              seatsAvailable={course.seatsAvailable}
             />
           </div>
         </div>
@@ -116,7 +125,9 @@ export default async function CourseDetailPage({
           <p className="text-sm text-text-secondary">
             {course.enrollmentOpen
               ? "Enrol above to read the lessons and track your progress."
-              : "This course is coming soon. Enrolment has not opened yet."}
+              : course.requiresMentor && course.seatsAvailable === 0
+                ? "Every teaching seat is currently taken. Places open when a student completes or leaves, so check back soon."
+                : "This course is coming soon. Enrolment has not opened yet."}
           </p>
         ) : null}
       </section>
