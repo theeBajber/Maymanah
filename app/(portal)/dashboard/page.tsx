@@ -10,6 +10,9 @@ import { getUpcomingSessions, countSessionsBetween } from "@/lib/agenda";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { leaderboardAround } from "@/lib/leaderboard";
+import { pendingLessonReports } from "@/lib/lesson-report";
+import { memorizationProgress } from "@/lib/quran-progress";
+import { TOTAL_QURAN_AYAHS } from "@/lib/quran-meta";
 import { getCurrentUser } from "@/lib/session";
 import { Award, CheckSquare, ClipboardCheck } from "lucide-react";
 
@@ -37,8 +40,11 @@ export default async function DashboardPage({
   }
 
   const firstName = user.name.split(" ")[0] ?? "Student";
-  const { rows: leaders } = await leaderboardAround(user.id);
-  const sessions = await getUpcomingSessions(user.id);
+  const [{ rows: leaders }, sessions, memorization] = await Promise.all([
+    leaderboardAround(user.id),
+    getUpcomingSessions(user.id),
+    memorizationProgress(user.id),
+  ]);
 
   if (tab === "analytics") {
     return <AnalyticsTab firstName={firstName} />;
@@ -70,7 +76,7 @@ export default async function DashboardPage({
         </div>
 
         <div className="hidden shrink-0 flex-col items-center gap-2 md:flex">
-          <ProgressRing percent={0} />
+          <ProgressRing percent={memorization.percent} />
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
             Overall Progress
           </span>
@@ -154,6 +160,44 @@ export default async function DashboardPage({
                 </span>
               ))}
             </div>
+          </Panel>
+
+          <Panel className="p-5">
+            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Memorization
+            </h2>
+            {memorization.uniqueAyahs === 0 ? (
+              <p className="text-sm text-text-secondary">
+                Your teacher records new memorisation after each lesson. Your position will appear
+                here.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-2xl font-bold tabular-nums text-text-primary">
+                    {memorization.percent}%
+                  </p>
+                  <p className="text-xs tabular-nums text-text-secondary">
+                    {memorization.uniqueAyahs.toLocaleString()} / {TOTAL_QURAN_AYAHS.toLocaleString()} ayahs
+                  </p>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-bg-hover">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${memorization.percent}%` }}
+                  />
+                </div>
+                {memorization.lastStop ? (
+                  <p className="text-xs text-text-secondary">
+                    Last stop:{" "}
+                    <span className="font-semibold text-text-primary">
+                      {memorization.lastStop.surahName} {memorization.lastStop.surah}:
+                      {memorization.lastStop.ayah}
+                    </span>
+                  </p>
+                ) : null}
+              </div>
+            )}
           </Panel>
 
           <Panel className="p-5">
@@ -307,10 +351,11 @@ async function TeacherDashboard({ userId, name, gender }: { userId: string; name
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [sessions, activeStudents, sessionsThisMonth] = await Promise.all([
+  const [sessions, activeStudents, sessionsThisMonth, pendingReports] = await Promise.all([
     getUpcomingSessions(userId),
     db.mentorship.count({ where: { teacherId: userId, status: "ACTIVE" } }),
     countSessionsBetween(userId, startOfMonth, endOfMonth),
+    pendingLessonReports(userId),
   ]);
 
   const todayKey = now.toDateString();
@@ -330,6 +375,42 @@ async function TeacherDashboard({ userId, name, gender }: { userId: string; name
         <StatTile icon={CheckSquare} value={sessionsThisMonth} label="Sessions This Month" tone="success" />
         <StatTile icon={ClipboardCheck} value={today.length} label="Today's Sessions" tone="info" />
       </div>
+
+      {pendingReports.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold text-text-primary">Reports to submit</h2>
+          <Panel className="divide-y divide-border">
+            {pendingReports.map((session) => (
+              <Link
+                key={session.id}
+                href={`/session/${session.id}`}
+                className="flex flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:bg-bg-hover"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-text-primary">
+                    {session.mentorship.student.name ?? "Student"}
+                  </span>
+                  <span className="block text-xs text-text-secondary">
+                    {session.title ?? (session.sessionType === "MURAJA" ? "Review session" : "Memorisation session")}
+                  </span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-xs text-text-secondary">
+                    {session.startTime.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                  <span className="rounded-full bg-warning-muted px-2.5 py-1 text-[11px] font-semibold text-warning">
+                    Report pending
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </Panel>
+        </section>
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold text-text-primary">Today&apos;s Sessions</h2>

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateAyahRange, type RangeProblem } from "@/lib/quran-meta";
 import { getCurrentUser } from "@/lib/session";
 
 const planSchema = z.object({
@@ -11,6 +12,12 @@ const planSchema = z.object({
   toSurah: z.number().int().min(1).max(114),
   toVerse: z.number().int().min(1),
 });
+
+const PROBLEM_MESSAGES: Record<RangeProblem, string> = {
+  unknown_surah: "That surah does not exist",
+  ayah_out_of_range: "That ayah does not exist in the chosen surah",
+  empty_range: "The end of the range must not come before the start",
+};
 
 function unauthorized() {
   return NextResponse.json({ error: "Sign in to do this" }, { status: 401 });
@@ -80,6 +87,16 @@ export async function PUT(
   const parsed = planSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Check the verses" }, { status: 422 });
+  }
+
+  const range = validateAyahRange({
+    fromSurah: parsed.data.fromSurah,
+    fromAyah: parsed.data.fromVerse,
+    toSurah: parsed.data.toSurah,
+    toAyah: parsed.data.toVerse,
+  });
+  if (!range.ok) {
+    return NextResponse.json({ error: PROBLEM_MESSAGES[range.reason] }, { status: 422 });
   }
 
   const plan = await db.sessionPlan.upsert({
