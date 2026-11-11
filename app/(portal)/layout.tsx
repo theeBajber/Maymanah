@@ -5,6 +5,7 @@ import { SideNav, TopNav } from "@/app/ui/PortalNav";
 import { TopNavProvider } from "@/lib/TopNavContext";
 import { auth } from "@/lib/auth";
 import { currentLoginSessionId, getCurrentUser, isLoginSessionActive } from "@/lib/session";
+import { standingLabel } from "@/lib/standing";
 
 export const metadata: Metadata = {
   title: "Portal",
@@ -29,6 +30,10 @@ export default async function PortalLayout({ children }: { children: React.React
   // teacher portal avoids two competing navigation systems.
   if (user.role === "ADMIN") redirect("/admin");
 
+  // A disabled account can still sign in, but only to see its status. The
+  // status page sits outside this layout, so this redirect cannot loop.
+  if (user.standing === "DISABLED") redirect("/account/status");
+
   return (
     <div className="min-h-screen bg-bg-primary">
       <TopNavProvider>
@@ -42,6 +47,15 @@ export default async function PortalLayout({ children }: { children: React.React
                 Confirm it in settings
               </a>{" "}
               so you can recover your account if you lose your password.
+            </div>
+          )}
+          {user.standing === "GOOD" ? null : (
+            <div className="border-b border-warning/30 bg-warning/10 px-6 py-2.5 text-center text-sm text-text-secondary">
+              <span className="font-semibold text-text-primary">{standingLabel(user.standing)}.</span>{" "}
+              {user.standingReason ?? "Your account needs attention."}{" "}
+              <a href="/account/status" className="font-semibold text-primary underline underline-offset-4">
+                View account status
+              </a>
             </div>
           )}
           {children}

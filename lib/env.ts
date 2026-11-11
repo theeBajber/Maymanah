@@ -38,6 +38,23 @@ const serverEnvSchema = z.object({
   MENTOR_RESERVATION_DAYS: z.coerce.number().int().min(1).max(90).default(7),
   /** How long a paused student keeps their seat before it is released. */
   MENTOR_PAUSED_SEAT_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  /** How far back the attendance ladder looks when counting no-shows. */
+  STANDING_WINDOW_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  /** No-shows in the window that produce a warning. */
+  STANDING_WARN_THRESHOLD: z.coerce.number().int().min(1).max(100).default(2),
+  /** No-shows that pause new bookings. */
+  STANDING_PAUSE_THRESHOLD: z.coerce.number().int().min(1).max(100).default(3),
+  /** No-shows that propose disabling the account. */
+  STANDING_DISABLE_THRESHOLD: z.coerce.number().int().min(1).max(100).default(5),
+  /**
+   * Records every ladder decision without applying it. Intended for the first
+   * cohort, so the thresholds can be checked against real attendance before
+   * they affect anyone's account.
+   */
+  STANDING_SHADOW_MODE: z
+    .string()
+    .transform((value) => value === "true")
+    .default(true),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

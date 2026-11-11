@@ -17,6 +17,18 @@ enum VerificationPurpose {
   PASSWORD_RESET
 }
 
+/// Where an account sits on the attendance ladder.
+///
+/// The ladder is shared by students and teachers: repeated no-shows warn the
+/// account, then pause new bookings, then disable the account. A disable is
+/// proposed automatically but only applied once an administrator confirms it.
+enum AccountStanding {
+  GOOD
+  WARNED
+  PAUSED
+  DISABLED
+}
+
 /// An account. Every account authenticates with an email address and a
 /// password; there is no third-party sign-in, so no account or session table
 /// is needed to store identities from an external provider.
@@ -36,6 +48,12 @@ model User {
   gender String?
   xp     Int     @default(0)
 
+  /// The account's current place on the attendance ladder. New accounts start
+  /// in good standing; only a sweep or an administrator moves this.
+  standing          AccountStanding @default(GOOD)
+  standingReason    String?
+  standingUpdatedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -44,30 +62,32 @@ model User {
   profile             Profile?
   ustadhProfile       UstadhProfile?
   availabilities      Availability[]
-  teacherMentorships  Mentorship[]        @relation("TeacherMentorships")
-  studentMentorships  Mentorship[]        @relation("StudentMentorships")
-  teacherAppointments Appointment[]       @relation("TeacherAppointments")
+  teacherMentorships  Mentorship[]           @relation("TeacherMentorships")
+  studentMentorships  Mentorship[]           @relation("StudentMentorships")
+  teacherAppointments Appointment[]          @relation("TeacherAppointments")
   enrollments         Enrollment[]
-  studentNotes        StudentNote[]       @relation("StudentNotes")
-  teacherNotes        StudentNote[]       @relation("TeacherNotes")
+  studentNotes        StudentNote[]          @relation("StudentNotes")
+  teacherNotes        StudentNote[]          @relation("TeacherNotes")
   lessonProgress      LessonProgress[]
   submissions         Submission[]
   courseReviews       CourseReview[]
   bookmarks           Bookmark[]
-  sentMessages        Message[]           @relation("SentMessages")
-  receivedMessages    Message[]           @relation("ReceivedMessages")
+  sentMessages        Message[]              @relation("SentMessages")
+  receivedMessages    Message[]              @relation("ReceivedMessages")
   notifications       Notification[]
   quranProgress       QuranProgress?
   recitationJournals  RecitationJournal[]
-  memorizedRanges     MemorizedRange[]    @relation("StudentMemorizedRanges")
-  lessonReports       LessonReport[]      @relation("LessonReportsSubmitted")
-  lessonJoins         LessonJoin[]        @relation("LessonJoins")
+  memorizedRanges     MemorizedRange[]       @relation("StudentMemorizedRanges")
+  lessonReports       LessonReport[]         @relation("LessonReportsSubmitted")
+  lessonJoins         LessonJoin[]           @relation("LessonJoins")
   ijazahs             Ijazah[]
   donations           Donation[]
   analytics           UserAnalytics[]
   auditLogs           AuditLog[]
+  standingEvents      AccountStandingEvent[]
 
   @@index([role])
+  @@index([standing])
 }
 
 /// A single-use secret sent to an email address, either to confirm the address
@@ -932,4 +952,33 @@ model Ijazah {
 
   @@unique([userId, courseId])
   @@index([userId])
+}
+
+/// One step on the attendance ladder, whether taken or merely proposed.
+///
+/// A row is written whenever an evaluation reaches a new rung. In shadow mode
+/// and for an automatic disable it is recorded without being applied, so the
+/// decision is visible and reviewable without changing the account. `mode`
+/// tells the three cases apart: a shadow observation, an automatic change, or
+/// an administrator's confirmation.
+model AccountStandingEvent {
+  id               String          @id @default(cuid())
+  userId           String
+  standing         AccountStanding
+  previousStanding AccountStanding
+  /// Human-readable explanation, shown on the status page and in the queue.
+  reason           String
+  /// No-shows counted in the evaluation window when this was raised.
+  absenceCount     Int?
+  applied          Boolean         @default(false)
+  /// "shadow", "automatic", or "admin".
+  mode             String          @default("automatic")
+  decidedAt        DateTime?
+  decidedById      String?
+  createdAt        DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([standing, applied])
 }

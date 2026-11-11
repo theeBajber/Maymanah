@@ -28,6 +28,20 @@ export async function POST(request: Request): Promise<NextResponse> {
   const user = await getCurrentUser(await auth());
   if (!user) return unauthorized();
 
+  // Pausing stops new bookings but leaves existing lessons and course access
+  // alone. A disabled account cannot use the platform at all.
+  if (user.standing === "PAUSED" || user.standing === "DISABLED") {
+    return NextResponse.json(
+      {
+        error:
+          user.standing === "PAUSED"
+            ? "New bookings are paused on your account. Existing sessions are unaffected."
+            : "Your account is disabled and cannot book sessions.",
+      },
+      { status: 403 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

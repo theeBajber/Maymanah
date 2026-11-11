@@ -56,6 +56,23 @@ export const mailer: MailTransport = {
   send: (message) => activeTransport().send(message),
 };
 
+/**
+ * Sends one message, reporting rather than throwing on failure.
+ *
+ * Reminders and standing notices are secondary to the job that triggers them:
+ * a mail server that is down must not stop the rest of an hourly sweep. The
+ * failure is logged, and the caller can decide whether to try again.
+ */
+export async function sendEmail(message: OutgoingMessage): Promise<boolean> {
+  try {
+    await mailer.send(message);
+    return true;
+  } catch (error) {
+    console.error("Could not send email", error);
+    return false;
+  }
+}
+
 let cached: MailTransport | null = null;
 
 function activeTransport(): MailTransport {
@@ -175,4 +192,85 @@ export function verificationLink(token: string): string {
 
 export function passwordResetLink(token: string): string {
   return `${baseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * Session reminder sent an hour ahead.
+ *
+ * The link points at the session inside the app rather than at a video room:
+ * the room address is only released once the recipient is signed in and the
+ * join window is open.
+ */
+export function sessionReminderEmailContent(
+  name: string,
+  title: string,
+  when: string,
+  sessionLink: string,
+): EmailContent {
+  return {
+    subject: `Reminder: ${title} at ${when}`,
+    text: [
+      `Assalamu alaikum ${name},`,
+      "",
+      `This is a reminder that ${title} starts at ${when}.`,
+      "",
+      `Open the session: ${sessionLink}`,
+      "",
+      "Joining opens shortly before the lesson. Your camera and microphone start off.",
+    ].join("\n"),
+  };
+}
+
+export type StandingEmailLevel = "WARNED" | "PAUSED" | "DISABLED";
+
+/**
+ * Account notice for a rung on the attendance ladder.
+ *
+ * The link is to the account status page, never to a meeting. It explains what
+ * changed and what the recipient can do next, without naming another student.
+ */
+export function standingEmailContent(
+  name: string,
+  standing: StandingEmailLevel,
+  reason: string,
+  statusLink: string,
+): EmailContent {
+  const details: Record<StandingEmailLevel, { subject: string; body: string[] }> = {
+    WARNED: {
+      subject: "A note about your recent sessions",
+      body: [
+        "Some sessions you were expected at were missed recently. This is a warning, not a restriction: you can keep attending and booking as usual.",
+        "If something is making it hard to attend, reply to this message or speak to your teacher so the time can be rearranged.",
+      ],
+    },
+    PAUSED: {
+      subject: "New bookings are paused on your account",
+      body: [
+        "Because of repeated missed sessions, new bookings are paused on your account. Your existing lessons, course access, and teaching place are unchanged.",
+        "Contact us when you are ready to return and we will review the pause.",
+      ],
+    },
+    DISABLED: {
+      subject: "Your Maymanah account has been disabled",
+      body: [
+        "After repeated missed sessions, an administrator has disabled your account. You can still sign in to see this status page, but you cannot book or join sessions.",
+        "If you believe this is a mistake, reply to this message and we will review it.",
+      ],
+    },
+  };
+
+  const copy = details[standing];
+
+  return {
+    subject: copy.subject,
+    text: [
+      `Assalamu alaikum ${name},`,
+      "",
+      ...copy.body,
+      "",
+      `Reason: ${reason}`,
+      "",
+      `Your account status: ${statusLink}`,
+    ].join("\n"),
+  };
 }

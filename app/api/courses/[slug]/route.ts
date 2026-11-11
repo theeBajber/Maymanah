@@ -89,6 +89,12 @@ export async function POST(
     if (result.reason === "not_student") {
       return NextResponse.json({ error: "Only student accounts can enrol in this course" }, { status: 403 });
     }
+    if (result.reason === "disabled") {
+      return NextResponse.json(
+        { error: "Your account is disabled and cannot enrol in courses" },
+        { status: 403 },
+      );
+    }
     return NextResponse.json({ error: "That enrolment key is not right" }, { status: 403 });
   }
 

@@ -32,6 +32,13 @@ export async function GET(
   const user = await getCurrentUser(await auth());
   if (!user) return unauthorized();
 
+  if (user.standing === "DISABLED") {
+    return NextResponse.json(
+      { error: "Your account is disabled and cannot join sessions." },
+      { status: 403 },
+    );
+  }
+
   const { id } = await params;
 
   const appointment = await db.appointment.findFirst({
