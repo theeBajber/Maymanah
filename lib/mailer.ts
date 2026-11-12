@@ -197,7 +197,7 @@ export function passwordResetLink(token: string): string {
 /**
  * Session reminder sent an hour ahead.
  *
- * The link points at the session inside the app rather than at a video room:
+ * The link points at the session inside the app rather than at a meeting room:
  * the room address is only released once the recipient is signed in and the
  * join window is open.
  */
