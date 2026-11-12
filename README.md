@@ -51,7 +51,7 @@ and deployment hardening is still outstanding.
 | Student portal | Implemented, still expanding | Dashboard, courses, lessons, assessments, certificates, Mushaf reader, messages, sessions and reports |
 | Teacher portal | Implemented, still expanding | Dashboard, students, availability, session plans, notes, rescheduling and pairing |
 | Admin portal | Implemented, still expanding | Teachers, users, courses, lessons, exams, donations, certificates, analytics and audit log |
-| Scheduling and live sessions | Implemented with external dependency | LiveKit credentials are required for video |
+| Scheduling and live sessions | Implemented | Teachers use a pasted Meet link or a room created in their connected calendar |
 | Donations | Partial | M-Pesa is wired up; card and PayPal are still marked coming soon |
 | Revision / AI tutor | Placeholder | The route exists, but the feature is not built |
 | Production deployment | Not finalised | Hosting, backups, monitoring and operational runbooks still need work |
@@ -68,7 +68,7 @@ in the codebase, not as a release checklist that has been signed off.
 - **Prisma 7** with the Neon serverless adapter
 - **NextAuth / Auth.js 5** — JWT sessions and credentials
 - **Neon PostgreSQL**
-- **LiveKit** — one-to-one video sessions
+- **Scheduling and lesson rooms** — a pasted Meet link or a calendar-created room, behind one join call
 - **Vercel Blob** — course images and certificate uploads
 - **Nodemailer** — transactional email
 - **M-Pesa Daraja** — donation payments
@@ -115,7 +115,7 @@ APP_URL=http://localhost:3000
 Optional integration variables include:
 
 - `SMTP_*` — transactional email. Without them, mail is written to the server log.
-- `LIVEKIT_*` — live video sessions.
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MEETING_TOKEN_KEY` — calendar-created lesson rooms. Without them teachers paste a Meet link instead. The redirect URI is `APP_URL` plus `/api/meetings/google/callback`, and `MEETING_TOKEN_KEY` is a base64-encoded 32-byte key (`openssl rand -base64 32`).
 - `BLOB_READ_WRITE_TOKEN` — course image and certificate uploads.
 - `QF_*` — Quran Foundation catalog, pages, translations and audio.
 - `MPESA_*` — M-Pesa donations and callbacks.
@@ -216,13 +216,13 @@ TypeScript can be checked with `pnpm exec tsc --noEmit`.
 - Certificate management
 - Audit log visibility
 
-### Scheduling, messaging and video
+### Scheduling, messaging and lesson rooms
 
 - Mentorship pairing and re-pairing
 - Recurring availability slots
 - Appointment creation, rescheduling and daily session flows
 - Session plans and private notes
-- LiveKit video rooms
+- Lesson rooms: a pasted Meet link, or a room created in the teacher's connected calendar, released only by the join route
 - In-app messaging and notifications
 - Hourly housekeeping job: session reminders, missed-session marking, and seat expiry
 - Attendance standing: warnings, paused bookings, and an admin-confirmed disable queue
@@ -287,7 +287,7 @@ production.
 - Several integrations require credentials that are not included in the
   repository; features fail gracefully or report that they are not connected.
 - M-Pesa callbacks require a publicly reachable HTTPS URL.
-- Video sessions require a LiveKit project and credentials.
+- Lesson rooms work without any external account: a teacher can always paste a link. Automatic rooms need an OAuth client whose calendar permission is granted by the teacher; while that client is unverified, its refresh tokens may expire and the teacher has to reconnect.
 - Uploads require a Vercel Blob token.
 - Local development without SMTP logs email instead of sending it.
 - The platform has not been load-tested or operated at production scale.

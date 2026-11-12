@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { VideoRoom } from "@/app/ui/VideoRoom";
 import { GlassCard } from "@/app/ui/glass";
 import { useToast } from "@/app/ui/toast";
 import { rangeLabel } from "@/lib/quran-meta";
@@ -56,9 +55,8 @@ interface SummaryPayload {
 }
 
 interface JoinPayload {
-  token: string;
-  roomName: string;
-  liveKitUrl: string;
+  joinUrl: string;
+  provider: string;
 }
 
 const ATTENDANCE_LABELS: Record<Attendance, string> = {
@@ -82,7 +80,6 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
   const [surahs, setSurahs] = useState<SurahOption[] | null>(null);
   const [error, setError] = useState("");
   const [call, setCall] = useState<JoinPayload | null>(null);
-  const [inCall, setInCall] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState("");
 
@@ -127,7 +124,6 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
   }, [appointmentId]);
 
   const leave = useCallback(() => {
-    setInCall(false);
     setCall(null);
     setJoinError("");
     router.refresh();
@@ -139,12 +135,16 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
     try {
       const response = await fetch(`/api/appointments/${appointmentId}/join`);
       const body = (await response.json().catch(() => ({}))) as Partial<JoinPayload> & { error?: string };
-      if (!response.ok || !body.token || !body.liveKitUrl) {
+      if (!response.ok || !body.joinUrl || !body.provider) {
         setJoinError(body.error ?? "Could not join that session.");
         return;
       }
       setCall(body as JoinPayload);
-      setInCall(true);
+
+      // Opening here usually succeeds, but a browser may block a window opened
+      // after an await. The panel below always offers the same link, so nobody
+      // is stuck if this attempt is ignored.
+      window.open(body.joinUrl, "_blank", "noopener,noreferrer");
     } catch {
       setJoinError("Could not reach the server.");
     } finally {
@@ -231,8 +231,32 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
         </GlassCard>
       ) : null}
 
-      {inCall && call ? (
-        <VideoRoom liveKitUrl={call.liveKitUrl} token={call.token} onLeave={leave} />
+      {call ? (
+        <GlassCard className="flex flex-col items-center gap-4 p-8 text-center">
+          <p className="text-sm text-text-secondary">
+            Your lesson room is ready. It opens in a new tab.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href={call.joinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-12 items-center rounded-[10px] bg-accent px-8 text-sm font-semibold text-text-inverse transition-all hover:brightness-95"
+            >
+              Open meeting
+            </a>
+            <button
+              onClick={leave}
+              className="inline-flex h-12 items-center rounded-[10px] border border-border px-6 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
+            >
+              Back to session
+            </button>
+          </div>
+          <p className="text-xs text-text-muted">
+            If nothing opened, use the button above. Allow pop-ups for this site to open it
+            automatically.
+          </p>
+        </GlassCard>
       ) : (
         <GlassCard className="flex flex-col items-center gap-4 p-8 text-center">
           {joinError ? <p className="text-sm text-warning">{joinError}</p> : null}
@@ -240,15 +264,15 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
             <>
               <p className="text-sm text-text-secondary">
                 {session.isTeacher
-                  ? "Your student joins from their sessions list. Your camera and microphone start off."
-                  : "Your teacher is in the room or on the way. Your camera and microphone start off."}
+                  ? "Your student joins from their sessions list. The room opens in a new tab."
+                  : "Your teacher is in the room or on the way. The room opens in a new tab."}
               </p>
               <button
                 onClick={startCall}
                 disabled={joining}
                 className="inline-flex h-12 items-center rounded-[10px] bg-accent px-8 text-sm font-semibold text-text-inverse transition-all hover:brightness-95 disabled:opacity-50"
               >
-                {joining ? "Joining…" : "Join now"}
+                {joining ? "Opening…" : "Join lesson"}
               </button>
             </>
           ) : (
@@ -262,6 +286,8 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
           )}
         </GlassCard>
       )}
+
+      {session.isTeacher ? <MeetingLinkCard appointmentId={session.id} /> : null}
 
       {session.isTeacher ? (
         <PlanEditor
@@ -298,6 +324,143 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
         studentId={session.isTeacher ? session.studentId : null}
       />
     </div>
+  );
+}
+
+function MeetingLinkCard({ appointmentId }: { appointmentId: string }) {
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<{
+    configured: boolean;
+    preference: "AUTO" | "MANUAL";
+    connected: boolean;
+    status: "CONNECTED" | "REAUTH_REQUIRED" | null;
+    calendarName: string | null;
+  } | null>(null);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/meetings/settings")
+      .then((response) => response.json())
+      .then((body) => {
+        if (!cancelled) setSettings(body);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (!url.trim()) return;
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}/meeting-link`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        toast({ title: body.error ?? "Could not save the meeting link", variant: "error" });
+        return;
+      }
+      setUrl("");
+      toast({ title: "Meeting link saved", variant: "success" });
+    } catch {
+      toast({ title: "Could not reach the server", variant: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}/meeting-link`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        toast({ title: "Could not remove the meeting link", variant: "error" });
+        return;
+      }
+      toast({ title: "Meeting link removed", variant: "success" });
+    } catch {
+      toast({ title: "Could not reach the server", variant: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const field =
+    "w-full rounded-[10px] border border-border bg-bg-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-primary/60 focus:outline-none";
+
+  let status: React.ReactNode = null;
+  if (settings) {
+    if (settings.preference === "MANUAL") {
+      status = "Lessons use the link you add below.";
+    } else if (settings.connected) {
+      status = `A room is created in ${settings.calendarName ?? "your lessons calendar"} when either of you joins. The link below is used as a fallback.`;
+    } else if (settings.status === "REAUTH_REQUIRED") {
+      status = (
+        <>
+          Your calendar connection needs renewing, so lessons use the link below.{" "}
+          <a href="/settings" className="font-semibold text-primary underline underline-offset-4">
+            Reconnect it in settings
+          </a>
+          .
+        </>
+      );
+    } else {
+      status = "No calendar is connected, so lessons use the link below.";
+    }
+  }
+
+  return (
+    <GlassCard className="p-5">
+      <form onSubmit={save} className="flex flex-col gap-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Lesson meeting
+        </p>
+        {status ? <p className="text-sm text-text-secondary">{status}</p> : null}
+
+        <label className="flex flex-col gap-1 text-xs font-medium text-text-secondary">
+          Your meeting link
+          <input
+            type="url"
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            placeholder="https://meet.google.com/abc-defg-hij"
+            className={field}
+          />
+        </label>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="submit"
+            disabled={busy || !url.trim()}
+            className="inline-flex h-10 items-center rounded-[10px] border border-border px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary disabled:opacity-50"
+          >
+            {busy ? "Saving…" : "Save link"}
+          </button>
+          <button
+            type="button"
+            onClick={remove}
+            disabled={busy}
+            className="inline-flex h-10 items-center rounded-[10px] px-3 text-sm font-semibold text-text-muted transition-colors hover:text-danger disabled:opacity-50"
+          >
+            Remove link
+          </button>
+        </div>
+
+        <p className="text-xs text-text-muted">
+          Students only see a Join lesson button. The address is released when they join, never
+          listed or emailed.
+        </p>
+      </form>
+    </GlassCard>
   );
 }
 

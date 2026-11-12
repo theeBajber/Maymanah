@@ -29,6 +29,28 @@ enum AccountStanding {
   DISABLED
 }
 
+/// How a teacher's lesson rooms are produced.
+enum MeetingPreference {
+  /// Create a room in the teacher's connected calendar, falling back to the
+  /// link they pasted when that is not possible.
+  AUTO
+  /// Always use the link the teacher pasted.
+  MANUAL
+}
+
+/// Where a particular lesson's room came from.
+enum MeetingProvider {
+  MANUAL
+  GOOGLE_MEET
+}
+
+/// Whether a stored calendar connection can still be used.
+enum MeetingConnectionStatus {
+  CONNECTED
+  /// The provider refused the stored credentials; the teacher must reconnect.
+  REAUTH_REQUIRED
+}
+
 /// An account. Every account authenticates with an email address and a
 /// password; there is no third-party sign-in, so no account or session table
 /// is needed to store identities from an external provider.
@@ -85,6 +107,7 @@ model User {
   analytics           UserAnalytics[]
   auditLogs           AuditLog[]
   standingEvents      AccountStandingEvent[]
+  meetingAccount      MeetingAccount?
 
   @@index([role])
   @@index([standing])
@@ -204,18 +227,21 @@ model Profile {
 /// paired with students yet. Availability for new pairings is a separate
 /// switch, so an approved teacher can pause without losing their standing.
 model UstadhProfile {
-  id                   String    @id @default(cuid())
-  userId               String    @unique
-  isApproved           Boolean   @default(false)
+  id                   String            @id @default(cuid())
+  userId               String            @unique
+  isApproved           Boolean           @default(false)
   rejectedAt           DateTime?
   bio                  String?
   qualifications       String?
   ijazah               String?
   qiraah               String?
-  availableForTeaching Boolean   @default(false)
+  availableForTeaching Boolean           @default(false)
   /// How many students this teacher can carry at once, across every course.
-  maxStudents          Int       @default(4)
+  maxStudents          Int               @default(4)
   reliabilityScore     Float?
+  /// Where this teacher's lesson rooms come from. Manual by default, so a
+  /// teacher can run lessons without connecting any external service.
+  meetingPreference    MeetingPreference @default(MANUAL)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -311,22 +337,34 @@ model Mentorship {
 /// the session without rewriting the pattern it came from. A session belongs
 /// to a pairing, and ending the pairing ends its future sessions.
 model Appointment {
-  id           String                 @id @default(cuid())
-  mentorshipId String
-  teacherId    String
-  title        String?
-  description  String?
-  startTime    DateTime
-  endTime      DateTime?
-  meetingUrl   String?
-  status       AppointmentStatus      @default(SCHEDULED)
-  sessionType  AppointmentSessionType @default(DAILY_HIFDH)
-  startedAt    DateTime?
-  endedAt      DateTime?
-  joinedAt     DateTime?
-  missed       Boolean                @default(false)
-  surahNumber  Int?
-  verseNumber  Int?
+  id                  String                 @id @default(cuid())
+  mentorshipId        String
+  teacherId           String
+  title               String?
+  description         String?
+  startTime           DateTime
+  endTime             DateTime?
+  /// The teacher's own room address for this lesson, used when automation is
+  /// off or unavailable. Released only by the join route; never included in
+  /// summaries, lists, or email.
+  meetingUrl          String?
+  /// A room created in the teacher's connected calendar. Kept apart from
+  /// meetingUrl so automation never overwrites the teacher's fallback link.
+  generatedMeetingUrl String?
+  /// Where the address came from, so a generated room can be replaced after a
+  /// reschedule without touching a teacher's own link.
+  meetingProvider     MeetingProvider?
+  /// Identifier of the calendar event backing a generated room.
+  meetingEventId      String?
+  meetingCreatedAt    DateTime?
+  status              AppointmentStatus      @default(SCHEDULED)
+  sessionType         AppointmentSessionType @default(DAILY_HIFDH)
+  startedAt           DateTime?
+  endedAt             DateTime?
+  joinedAt            DateTime?
+  missed              Boolean                @default(false)
+  surahNumber         Int?
+  verseNumber         Int?
 
   createdAt DateTime @default(now())
 
@@ -981,4 +1019,28 @@ model AccountStandingEvent {
 
   @@index([userId, createdAt])
   @@index([standing, applied])
+}
+
+/// A teacher's external calendar connection.
+///
+/// The refresh token is the only credential kept, and it is encrypted before it
+/// reaches this table. Nothing outside the meetings module reads this row, and
+/// no route ever returns the token to a browser.
+model MeetingAccount {
+  id           String                  @id @default(cuid())
+  userId       String                  @unique
+  /// Calendar service this connection belongs to.
+  provider     String                  @default("google")
+  /// Encrypted refresh token; see MeetingTokenKey in the environment.
+  refreshToken String
+  calendarId   String
+  calendarName String                  @default("Maymanah Lessons")
+  status       MeetingConnectionStatus @default(CONNECTED)
+  lastError    String?
+  connectedAt  DateTime                @default(now())
+  updatedAt    DateTime                @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
 }

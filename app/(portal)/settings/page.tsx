@@ -537,6 +537,9 @@ function TeacherSettings() {
         <div className="mt-6">
           <UstadhSettings />
         </div>
+        <div className="mt-6">
+          <MeetingSettings />
+        </div>
       </section>
     </div>
   );
@@ -1438,6 +1441,182 @@ function UstadhSettings() {
             onChange={handleToggle}
             disabled={loading}
           />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MeetingSettings() {
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<{
+    configured: boolean;
+    preference: "AUTO" | "MANUAL";
+    connected: boolean;
+    status: "CONNECTED" | "REAUTH_REQUIRED" | null;
+    calendarName: string | null;
+  } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get("meeting");
+
+    if (outcome) {
+      if (outcome === "connected") {
+        toast({ title: "Calendar connected", variant: "success" });
+      } else if (outcome === "forbidden") {
+        toast({ title: "Only teachers can connect a calendar", variant: "error" });
+      } else if (outcome === "cancelled") {
+        toast({ title: "Calendar connection was cancelled", variant: "info" });
+      } else {
+        toast({ title: "Could not connect the calendar", variant: "error" });
+      }
+
+      params.delete("meeting");
+      const query = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    }
+
+    fetch("/api/meetings/settings")
+      .then((response) => response.json())
+      .then((body) => setSettings(body))
+      .catch(() => {});
+  }, [toast]);
+
+  async function choose(preference: "AUTO" | "MANUAL") {
+    if (!settings || settings.preference === preference) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/meetings/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preference }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        toast({ title: body.error ?? "Could not save the preference", variant: "error" });
+        return;
+      }
+      setSettings(body);
+      toast({
+        title: preference === "AUTO" ? "Rooms will be created automatically" : "Lessons will use your own link",
+        variant: "success",
+      });
+    } catch {
+      toast({ title: "Could not reach the server", variant: "error" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function disconnect() {
+    setSaving(true);
+    try {
+      const response = await fetch("/api/meetings/google/disconnect", { method: "POST" });
+      const body = await response.json();
+      if (!response.ok) {
+        toast({ title: body.error ?? "Could not disconnect the calendar", variant: "error" });
+        return;
+      }
+      setSettings(body);
+      toast({ title: "Calendar disconnected", variant: "success" });
+    } catch {
+      toast({ title: "Could not reach the server", variant: "error" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!settings) {
+    return <Skeleton className="h-40 w-full rounded-2xl" />;
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
+      <div className="mb-4">
+        <p className="font-semibold text-sm text-text-primary">Lesson meetings</p>
+        <p className="text-xs text-text-muted mt-0.5">
+          Students only see a Join lesson button. The room address is released when they join.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => choose("AUTO")}
+          disabled={saving}
+          className={`rounded-xl border p-4 text-left transition-colors ${
+            settings.preference === "AUTO"
+              ? "border-primary/60 bg-primary/5"
+              : "border-border hover:bg-bg-hover"
+          }`}
+        >
+          <p className="text-sm font-semibold text-text-primary">Create rooms automatically</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            A meeting room is created for each lesson in your connected calendar.
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => choose("MANUAL")}
+          disabled={saving}
+          className={`rounded-xl border p-4 text-left transition-colors ${
+            settings.preference === "MANUAL"
+              ? "border-primary/60 bg-primary/5"
+              : "border-border hover:bg-bg-hover"
+          }`}
+        >
+          <p className="text-sm font-semibold text-text-primary">Use my own link</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            Paste a meeting link on each session page. Nothing external is connected.
+          </p>
+        </button>
+      </div>
+
+      {!settings.configured ? (
+        <p className="mt-4 text-xs text-text-secondary">
+          Automatic rooms are not available on this deployment. You can still add a meeting link to
+          any session.
+        </p>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">
+          <div>
+            <p className="text-sm font-semibold text-text-primary">
+              {settings.connected
+                ? `Connected${settings.calendarName ? ` · ${settings.calendarName}` : ""}`
+                : settings.status === "REAUTH_REQUIRED"
+                  ? "Connection needs renewing"
+                  : "No calendar connected"}
+            </p>
+            <p className="mt-0.5 text-xs text-text-muted">
+              {settings.connected
+                ? "Rooms are created there; a link you paste is kept as a fallback."
+                : settings.status === "REAUTH_REQUIRED"
+                  ? "Access expired. Reconnect to keep automatic rooms working; lessons fall back to your link."
+                  : "Connect to create rooms automatically. Lessons fall back to your link."}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {settings.connected ? (
+              <button
+                type="button"
+                onClick={disconnect}
+                disabled={saving}
+                className="inline-flex h-9 items-center rounded-[10px] border border-border px-3 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-danger disabled:opacity-50"
+              >
+                Disconnect
+              </button>
+            ) : (
+              <a
+                href="/api/meetings/google/connect"
+                className="inline-flex h-9 items-center rounded-[10px] bg-accent px-4 text-sm font-semibold text-text-inverse transition-all hover:brightness-95"
+              >
+                {settings.status === "REAUTH_REQUIRED" ? "Reconnect Google" : "Connect Google Calendar"}
+              </a>
+            )}
+          </div>
         </div>
       )}
     </div>

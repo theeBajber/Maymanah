@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
-import { generateSessionToken, roomNameFor } from "@/lib/livekit";
+import { createLessonRoom, MeetingError } from "@/lib/meetings";
 import { getCurrentUser } from "@/lib/session";
 
 /** A session is joinable from fifteen minutes before it starts. */
@@ -17,13 +16,15 @@ function unauthorized() {
 }
 
 /**
- * Admits a participant to a session's video room.
+ * Opens a session's room.
  *
- * Joining is allowed inside a window around the session, not only while it
- * runs, so an early teacher can prepare and a late session can finish. The
- * first join marks the session ongoing; rejoining only refreshes the join
- * time, since ending and restarting the session on every reconnect would
- * corrupt its record.
+ * The address is produced here and nowhere else: summaries, lists, and email
+ * only ever link back into the app. A join is recorded before the provider is
+ * asked for a room, so a failed connection still leaves an honest timestamp.
+ *
+ * A teacher who has neither connected a calendar nor pasted a link is told so
+ * directly; a student in the same situation is told the room is not ready,
+ * without exposing the teacher's setup.
  */
 export async function GET(
   _request: Request,
@@ -51,6 +52,9 @@ export async function GET(
       endTime: true,
       joinedAt: true,
       teacherId: true,
+      meetingUrl: true,
+      generatedMeetingUrl: true,
+      meetingEventId: true,
       mentorship: { select: { studentId: true } },
       sessionPlan: true,
     },
@@ -77,36 +81,56 @@ export async function GET(
     return NextResponse.json({ error: "That session has ended" }, { status: 410 });
   }
 
-  let liveKitUrl: string | undefined;
-  try {
-    liveKitUrl = env().LIVEKIT_URL;
-  } catch {
-    liveKitUrl = undefined;
-  }
-
-  if (!liveKitUrl || !liveKitUrl.startsWith("wss://")) {
-    return NextResponse.json(
-      { error: "Video sessions are not configured yet" },
-      { status: 503 },
-    );
-  }
-
   const isTeacher = appointment.teacherId === user.id;
-  const roomName = roomNameFor(appointment.id);
 
   // The click is recorded independently of the provider result, so a student
-  // whose camera never connected still has an honest join timestamp.
+  // whose room never opened still has an honest join timestamp.
   try {
     await db.lessonJoin.create({ data: { appointmentId: id, userId: user.id } });
   } catch (error) {
     console.error("Could not record lesson join", error);
   }
 
-  let token: string;
+  let room: { joinUrl: string; provider: "MANUAL" | "GOOGLE_MEET" };
   try {
-    token = await generateSessionToken({ userId: user.id, name: user.name, roomName });
-  } catch {
-    return NextResponse.json({ error: "Video sessions are not configured yet" }, { status: 503 });
+    room = await createLessonRoom({
+      id: appointment.id,
+      title: appointment.title,
+      startTime: appointment.startTime,
+      endTime: appointment.endTime,
+      teacherId: appointment.teacherId,
+      meetingUrl: appointment.meetingUrl,
+      generatedMeetingUrl: appointment.generatedMeetingUrl,
+      meetingEventId: appointment.meetingEventId,
+    });
+  } catch (error) {
+    const code = error instanceof MeetingError ? error.code : "provider_error";
+    console.error("Could not open lesson room", code, error);
+
+    if (code === "reauth") {
+      return NextResponse.json(
+        {
+          error: isTeacher
+            ? "Your calendar connection needs to be renewed. Reconnect it in settings, or add a meeting link to this lesson."
+            : "The meeting room is temporarily unavailable. Your teacher has been asked to reconnect.",
+        },
+        { status: 503 },
+      );
+    }
+    if (code === "not_configured" || code === "no_link") {
+      return NextResponse.json(
+        {
+          error: isTeacher
+            ? "Add a meeting link or connect your calendar before opening this lesson."
+            : "Your teacher has not set up the meeting room yet.",
+        },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json(
+      { error: "That meeting room could not be opened. Try again in a moment." },
+      { status: 502 },
+    );
   }
 
   await db.appointment.update({
@@ -118,10 +142,8 @@ export async function GET(
   });
 
   return NextResponse.json({
-    token,
-    roomName,
-    liveKitUrl,
-    otherUserId: isTeacher ? appointment.mentorship.studentId : appointment.teacherId,
+    joinUrl: room.joinUrl,
+    provider: room.provider,
     appointment: {
       id: appointment.id,
       title: appointment.title,
