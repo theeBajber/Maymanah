@@ -22,6 +22,14 @@ const serverEnvSchema = z.object({
     .min(32, "AUTH_SECRET must be at least 32 characters; generate one with `openssl rand -base64 32`"),
   /** Origin used to build links in transactional email. */
   APP_URL: z.url("APP_URL must be an absolute origin, for example https://maymanah.org").default("http://localhost:3000"),
+  /**
+   * Calendar-integration credentials. All three are optional: without them a
+   * teacher simply uses a pasted meeting link, and no lesson stops working.
+   */
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  /** Base64-encoded 32-byte key used to encrypt stored refresh tokens. */
+  MEETING_TOKEN_KEY: z.string().min(1).optional(),
   LIVEKIT_API_KEY: z.string().min(1, "LIVEKIT_API_KEY is required for video sessions").optional(),
   LIVEKIT_API_SECRET: z.string().min(1, "LIVEKIT_API_SECRET is required for video sessions").optional(),
   LIVEKIT_URL: z.string().min(1).optional(),

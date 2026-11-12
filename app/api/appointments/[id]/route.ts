@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { forgetGeneratedMeeting } from "@/lib/meetings";
 import { createNotification } from "@/lib/notifications";
 import { getCurrentUser } from "@/lib/session";
 import { timeToMinutes } from "@/lib/scheduling";
@@ -107,6 +108,10 @@ export async function PATCH(
     where: { id },
     data: { startTime: start, endTime: new Date(start.getTime() + parsed.data.durationMinutes * 60_000) },
   });
+
+  // A room created for the old time would point at the wrong slot. The next
+  // join makes a fresh one; a link the teacher supplied is left untouched.
+  await forgetGeneratedMeeting(id);
 
   // A teacher may move a session to an hour the student never offered; the
   // student is told, so the conflict is a notice rather than a surprise.
