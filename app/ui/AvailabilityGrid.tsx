@@ -29,6 +29,90 @@ function minutesOf(time: string): number {
   return hours * 60 + minutes;
 }
 
+function timeOf(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+}
+
+/**
+ * The selected cells as the fewest windows that cover them.
+ *
+ * Stored availability is a list of ranges, not cells, so a brushed hour is
+ * saved as one 09:00–10:00 rather than two half-hours. Cells in the same day
+ * merge when they touch, and overlapping ranges are folded together.
+ */
+export function slotsToWindows(selected: Set<SlotKey>): GridWindow[] {
+  const byDay = new Map<number, { start: number; end: number }[]>();
+  for (const key of selected) {
+    const { day, start, end } = parseSlotKey(key);
+    const window = { start: minutesOf(start), end: minutesOf(end) };
+    const list = byDay.get(day);
+    if (list) list.push(window);
+    else byDay.set(day, [window]);
+  }
+
+  const windows: GridWindow[] = [];
+  for (const day of [...byDay.keys()].sort((a, b) => a - b)) {
+    const list = byDay.get(day)!.sort((a, b) => a.start - b.start);
+    let current = { ...list[0] };
+    for (const next of list.slice(1)) {
+      if (next.start <= current.end) {
+        current.end = Math.max(current.end, next.end);
+      } else {
+        windows.push({
+          dayOfWeek: day,
+          startTime: timeOf(current.start),
+          endTime: timeOf(current.end),
+        });
+        current = { ...next };
+      }
+    }
+    windows.push({
+      dayOfWeek: day,
+      startTime: timeOf(current.start),
+      endTime: timeOf(current.end),
+    });
+  }
+
+  return windows;
+}
+
+/** Whether a cell sits fully inside one of the given windows. */
+function within(windows: GridWindow[], day: number, start: string, end: string): boolean {
+  return windows.some(
+    (window) =>
+      window.dayOfWeek === day &&
+      minutesOf(start) >= minutesOf(window.startTime) &&
+      minutesOf(end) <= minutesOf(window.endTime),
+  );
+}
+
+/**
+ * The cells fully inside stored windows, so saved availability can be edited.
+ *
+ * `limitTo` narrows the result to windows the teacher holds open, which is what
+ * the reschedule dialog needs: a student's old hours outside the new teacher's
+ * availability are not a valid selection.
+ */
+export function windowsToSlots(windows: GridWindow[], limitTo?: GridWindow[]): Set<SlotKey> {
+  const selected = new Set<SlotKey>();
+  if (windows.length === 0) return selected;
+
+  for (let row = 0; row < HOURS.length * MINUTES.length; row++) {
+    for (let day = 0; day < 7; day++) {
+      const key = cellKey(row, day);
+      const { start, end } = parseSlotKey(key);
+      if (!within(windows, day, start, end)) continue;
+      if (limitTo && !within(limitTo, day, start, end)) continue;
+      selected.add(key);
+    }
+  }
+
+  return selected;
+}
+
+
 function cellKey(row: number, day: number): SlotKey {
   const hour = FIRST_HOUR + Math.floor(row / MINUTES.length);
   const minute = (row % MINUTES.length) * (60 / MINUTES.length);
@@ -173,11 +257,22 @@ export function AvailabilityGrid({
                       key={key}
                       type="button"
                       aria-label={`${DAYS[day]} ${start}`}
+                      aria-pressed={enabled ? selected.has(key) : undefined}
                       disabled={!enabled}
                       onMouseDown={(event) => {
                         if (!enabled) return;
                         event.preventDefault();
                         handleCellMouseDown(row, day);
+                      }}
+                      onClick={(event) => {
+                        // A pointer click already ran on mousedown. Keyboard
+                        // activation reports detail 0, so this is the toggle
+                        // for Enter and Space on the focused cell.
+                        if (!enabled || event.detail !== 0) return;
+                        const next = new Set(selected);
+                        if (next.has(key)) next.delete(key);
+                        else next.add(key);
+                        onSelectedChange(next);
                       }}
                       onMouseEnter={() => handleCellMouseEnter(row, day)}
                       className={`h-7 select-none transition-colors ${

@@ -3,145 +3,124 @@
 import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import {
+  AvailabilityGrid,
+  slotsToWindows,
+  windowsToSlots,
+  type SlotKey,
+} from "@/app/ui/AvailabilityGrid";
 import { Skeleton } from "@/app/ui/Skeleton";
 import { useToast } from "@/app/ui/toast";
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-type Slot = { dayOfWeek: number; startTime: string; endTime: string };
+function durationLabel(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} m`;
+}
 
 /**
- * The weekly availability editor.
+ * The teacher's weekly availability editor.
  *
- * Shared between the settings panel and the standalone availability page so a
- * teacher finds the same control in both places. It reads and writes the
- * recurring slots through the availability endpoint.
+ * Shared between the settings panel and the standalone availability page, and
+ * deliberately the same grid students use: a teacher paints the half-hours
+ * they keep open, and the visible blocks are exactly the windows a student can
+ * be scheduled into. Saving merges touching cells into ranges, so the stored
+ * availability stays a short list rather than one row per half-hour.
  */
-export function AvailabilityEditor() {
+export function AvailabilityEditor({ heading = true }: { heading?: boolean }) {
   const { toast } = useToast();
-  const [slots, setSlots] = useState<Slot[]>([]);
+  const [selected, setSelected] = useState<Set<SlotKey>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/availability")
-      .then((r) => r.json())
-      .then((data) => {
-        setSlots(data.slots ?? []);
-        setLoading(false);
+      .then((response) => response.json())
+      .then((data: { slots?: { dayOfWeek: number; startTime: string; endTime: string }[] }) => {
+        setSelected(windowsToSlots(data.slots ?? []));
       })
-      .catch(() => setLoading(false));
-  }, []);
-
-  function addSlot(dayOfWeek: number) {
-    setSlots((prev) => [...prev, { dayOfWeek, startTime: "09:00", endTime: "10:00" }]);
-  }
-
-  function removeSlot(index: number) {
-    setSlots((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function updateSlot(index: number, field: keyof Slot, value: string | number) {
-    setSlots((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
-  }
+      .catch(() => {
+        toast({ title: "Could not load your availability", variant: "error" });
+      })
+      .finally(() => setLoading(false));
+  }, [toast]);
 
   async function handleSave() {
     setSaving(true);
     try {
-      const res = await fetch("/api/availability", {
+      const response = await fetch("/api/availability", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slots }),
+        body: JSON.stringify({ slots: slotsToWindows(selected) }),
       });
-      if (res.ok) {
+      if (response.ok) {
         toast({ title: "Availability saved", variant: "success" });
       } else {
-        const data = await res.json();
-        toast({ title: data.error || "Failed to save", variant: "error" });
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        toast({ title: data.error ?? "Could not save availability", variant: "error" });
       }
     } catch {
-      toast({ title: "Failed to save availability", variant: "error" });
+      toast({ title: "Could not reach the server", variant: "error" });
     } finally {
       setSaving(false);
     }
   }
 
-  const grouped = DAY_NAMES.map((_, dayIdx) => ({
-    day: dayIdx,
-    label: DAY_NAMES[dayIdx],
-    slots: slots.filter((s) => s.dayOfWeek === dayIdx),
-  }));
+  const windows = slotsToWindows(selected);
+  const totalMinutes = windows.reduce(
+    (sum, window) => {
+      const [startHour, startMinute] = window.startTime.split(":").map(Number);
+      const [endHour, endMinute] = window.endTime.split(":").map(Number);
+      return sum + (endHour * 60 + endMinute - (startHour * 60 + startMinute));
+    },
+    0,
+  );
+  const dayCount = new Set(windows.map((window) => window.dayOfWeek)).size;
 
   return (
     <div className="max-w-2xl">
-      <h2 className="text-2xl font-bold text-text-primary mb-2">Weekly Availability</h2>
-      <p className="text-sm text-text-secondary mb-6">
-        Set your recurring weekly availability for Hifdh sessions. Sessions will be scheduled automatically when your availability overlaps with your paired teacher.
+      {heading ? (
+        <h2 className="mb-2 text-2xl font-bold text-text-primary">Weekly availability</h2>
+      ) : null}
+      <p className={`text-sm text-text-secondary ${heading ? "mb-6" : "mb-5"}`}>
+        Paint every half-hour you can teach. Students are paired inside these hours, and their
+        daily sessions are booked from them. Blank means unavailable.
       </p>
 
       {loading ? (
         <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-16 w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="space-y-4">
-          {grouped.map(({ day, label, slots: daySlots }) => (
-            <div key={day} className="rounded-xl border border-border bg-bg-elevated p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-semibold text-text-primary text-sm">{label}</span>
-                <button
-                  onClick={() => addSlot(day)}
-                  className="text-xs font-medium text-primary hover:text-primary-light transition-colors"
-                >
-                  + Add slot
-                </button>
-              </div>
-              {daySlots.length === 0 ? (
-                <p className="text-xs text-text-muted">No availability set</p>
-              ) : (
-                <div className="space-y-2">
-                  {daySlots.map((slot, idx) => {
-                    const globalIdx = slots.indexOf(slot);
-                    return (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input
-                          type="time"
-                          value={slot.startTime}
-                          onChange={(e) => updateSlot(globalIdx, "startTime", e.target.value)}
-                          className="rounded-lg border border-border bg-bg-primary px-3 py-1.5 text-sm text-text-primary outline-none focus:border-primary"
-                        />
-                        <span className="text-text-muted text-sm">to</span>
-                        <input
-                          type="time"
-                          value={slot.endTime}
-                          onChange={(e) => updateSlot(globalIdx, "endTime", e.target.value)}
-                          className="rounded-lg border border-border bg-bg-primary px-3 py-1.5 text-sm text-text-primary outline-none focus:border-primary"
-                        />
-                        <button
-                          onClick={() => removeSlot(globalIdx)}
-                          className="ml-auto text-danger/70 hover:text-danger transition-colors text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <>
+          <AvailabilityGrid selected={selected} onSelectedChange={setSelected} />
+
+          <p className="mt-4 text-xs text-text-secondary">
+            Drag across cells to select a block, or drag over a selected block to clear it. On a
+            keyboard, tab to a cell and press Enter or Space to toggle it.
+          </p>
+
+          <p className="mt-3 text-sm text-text-secondary" aria-live="polite">
+            {totalMinutes === 0
+              ? "No time selected yet."
+              : `${durationLabel(totalMinutes)} a week across ${dayCount} ${
+                  dayCount === 1 ? "day" : "days"
+                }.`}
+          </p>
+        </>
       )}
 
       <button
+        type="button"
         onClick={handleSave}
         disabled={saving || loading}
-        className="mt-6 inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
+        className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-medium text-text-inverse transition-all hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent motion-reduce:transition-none"
       >
-        <Save className="size-4" />
-        {saving ? "Saving..." : "Save Availability"}
+        <Save aria-hidden className="size-4" />
+        {saving ? "Saving…" : "Save availability"}
       </button>
     </div>
   );

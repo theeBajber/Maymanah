@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "./db";
+import { didPassExam } from "./exams";
 
 export type QuestionKind = "MCQ" | "SHORT_ANSWER" | "ESSAY";
 
@@ -103,7 +104,7 @@ async function loadResult(
   if (!submission) return null;
 
   const graded = submission.status === "GRADED" && submission.totalScore !== null;
-  const passed = graded && totalMarks > 0 ? ((submission.totalScore ?? 0) / totalMarks) * 100 >= passMark : null;
+  const passed = graded ? didPassExam(submission.totalScore, totalMarks, passMark) : null;
 
   return {
     status: submission.status as "SUBMITTED" | "GRADED",

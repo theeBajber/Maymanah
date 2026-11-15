@@ -1,13 +1,10 @@
 "use client";
 
 import { Loader2, UserRound } from "lucide-react";
-import { useEffect, useState } from "react";
 
 import { LessonJoinCard } from "@/app/ui/LessonJoinCard";
 import { LocalTime } from "@/app/ui/LocalTime";
-import { StatusChip } from "@/app/ui/chips";
 import { Panel } from "@/app/ui/portal";
-import { countdownLabel, sessionTypeLabel, type JoinState } from "@/lib/live-session";
 import type { SessionRow } from "@/app/ui/session-cards";
 
 function initials(name: string | null): string | null {
@@ -15,50 +12,6 @@ function initials(name: string | null): string | null {
   const parts = name.trim().split(/\s+/).slice(0, 2);
   const letters = parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
   return letters || null;
-}
-
-/**
- * The countdown is display only.
- *
- * It refreshes about once a minute, pauses while the tab is hidden, and stops
- * as soon as the server's join state leaves "upcoming". It is deliberately not
- * a live region: announcing every tick would interrupt a screen reader for no
- * benefit.
- */
-function Countdown({ joinState, opensAt }: { joinState: JoinState; opensAt: string }) {
-  const [remaining, setRemaining] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (joinState !== "upcoming") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setRemaining(null);
-      return;
-    }
-
-    function update() {
-      if (document.visibilityState !== "visible") return;
-      setRemaining(new Date(opensAt).getTime() - Date.now());
-    }
-
-    update();
-    const timer = window.setInterval(update, 60_000);
-    document.addEventListener("visibilitychange", update);
-
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", update);
-    };
-  }, [joinState, opensAt]);
-
-  if (joinState !== "upcoming" || remaining === null) return null;
-  const label = countdownLabel(remaining);
-  if (!label) return null;
-
-  return (
-    <p className="text-xs font-semibold text-text-secondary">
-      Opens in <span className="tabular-nums">{label}</span>
-    </p>
-  );
 }
 
 function durationMinutes(session: SessionRow): number | null {
@@ -70,17 +23,18 @@ function durationMinutes(session: SessionRow): number | null {
 }
 
 /**
- * Today's lesson, or the next one when today has none.
+ * Today's session, or the next one when today has none.
  *
  * The join button and its states come from the server-computed session row;
- * this component only arranges them and adds a countdown that never decides
- * whether the room is open.
+ * this component only arranges them. The teacher's real portrait is shown when
+ * they have one, with their initials as the fallback.
  */
 export function LessonHero({
   session,
   isToday,
   laterToday,
   teacherName,
+  teacherImage,
   isTest,
   todaySlot,
   starting,
@@ -92,6 +46,7 @@ export function LessonHero({
   isToday: boolean;
   laterToday: number;
   teacherName: string | null;
+  teacherImage: string | null;
   isTest: boolean;
   todaySlot: { startTime: string; endTime: string; duration: number } | null;
   starting: boolean;
@@ -107,7 +62,7 @@ export function LessonHero({
       {canStartToday ? (
         <>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-            Today&apos;s lesson
+            Today&apos;s session
           </p>
           <p className="text-[clamp(2.5rem,7vw,3.75rem)] font-bold leading-none tracking-tight text-text-primary">
             {todaySlot ? <LocalTime iso={todaySlot.startTime} mode="time" /> : "Test mode"}
@@ -129,15 +84,10 @@ export function LessonHero({
         </>
       ) : session ? (
         <>
-          <div className="flex flex-wrap items-center gap-2">
-            {isToday ? <StatusChip tone="success">Today</StatusChip> : null}
-            <StatusChip tone="primary">{sessionTypeLabel(session.sessionType)}</StatusChip>
-          </div>
-
           <div>
             {!isToday ? (
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                Next lesson
+                Next session
               </p>
             ) : null}
             <p className="text-[clamp(2.75rem,8vw,3.75rem)] font-bold leading-none tracking-tight text-text-primary">
@@ -157,12 +107,26 @@ export function LessonHero({
           ) : null}
 
           <div className="flex items-center gap-3">
-            <span
-              aria-hidden
-              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-muted text-sm font-bold text-primary"
-            >
-              {teacherInitials ?? <UserRound className="size-4" />}
-            </span>
+            {teacherImage ? (
+              // Profile images can be uploaded or come from an OAuth provider,
+              // so a plain image avoids an allowlist of every possible host.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={teacherImage}
+                alt=""
+                width={40}
+                height={40}
+                loading="lazy"
+                className="size-10 shrink-0 rounded-full object-cover ring-1 ring-border"
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-muted text-sm font-bold text-primary"
+              >
+                {teacherInitials ?? <UserRound className="size-4" />}
+              </span>
+            )}
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-text-primary">
                 {session.otherPartyName || teacherName || "Your teacher"}
@@ -172,22 +136,21 @@ export function LessonHero({
           </div>
 
           <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
-            <Countdown joinState={session.joinState} opensAt={session.opensAt} />
-            <LessonJoinCard session={session} />
+            <LessonJoinCard session={session} showUpcomingHint={false} />
           </div>
         </>
       ) : (
         <>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-            Your next lesson
+            Your next session
           </p>
           <p className="text-2xl font-bold tracking-tight text-text-primary">
-            {unpaired ? "You are not paired yet." : "No lessons booked yet."}
+            {unpaired ? "You are not paired yet." : "No sessions booked yet."}
           </p>
           <p className="text-sm leading-relaxed text-text-secondary">
             {unpaired
               ? "Choose your weekly availability below and we will match you with a teacher."
-              : "Your teacher will schedule your next lesson. It will appear here, along with the room when it opens."}
+              : "Your teacher will schedule your next session. It will appear here, along with the room when it opens."}
           </p>
         </>
       )}

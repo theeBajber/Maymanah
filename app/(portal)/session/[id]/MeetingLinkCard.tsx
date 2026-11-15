@@ -9,7 +9,7 @@ import { useToast } from "@/app/ui/toast";
 import type { MeetingSettings } from "./types";
 
 /**
- * The teacher's fallback room address for one lesson.
+ * The teacher's fallback room address for one session.
  *
  * Automatic rooms can fail, so this panel is the explicit way out: paste a
  * Google Meet link and the join route will release that instead. The address is
@@ -103,15 +103,15 @@ export function MeetingLinkCard({ appointmentId }: { appointmentId: string }) {
   if (settings) {
     if (settings.preference === "MANUAL") {
       badge = <StatusChip tone="info">Manual link</StatusChip>;
-      description = "Lessons use the link you add below.";
+      description = "Sessions use the link you add below.";
     } else if (settings.connected && settings.status === "CONNECTED") {
       badge = <StatusChip tone="success">Google connected</StatusChip>;
-      description = `A room is created in ${settings.calendarName ?? "your lessons calendar"} when either of you joins. The link below is used as a fallback.`;
+      description = `A room is created in ${settings.calendarName ?? "your sessions calendar"} when either of you joins. The link below is used as a fallback.`;
     } else if (settings.status === "REAUTH_REQUIRED") {
       badge = <StatusChip tone="warning">Reconnect Google</StatusChip>;
       description = (
         <>
-          Your calendar connection needs renewing, so lessons use the link below.{" "}
+          Your calendar connection needs renewing, so sessions use the link below.{" "}
           <a
             href="/settings"
             className="font-semibold text-primary underline underline-offset-4"
@@ -123,7 +123,7 @@ export function MeetingLinkCard({ appointmentId }: { appointmentId: string }) {
       );
     } else {
       badge = <StatusChip tone="neutral">Manual link</StatusChip>;
-      description = "No calendar is connected, so lessons use the link below.";
+      description = "No calendar is connected, so sessions use the link below.";
     }
   }
 

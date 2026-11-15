@@ -82,7 +82,7 @@ export function BeforeLesson({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-            Before lesson
+            Before session
           </p>
           <h2 className="mt-1 text-lg font-bold text-text-primary">
             Preparing for {session.otherPartyName ?? "your student"}
@@ -186,7 +186,7 @@ export function BeforeLesson({
 
         <section className="flex flex-col gap-2">
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-            Last lesson
+            Last session
           </h3>
           {context.lastReport ? (
             <>
@@ -255,7 +255,7 @@ export function BeforeLesson({
           <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-info" />
           <div className="min-w-0">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Next lesson
+              Next session
             </h3>
             <p className="mt-1 text-sm text-text-primary">
               {context.nextPlan

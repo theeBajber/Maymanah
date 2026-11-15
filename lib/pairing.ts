@@ -49,6 +49,7 @@ export interface StudentSchedule {
   mentorshipId: string;
   teacherId: string;
   teacherName: string;
+  teacherImage: string | null;
   teacherTimeZone: string;
   /** The current stint's start; sessions before it belong to an earlier one. */
   startedAt: Date;
@@ -263,7 +264,7 @@ export async function getStudentSchedule(studentId: string): Promise<StudentSche
       id: true,
       teacherId: true,
       startedAt: true,
-      teacher: { select: { name: true, profile: { select: { timezone: true } } } },
+      teacher: { select: { name: true, image: true, profile: { select: { timezone: true } } } },
       recurringSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
     },
   });
@@ -273,6 +274,7 @@ export async function getStudentSchedule(studentId: string): Promise<StudentSche
     mentorshipId: mentorship.id,
     teacherId: mentorship.teacherId,
     teacherName: mentorship.teacher.name,
+    teacherImage: mentorship.teacher.image,
     teacherTimeZone: timeZoneFrom(mentorship.teacher.profile),
     startedAt: mentorship.startedAt,
     slots: mentorship.recurringSlots.map((slot) => ({

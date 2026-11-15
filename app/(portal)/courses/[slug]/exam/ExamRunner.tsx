@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { GraduationCap, Trophy, XCircle } from "lucide-react";
 
@@ -17,10 +18,18 @@ interface AnswerValue {
 /**
  * The final exam for a course.
  *
- * Answers are gathered in the browser and graded server-side on submit, where
- * a pass also completes the enrolment and issues the certificate.
+ * Answers are gathered in the browser and graded server-side on submit. A pass
+ * records the result and completes the enrolment, but the certificate waits for
+ * the course review, so this screen points back to the course rather than
+ * claiming one.
  */
-export function ExamRunner({ assessment }: { assessment: Assessment }) {
+export function ExamRunner({
+  assessment,
+  courseSlug,
+}: {
+  assessment: Assessment;
+  courseSlug: string;
+}) {
   const { exam, questions, totalMarks, result } = assessment;
   const router = useRouter();
   const { toast } = useToast();
@@ -53,7 +62,17 @@ export function ExamRunner({ assessment }: { assessment: Assessment }) {
             <span className="text-text-secondary"> / {totalMarks}</span>
           </p>
           {graded && passed ? (
-            <p className="mt-2 text-sm text-text-secondary">Your certificate has been issued.</p>
+            <div className="mt-3 flex flex-col items-center gap-2">
+              <p className="text-sm text-text-secondary">
+                Final exam passed. Review the course to claim your certificate.
+              </p>
+              <Link
+                href={`/courses/${courseSlug}`}
+                className="inline-flex min-h-11 items-center rounded-xl bg-primary px-5 text-sm font-bold text-text-inverse transition-all hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Review the course
+              </Link>
+            </div>
           ) : null}
         </div>
 

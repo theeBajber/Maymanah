@@ -57,7 +57,7 @@ export function LessonBrief({
   plan: SessionPlan | null;
   surahs: SurahOption[];
   isTeacher: boolean;
-  /** A finished lesson talks about the plan in the past tense. */
+  /** A finished session talks about the plan in the past tense. */
   ended?: boolean;
 }) {
   if (!plan) {
@@ -69,7 +69,7 @@ export function LessonBrief({
         <p className="text-sm text-text-secondary">
           {isTeacher
             ? "No plan yet. Add one so your student knows what to prepare."
-            : "Your teacher has not set a plan for this lesson yet."}
+            : "Your teacher has not set a plan for this session yet."}
         </p>
       </Panel>
     );
@@ -91,16 +91,16 @@ export function LessonBrief({
       </div>
       <p className="text-xs text-text-secondary">
         {isTeacher
-          ? "This is what the lesson was planned to cover. The report above starts from this range."
+          ? "This is what the session was planned to cover. The report above starts from this range."
           : ended
-            ? "This was the plan for the lesson. Your teacher's report below says how it went."
-            : "Your teacher sets this before the lesson. Prepare this range beforehand."}
+            ? "This was the plan for the session. Your teacher's report below says how it went."
+            : "Your teacher sets this before the session. Prepare this range beforehand."}
       </p>
     </Panel>
   );
 }
 
-/** The report as the student sees it once the lesson is closed. */
+/** The report as the student sees it once the session is closed. */
 export function ReportCard({
   report,
   surahs,
@@ -125,7 +125,7 @@ export function ReportCard({
     <Panel className="flex flex-col gap-5 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <SectionLabel icon={ClipboardList}>Lesson report</SectionLabel>
+          <SectionLabel icon={ClipboardList}>Session report</SectionLabel>
           <p className="mt-1 text-sm text-text-secondary">
             From {report.submittedBy.name} ·{" "}
             <LocalTime iso={report.submittedAt} mode="date-short" />
@@ -181,7 +181,7 @@ export function ReportCard({
 export function PendingReport() {
   return (
     <EmptyState
-      title="Your teacher is still writing the report for this lesson."
+      title="Your teacher is still writing the report for this session."
       action={
         <p className="mt-2 text-sm text-text-secondary">
           It will appear here, with any notes and your next assignment, as soon as it is ready.

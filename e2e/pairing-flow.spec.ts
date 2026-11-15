@@ -21,36 +21,66 @@ test("a student is paired, scheduled, and can change mentor", async ({ page }) =
     timeout: 20_000,
   });
 
-  await page.getByRole("button", { name: "Mon 09:00" }).click();
-  await page.getByRole("button", { name: "Tue 09:00" }).click();
+  // Tomorrow is always inside the seven-day strip, so the reschedule step below
+  // has an upcoming session it can reach whatever day the suite runs on.
+  const tomorrowDay = new Date(Date.now() + 86_400_000).toLocaleDateString("en-US", {
+    weekday: "short",
+  });
+  const availableDays = Array.from(new Set(["Mon", "Tue", "Wed", tomorrowDay]));
+  for (const day of availableDays) {
+    await page.getByRole("button", { name: `${day} 09:00` }).click();
+  }
   await page.getByRole("button", { name: "Save & Find Teacher" }).click();
   await expect(page.getByRole("status").getByText(/paired with a teacher/)).toBeVisible({ timeout: 20_000 });
 
   // A fresh navigation confirms the pairing was stored, rather than leaning on
   // the client's own refresh timing.
   await page.reload();
-  await expect(page.getByText(/Teacher:/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "This week" })).toBeVisible({ timeout: 20_000 });
 
   // A forced session stands in for waiting until the slot's clock arrives.
   await page.goto(`/courses/${E2E_HIFDH_COURSE_SLUG}?test=1`);
-  await expect(page.getByText("Today's lesson", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Today's session", { exact: true })).toBeVisible({ timeout: 20_000 });
   const forceStart = page.getByRole("button", { name: "Force Start session" });
   await expect(forceStart).toBeVisible({ timeout: 20_000 });
   await forceStart.click();
   await page.waitForURL(/\/session\//, { timeout: 20_000 });
 
-  // Change the weekly hours from inside the schedule.
+  // Change the weekly hours from inside the schedule, and confirm the new hour
+  // survives a reload by reopening the grid. The dialog starts from the saved
+  // hours, so the added day must be one that was not picked already.
+  const newDay = ["Thu", "Fri", "Sat", "Sun"].find((day) => day !== tomorrowDay)!;
   await page.goto(`/courses/${E2E_HIFDH_COURSE_SLUG}`);
   await page.getByRole("button", { name: "Change my weekly schedule" }).click();
-  await page.getByRole("button", { name: "Wed 09:00" }).click();
+  await page.getByRole("button", { name: `${newDay} 09:00` }).click();
   await page.getByRole("button", { name: "Save Schedule" }).click();
   await expect(page.getByText("Schedule updated!")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText(/Weds at/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Change Weekly Schedule" })).toBeHidden({
+    timeout: 20_000,
+  });
+
+  await page.reload();
+  await page.getByRole("button", { name: "Change my weekly schedule" }).click();
+  await expect(page.getByRole("button", { name: `${newDay} 09:00` })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+    { timeout: 20_000 },
+  );
+  await page.getByRole("button", { name: "Cancel" }).click();
 
   // Move this week's session to another open time on the teacher's calendar.
-  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
-  await page.getByRole("button", { name: "Reschedule this week" }).first().click();
+  // The action lives in the day popover, so open the first day with an upcoming
+  // session and use that row.
+  const upcomingDay = page.getByRole("button", { name: /day, .*Upcoming/ }).first();
+  await expect(upcomingDay).toBeVisible({ timeout: 20_000 });
+  await upcomingDay.click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Reschedule", exact: true })
+    .first()
+    .click();
   await expect(page.getByRole("heading", { name: "Reschedule Session" })).toBeVisible({ timeout: 20_000 });
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
   await page.locator('input[type="date"]').fill(tomorrow);
   const slot = page.getByRole("button", { name: /^\d{2}:\d{2}$/ }).first();
   await expect(slot).toBeVisible({ timeout: 20_000 });

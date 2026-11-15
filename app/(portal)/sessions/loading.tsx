@@ -5,9 +5,9 @@ export default function SessionsLoading() {
     <div
       className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8"
       aria-busy="true"
-      aria-label="Loading your lessons"
+      aria-label="Loading your sessions"
     >
-      <PortalHeader title="Lessons" subtitle="Today's lesson, and what comes next" />
+      <PortalHeader title="Sessions" subtitle="Today's session, and what comes next" />
 
       <div className="animate-pulse rounded-2xl border border-border bg-bg-elevated p-6">
         <div className="h-3 w-28 rounded bg-bg-hover" />

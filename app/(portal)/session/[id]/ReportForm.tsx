@@ -61,7 +61,7 @@ function rangeValueOf(plan: SessionPlan | null): RangeValue {
 }
 
 /**
- * The teacher's post-lesson report.
+ * The teacher's post-session report.
  *
  * Validation mirrors the server so Save can be honest about whether the range
  * is usable; the report route still validates and writes. The form owns its
@@ -197,7 +197,7 @@ export function ReportForm({
       onSaved(body.report);
       setBaseline(snapshot);
       setSaved(true);
-      toast({ title: "Lesson report saved", variant: "success" });
+      toast({ title: "Session report saved", variant: "success" });
     } catch {
       toast({ title: "Could not reach the server", variant: "error" });
     } finally {
@@ -212,10 +212,10 @@ export function ReportForm({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Lesson report
+              Session report
             </p>
             <p className="mt-1 text-sm text-text-secondary">
-              Recorded after the lesson. It moves {studentName}&apos;s position forward when the
+              Recorded after the session. It moves {studentName}&apos;s position forward when the
               range is new.
             </p>
           </div>
@@ -255,8 +255,8 @@ export function ReportForm({
               <span className="font-semibold">Record new memorisation</span>
               <span className="mt-0.5 block text-xs text-text-secondary">
                 {absent
-                  ? "A lesson the student missed cannot add new memorisation."
-                  : "Leave this off when the lesson was revision only."}
+                  ? "A session the student missed cannot add new memorisation."
+                  : "Leave this off when the session was revision only."}
               </span>
             </span>
           </label>
@@ -378,7 +378,7 @@ export function ReportForm({
           />
           <p className="text-xs text-text-secondary">
             {context.nextPlan
-              ? "Suggested from the next lesson's plan. Edit as needed."
+              ? "Suggested from the next session's plan. Edit as needed."
               : context.lastStop
                 ? "Suggested from the student's current position. Edit as needed."
                 : "Optional."}

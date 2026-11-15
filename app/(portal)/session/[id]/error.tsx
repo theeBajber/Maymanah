@@ -20,7 +20,7 @@ export default function SessionError({
       <div role="alert" className="flex flex-col items-center gap-2">
         <h1 className="text-xl font-bold text-text-primary">This session could not open</h1>
         <p className="text-sm text-text-secondary">
-          Check your connection, then try again. Nothing about the lesson has changed.
+          Check your connection, then try again. Nothing about the session has changed.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">

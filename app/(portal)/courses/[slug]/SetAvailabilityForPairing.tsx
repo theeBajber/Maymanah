@@ -4,7 +4,7 @@ import { Check, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { AvailabilityGrid, parseSlotKey, type SlotKey } from "@/app/ui/AvailabilityGrid";
+import { AvailabilityGrid, slotsToWindows, type SlotKey } from "@/app/ui/AvailabilityGrid";
 import { useToast } from "@/app/ui/toast";
 
 /**
@@ -28,10 +28,9 @@ export function SetAvailabilityForPairing() {
     }
 
     setSaving(true);
-    const slots = Array.from(selected).map((key) => {
-      const { day, start, end } = parseSlotKey(key);
-      return { dayOfWeek: day, startTime: start, endTime: end };
-    });
+    // Touching half-hours are saved as one range, so the matching planner sees
+    // the block the student painted rather than a pile of fragments.
+    const slots = slotsToWindows(selected);
 
     try {
       const availability = await fetch("/api/availability", {

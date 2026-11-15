@@ -29,12 +29,12 @@ test("a teacher sets weekly availability", async ({ page }) => {
   await page.goto("/settings");
   await page.getByRole("button", { name: "Teacher" }).click();
 
-  await expect(page.getByRole("heading", { name: "Weekly Availability" })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Weekly availability" })).toBeVisible({
     timeout: 15_000,
   });
 
-  // First day of the week; adding a single slot is enough to exercise the save.
-  await page.getByRole("button", { name: "+ Add slot" }).first().click();
+  // Paint one half-hour on the same grid students use, then save it.
+  await page.getByRole("button", { name: "Mon 09:00" }).click();
 
   const saved = page.waitForResponse(
     (response) =>
@@ -42,7 +42,7 @@ test("a teacher sets weekly availability", async ({ page }) => {
       response.request().method() === "POST",
   );
 
-  await page.getByRole("button", { name: "Save Availability" }).click();
+  await page.getByRole("button", { name: "Save availability" }).click();
   expect((await saved).ok()).toBeTruthy();
 
   await expect(page.getByText("Availability saved")).toBeVisible({ timeout: 15_000 });

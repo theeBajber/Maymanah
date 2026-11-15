@@ -8,7 +8,14 @@ import { EnrollButton } from "./EnrollButton";
  * live-session controls in the same lantern hero, while every other course
  * keeps the quieter identity-only card.
  */
-export function CourseIdentity({ course }: { course: CourseDetail }) {
+export function CourseIdentity({
+  course,
+  showLessons = true,
+}: {
+  course: CourseDetail;
+  /** The Hifdh course runs on live sessions, so it has no lesson count. */
+  showLessons?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -33,9 +40,13 @@ export function CourseIdentity({ course }: { course: CourseDetail }) {
       ) : null}
 
       <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
-        <span>
-          {course.lessonCount} {course.lessonCount === 1 ? "lesson" : "lessons"}
-        </span>
+        {showLessons ? (
+          <span>
+            {course.lessonCount} {course.lessonCount === 1 ? "lesson" : "lessons"}
+          </span>
+        ) : (
+          <span>Live 1-to-1 sessions</span>
+        )}
         {course.averageRating !== null ? (
           <span aria-label={`Rated ${course.averageRating.toFixed(1)} out of 5`}>
             ★ {course.averageRating.toFixed(1)} ({course.reviewCount}{" "}

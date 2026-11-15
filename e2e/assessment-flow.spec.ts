@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { E2E_COURSE_SLUG } from "./database";
 import { registerAndLogin, strongPassword, uniqueEmail } from "./helpers";
 
-test("a student sits the lesson quiz and the final exam", async ({ page }) => {
+test("a student sits the lesson quiz, final exam, and reviews the course", async ({ page }) => {
   test.setTimeout(120_000);
 
   await registerAndLogin(page, {
@@ -48,9 +48,25 @@ test("a student sits the lesson quiz and the final exam", async ({ page }) => {
   await page.getByRole("button", { name: "Submit Exam", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Passed!" })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText("Your certificate has been issued.")).toBeVisible();
+  await expect(
+    page.getByText("Final exam passed. Review the course to claim your certificate."),
+  ).toBeVisible();
 
-  await page.goto(`/courses/${E2E_COURSE_SLUG}`);
+  // Passing the exam finishes the course but does not issue the certificate:
+  // the review is the last step.
+  await page.getByRole("link", { name: "Review the course" }).click();
+  await page.waitForURL(new RegExp(`/courses/${E2E_COURSE_SLUG}$`), { timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: "Rate this course" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("link", { name: "View Certificate" })).toHaveCount(0);
+
+  await page.getByRole("radio", { name: "5 stars" }).click();
+  await page.getByRole("button", { name: "Save review" }).click();
+  await expect(page.getByRole("heading", { name: "Your review" })).toBeVisible({
+    timeout: 15_000,
+  });
+
   await page.getByRole("link", { name: "View Certificate" }).click();
   await page.waitForURL(/\/certificates\//, { timeout: 15_000 });
   await expect(page.getByText("Certificate of completion")).toBeVisible();

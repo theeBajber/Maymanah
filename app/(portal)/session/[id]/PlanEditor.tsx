@@ -23,10 +23,10 @@ function rangeValueOf(plan: SessionPlan | null): RangeValue {
 }
 
 /**
- * What a lesson is meant to cover.
+ * What a session is meant to cover.
  *
  * Sabaq is derived from this plan on the report form, so saving here is what
- * gives the teacher a one-tap revision phrase after the lesson.
+ * gives the teacher a one-tap revision phrase after the session.
  */
 export function PlanEditor({
   appointmentId,
@@ -85,7 +85,7 @@ export function PlanEditor({
       setSavedPlan(body.plan);
       onSaved(body.plan);
       setJustSaved(true);
-      toast({ title: "Lesson plan saved", variant: "success" });
+      toast({ title: "Session plan saved", variant: "success" });
     } catch {
       toast({ title: "Could not reach the server", variant: "error" });
     } finally {
@@ -97,11 +97,11 @@ export function PlanEditor({
     <Panel className="flex flex-col gap-4 p-5" id="plan">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-          Lesson plan
+          Session plan
         </p>
         <p className="mt-1 text-sm text-text-secondary">
           {savedPlan
-            ? `This lesson covers ${planRangeLabel(savedPlan, surahs as SurahLike[])}.`
+            ? `This session covers ${planRangeLabel(savedPlan, surahs as SurahLike[])}.`
             : "Set the range so the student knows what to prepare."}
         </p>
       </div>

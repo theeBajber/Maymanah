@@ -1,8 +1,23 @@
 import "server-only";
 
-import { issueCertificate } from "./certificate";
 import { db } from "./db";
 import { getCurrentUser, type SessionLike } from "./session";
+
+/**
+ * Whether a mark clears an exam's pass mark.
+ *
+ * `passMark` is a percentage, not a raw score: an exam worth two marks and one
+ * worth a hundred both use the same threshold. Keeping the rule here means the
+ * submission, the result view, and the course page cannot drift apart.
+ */
+export function didPassExam(
+  totalScore: number | null,
+  totalMarks: number,
+  passMark: number,
+): boolean {
+  if (totalScore === null || totalMarks <= 0) return false;
+  return (totalScore / totalMarks) * 100 >= passMark;
+}
 
 /**
  * Grading for choice questions, done at submission time.
@@ -40,7 +55,12 @@ export function gradeChoice(
   return { isCorrect, score: isCorrect ? marks : 0 };
 }
 
-export type SubmissionFailure = "missing" | "not_enrolled" | "closed" | "already_submitted";
+export type SubmissionFailure =
+  | "missing"
+  | "not_enrolled"
+  | "not_complete"
+  | "closed"
+  | "already_submitted";
 
 export interface SubmissionResult {
   id: string;
@@ -89,13 +109,32 @@ export async function submitExam(
 
   const enrollment = await db.enrollment.findUnique({
     where: { userId_courseId: { userId: user.id, courseId: exam.courseId } },
-    select: { status: true },
+    select: { status: true, completedAt: true },
   });
   // Finishing every lesson already marks an enrolment complete, so the final
   // exam has to accept a completed learner; only a dropped or pending one is
   // turned away.
   const enrolled = enrollment?.status === "ACTIVE" || enrollment?.status === "COMPLETED";
   if (!enrolled) return { ok: false, reason: "not_enrolled" };
+
+  // The final exam is the step after the course, not a shortcut past it. The
+  // page hides it until every lesson is done; this repeats the rule at the
+  // endpoint so a direct request cannot skip the work.
+  if (exam.examType === "FINAL") {
+    const [completedLessons, totalLessons] = await Promise.all([
+      db.lessonProgress.count({
+        where: {
+          studentId: user.id,
+          completed: true,
+          lesson: { courseId: exam.courseId, isPublished: true },
+        },
+      }),
+      db.lesson.count({ where: { courseId: exam.courseId, isPublished: true } }),
+    ]);
+    if (totalLessons > 0 && completedLessons < totalLessons) {
+      return { ok: false, reason: "not_complete" };
+    }
+  }
 
   const previous = await db.submission.findMany({
     where: { examId, studentId: user.id },
@@ -109,6 +148,7 @@ export async function submitExam(
   }
 
   const byId = new Map(exam.questions.map((question) => [question.id, question]));
+  const totalMarks = exam.questions.reduce((sum, question) => sum + question.marks, 0);
   let totalScore = 0;
   let hasWritten = false;
   const graded: GradedAnswer[] = [];
@@ -148,15 +188,23 @@ export async function submitExam(
     select: { id: true },
   });
 
-  // Passing a final exam finishes the course outright: marks the enrolment
-  // complete and issues the certificate. Anything less than a final leaves
-  // the enrolment alone, since one quiz does not finish a course.
-  if (!hasWritten && exam.examType === "FINAL" && totalScore >= exam.passMark) {
+  // Passing the final exam records the pass and finishes the enrolment. The
+  // certificate is deliberately not issued here: the student reviews the
+  // course first, and the review endpoint issues it.
+  if (
+    !hasWritten &&
+    exam.examType === "FINAL" &&
+    didPassExam(totalScore, totalMarks, exam.passMark)
+  ) {
+    const now = new Date();
     await db.enrollment.updateMany({
       where: { userId: user.id, courseId: exam.courseId, status: { in: ["ACTIVE", "COMPLETED"] } },
-      data: { status: "COMPLETED", progress: 100, completedAt: new Date(), passedAt: new Date() },
+      data: {
+        status: "COMPLETED",
+        completedAt: enrollment.completedAt ?? now,
+        passedAt: now,
+      },
     });
-    await issueCertificate(user.id, exam.courseId);
   }
 
   return {

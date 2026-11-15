@@ -1,7 +1,7 @@
 import "server-only";
 
-import { issueCertificate } from "./certificate";
 import { db } from "./db";
+import { didPassExam } from "./exams";
 import { availableSeats, releaseStudentSeats, reserveMentor } from "./mentoring";
 import { getCurrentUser, type SessionLike } from "./session";
 
@@ -94,6 +94,15 @@ export interface CourseDetail extends CourseSummary {
   averageRating: number | null;
   reviewCount: number;
   certificate: { id: string } | null;
+  /** Published lessons the reader has finished. */
+  completedLessons: number;
+  /** Every published lesson is done; the final exam unlocks from here. */
+  completed: boolean;
+  /** A published final exam exists, and whether the reader has passed it. */
+  hasFinalExam: boolean;
+  finalExamPassed: boolean;
+  /** The reader's own verdict, when they have already rated the course. */
+  myReview: { rating: number; comment: string | null } | null;
 }
 
 export async function getCourseDetail(
@@ -126,9 +135,9 @@ export async function getCourseDetail(
 
   if (!course || !course.isPublished) return null;
 
-  // These three reads are independent; running them together saves two round
-  // trips on every course visit.
-  const [completed, certificate, seatsAvailable] = await Promise.all([
+  // These reads are independent; running them together saves round trips on
+  // every course visit.
+  const [completed, certificate, seatsAvailable, finalExam, myReview] = await Promise.all([
     user
       ? db.lessonProgress.findMany({
           where: { studentId: user.id, lessonId: { in: course.lessons.map((lesson) => lesson.id) }, completed: true },
@@ -142,11 +151,42 @@ export async function getCourseDetail(
         })
       : null,
     course.requiresMentor ? mentorSeatsFor(user) : null,
+    user
+      ? db.exam.findFirst({
+          where: { courseId: course.id, examType: "FINAL", isPublished: true },
+          select: {
+            passMark: true,
+            questions: { select: { marks: true } },
+            submissions: {
+              where: { studentId: user.id, status: { in: ["SUBMITTED", "GRADED"] } },
+              orderBy: { attemptNumber: "desc" },
+              take: 1,
+              select: { status: true, totalScore: true },
+            },
+          },
+        })
+      : null,
+    user
+      ? db.courseReview.findUnique({
+          where: { userId_courseId: { userId: user.id, courseId: course.id } },
+          select: { rating: true, comment: true },
+        })
+      : null,
   ]);
   const done = new Set(completed.map((row) => row.lessonId));
 
   const ratings = course.reviews.map((review) => review.rating);
   const enrolled = course.enrollments.length > 0;
+
+  const completedLessons = course.lessons.filter((lesson) => done.has(lesson.id)).length;
+  const courseComplete = course.lessons.length > 0 && completedLessons >= course.lessons.length;
+  const finalMarks = finalExam?.questions.reduce((sum, question) => sum + question.marks, 0) ?? 0;
+  const latestAttempt = finalExam?.submissions[0] ?? null;
+  const finalExamPassed = Boolean(
+    finalExam &&
+      latestAttempt?.status === "GRADED" &&
+      didPassExam(latestAttempt.totalScore, finalMarks, finalExam.passMark),
+  );
 
   return {
     id: course.id,
@@ -165,6 +205,11 @@ export async function getCourseDetail(
     averageRating: ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null,
     reviewCount: ratings.length,
     certificate,
+    completedLessons,
+    completed: courseComplete,
+    hasFinalExam: Boolean(finalExam),
+    finalExamPassed,
+    myReview,
   };
 }
 
@@ -322,11 +367,7 @@ export async function completeLesson(
   }
   await db.enrollment.update({ where: { id: enrollment.id }, data: update });
 
-  // Finishing every lesson issues the certificate. Idempotent, so completing
-  // the last lesson twice still yields one certificate.
-  if (progress >= 100) {
-    await issueCertificate(user.id, lesson.courseId);
-  }
-
+  // Finishing the lessons completes the course. The certificate waits for the
+  // final exam and the review, so it is issued by the review endpoint instead.
   return { ok: true, progress };
 }

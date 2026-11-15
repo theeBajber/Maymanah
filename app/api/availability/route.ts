@@ -16,7 +16,9 @@ const slotSchema = z.object({
 });
 
 const saveSchema = z.object({
-  slots: z.array(slotSchema).max(49),
+  // The shared grid offers 7 days of half-hours (252 cells); a merged set can
+  // never exceed one window per cell, so this bound is the grid's own size.
+  slots: z.array(slotSchema).max(252),
 });
 
 /** The weekly availability, as day-grouped slots. */

@@ -182,7 +182,7 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 flex-col gap-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                {teacher ? "Teaching" : "Lesson with"}{" "}
+                {teacher ? "Teaching" : "Session with"}{" "}
                 <span className="text-text-primary">{session.otherPartyName ?? "—"}</span>
               </p>
               <h1 className="text-balance text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
@@ -211,7 +211,7 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
 
           {phase === "cancelled" ? (
             <p className="rounded-xl border border-danger/30 bg-danger-muted px-4 py-3 text-sm text-text-primary">
-              This lesson was cancelled. Nothing needs to be prepared, and joining is closed.
+              This session was cancelled. Nothing needs to be prepared, and joining is closed.
             </p>
           ) : (
             <LessonJoinCard session={session} onJoinStateChange={updateJoin} />
@@ -264,14 +264,17 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
         ) : null
       ) : (
         <>
-          <LessonBrief plan={data.plan} surahs={surahs} isTeacher={false} ended={phase === "after"} />
-          {report ? (
-            <ReportCard report={report} surahs={surahs} />
-          ) : phase === "after" ? (
-            <PendingReport />
-          ) : phase === "before" ? (
-            <BeforeYouJoin />
-          ) : null}
+          {phase === "after" ? (
+            <>
+              {report ? <ReportCard report={report} surahs={surahs} /> : <PendingReport />}
+              <LessonBrief plan={data.plan} surahs={surahs} isTeacher={false} ended />
+            </>
+          ) : (
+            <>
+              <LessonBrief plan={data.plan} surahs={surahs} isTeacher={false} ended={false} />
+              {phase === "before" ? <BeforeYouJoin /> : null}
+            </>
+          )}
         </>
       )}
 
@@ -290,9 +293,9 @@ function BeforeYouJoin() {
         Before you join
       </p>
       <ul className="flex flex-col gap-2 text-sm text-text-secondary">
-        <li>Join a few minutes early so the call is ready when the lesson starts.</li>
+        <li>Join a few minutes early so the call is ready when the session starts.</li>
         <li>Use Chrome, or open the link in the Google Meet app if the browser struggles.</li>
-        <li>Find a quiet spot and check your microphone before the lesson begins.</li>
+        <li>Find a quiet spot and check your microphone before the session begins.</li>
       </ul>
     </Panel>
   );

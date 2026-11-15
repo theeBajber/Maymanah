@@ -16,18 +16,6 @@ import { LessonHero } from "./LessonHero";
 import { SetAvailabilityForPairing } from "./SetAvailabilityForPairing";
 import { WeekStrip, type WeekSession } from "./WeekStrip";
 
-export interface WeeklySlot {
-  type: string;
-  dayOfWeek: number;
-  startTime: string;
-  duration: number;
-  /** A readable 12-hour label; the slot is wall-clock on the teacher's schedule. */
-  timeLabel: string;
-  /** The slot's next own occurrence, so the footer keeps the weekly hour. */
-  slotTime: string | null;
-  nextOccurrence: string | null;
-}
-
 export interface HifdhCourseViewProps {
   header: ReactNode;
   isTest: boolean;
@@ -37,26 +25,26 @@ export interface HifdhCourseViewProps {
   progress: ProgressSummary;
   targetLabel?: string | null;
   teacherName: string | null;
+  teacherImage: string | null;
   todaySlot: { startTime: string; endTime: string; duration: number } | null;
   defaultShowHistory: boolean;
   schedule: {
     mentorshipId: string;
     teacherId: string;
     teacherTimeZone: string;
-    slots: WeeklySlot[];
   } | null;
   teacherAvail: { dayOfWeek: number; startTime: string; endTime: string }[];
   mismatchNotifications: { id: string; body: string | null }[];
 }
 
 /**
- * The student's Hifdh course page: lesson first, progress beside it, the week
- * beneath.
+ * The student's Hifdh course page: the next session first, progress beside it,
+ * the week beneath.
  *
  * The join window always arrives computed on the server. The browser only
- * resolves which calendar day is "today" after mount, so a lesson near midnight
- * is not filed under the wrong date, and the join button never trusts the
- * client clock.
+ * resolves which calendar day is "today" after mount, so a session near
+ * midnight is not filed under the wrong date, and the join button never trusts
+ * the client clock.
  */
 export function HifdhCourseView({
   header,
@@ -67,6 +55,7 @@ export function HifdhCourseView({
   progress,
   targetLabel,
   teacherName,
+  teacherImage,
   todaySlot,
   defaultShowHistory,
   schedule,
@@ -129,8 +118,8 @@ export function HifdhCourseView({
         : [],
     [visibleWeek, todayKey],
   );
-  // Only a lesson that still starts later today counts. An earlier completed
-  // lesson is not something the student is waiting for.
+  // Only a session that still starts later today counts. An earlier completed
+  // session is not something the student is waiting for.
   const laterToday =
     featuredIsToday && featured
       ? todayWeek.filter(
@@ -147,12 +136,12 @@ export function HifdhCourseView({
       const body = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
-        toast({ title: body.error ?? "Could not cancel that lesson", variant: "error" });
+        toast({ title: body.error ?? "Could not cancel that session", variant: "error" });
         return false;
       }
 
       setCancelled((current) => [...current, id]);
-      toast({ title: "Lesson cancelled", variant: "success" });
+      toast({ title: "Session cancelled", variant: "success" });
       router.refresh();
       return true;
     } catch {
@@ -196,6 +185,7 @@ export function HifdhCourseView({
           isToday={featuredIsToday}
           laterToday={laterToday}
           teacherName={teacherName}
+          teacherImage={teacherImage}
           isTest={isTest}
           todaySlot={todaySlot}
           starting={starting}
@@ -214,7 +204,6 @@ export function HifdhCourseView({
         <WeekStrip
           sessions={visibleWeek}
           todayKey={todayKey}
-          teacherName={teacherName}
           schedule={schedule}
           teacherAvail={teacherAvail}
           mismatchNotifications={mismatchNotifications}
@@ -227,7 +216,7 @@ export function HifdhCourseView({
           <h2 className="text-lg font-bold text-text-primary">Get matched with a teacher</h2>
           <p className="text-sm leading-relaxed text-text-secondary">
             Choose the times you are usually free. We will pair you with a teacher who shares them
-            and book your daily lessons from there.
+            and book your daily sessions from there.
           </p>
           <SetAvailabilityForPairing />
         </Panel>

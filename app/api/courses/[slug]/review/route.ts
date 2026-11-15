@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import { issueCertificate } from "@/lib/certificate";
 import { db } from "@/lib/db";
+import { didPassExam } from "@/lib/exams";
 import { getCurrentUser } from "@/lib/session";
 import { toMultiLine } from "@/lib/text";
 
@@ -57,11 +59,49 @@ export async function POST(
     return NextResponse.json({ error: "Finish the course before reviewing it" }, { status: 403 });
   }
 
+  // The review is the step after the final exam. A course without a final exam
+  // goes straight from completion to review, so the barrier only applies when
+  // there is an exam to pass.
+  const finalExam = await db.exam.findFirst({
+    where: { courseId: course.id, examType: "FINAL", isPublished: true },
+    select: {
+      passMark: true,
+      questions: { select: { marks: true } },
+      submissions: {
+        where: { studentId: user.id, status: { in: ["SUBMITTED", "GRADED"] } },
+        orderBy: { attemptNumber: "desc" },
+        take: 1,
+        select: { status: true, totalScore: true },
+      },
+    },
+  });
+
+  if (finalExam) {
+    const attempt = finalExam.submissions[0];
+    const totalMarks = finalExam.questions.reduce((sum, question) => sum + question.marks, 0);
+    const passed =
+      attempt?.status === "GRADED" &&
+      didPassExam(attempt.totalScore, totalMarks, finalExam.passMark);
+    if (!passed) {
+      return NextResponse.json(
+        { error: "Pass the final exam before reviewing the course" },
+        { status: 403 },
+      );
+    }
+  }
+
   const review = await db.courseReview.upsert({
     where: { userId_courseId: { userId: user.id, courseId: course.id } },
     create: { userId: user.id, courseId: course.id, rating: parsed.data.rating, comment: parsed.data.comment || null },
     update: { rating: parsed.data.rating, comment: parsed.data.comment || null },
   });
 
-  return NextResponse.json({ ok: true, id: review.id }, { status: 201 });
+  // The review is the last step: it releases the certificate. Issuing is
+  // idempotent, so editing an existing review does not create a second one.
+  const certificate = await issueCertificate(user.id, course.id);
+
+  return NextResponse.json(
+    { ok: true, id: review.id, certificateId: certificate.id },
+    { status: 201 },
+  );
 }

@@ -9,9 +9,8 @@ import { getStudentSchedule, getTeacherAvailability, getTodayHifdhSlot } from "@
 import { SURAHS, TOTAL_QURAN_AYAHS } from "@/lib/quran-meta";
 import { memorizationProgress } from "@/lib/quran-progress";
 import { getCurrentUser } from "@/lib/session";
-import { weekdayOfDate, zonedParts, zonedTimeToUtc } from "@/lib/timezone";
 import { CourseHeader } from "./CourseHeader";
-import { HifdhCourseView, type WeeklySlot } from "./HifdhCourseView";
+import { HifdhCourseView } from "./HifdhCourseView";
 import type { WeekSession } from "./WeekStrip";
 
 /**
@@ -41,49 +40,10 @@ export function HifdhCourseLoading({ course }: { course: CourseDetail }) {
       <div className="h-52 rounded-2xl border border-border bg-bg-elevated motion-safe:animate-pulse" />
 
       <span className="sr-only" role="status">
-        Loading your lessons and progress.
+        Loading your sessions and progress.
       </span>
     </div>
   );
-}
-
-function formatSlotTime(startTime: string): string {
-  // The slot is a wall clock on the teacher's schedule, so it is formatted as
-  // read rather than shifted into any zone.
-  return new Date(`2000-01-01T${startTime}:00Z`).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
-}
-
-/**
- * The next time the recurring slot itself comes round, in the teacher's zone.
- *
- * The footer describes the weekly arrangement, so it must keep showing the
- * slot's own hour even when this week's instance was moved to another time.
- */
-function nextSlotOccurrence(
-  slot: { dayOfWeek: number; startTime: string },
-  timeZone: string,
-  now: Date,
-): Date | null {
-  const today = zonedParts(now, timeZone);
-  const [hour, minute] = slot.startTime.split(":").map(Number);
-  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null;
-
-  for (let offset = 0; offset < 8; offset += 1) {
-    const date = new Date(Date.UTC(today.year, today.month - 1, today.day + offset));
-    const year = date.getUTCFullYear();
-    const month = date.getUTCMonth() + 1;
-    const day = date.getUTCDate();
-    if (weekdayOfDate(year, month, day) !== slot.dayOfWeek) continue;
-
-    const at = zonedTimeToUtc(year, month, day, hour, minute, timeZone);
-    if (at.getTime() > now.getTime()) return at;
-  }
-
-  return null;
 }
 
 /**
@@ -132,6 +92,7 @@ export async function HifdhCourse({
         weekSessions={[]}
         progress={progressSummary}
         teacherName={null}
+        teacherImage={null}
         todaySlot={null}
         defaultShowHistory={showAll}
         schedule={null}
@@ -175,24 +136,6 @@ export async function HifdhCourse({
     enrollment?.enrolledAt.getTime() ?? schedule.startedAt.getTime(),
   );
   const floor = new Date(floorTime);
-
-  const nextByType = new Map<string, string>();
-  for (const session of sessionSchedule) {
-    if (session.joinState !== "upcoming" && session.joinState !== "open") continue;
-    // An open room may already have started. "Reschedule this week" needs the
-    // next occurrence that can still be booked, never a time in the past.
-    if (session.startTime.getTime() <= now.getTime()) continue;
-    if (!nextByType.has(session.sessionType)) {
-      nextByType.set(session.sessionType, session.startTime.toISOString());
-    }
-  }
-
-  const slots: WeeklySlot[] = schedule.slots.map((slot) => ({
-    ...slot,
-    timeLabel: formatSlotTime(slot.startTime),
-    slotTime: nextSlotOccurrence(slot, schedule.teacherTimeZone, now)?.toISOString() ?? null,
-    nextOccurrence: nextByType.get(slot.type) ?? null,
-  }));
 
   const sessions: SessionRow[] = sessionSchedule
     .filter((session) => session.startTime >= floor)
@@ -268,6 +211,7 @@ export async function HifdhCourse({
       progress={progressSummary}
       targetLabel={targetLabel}
       teacherName={schedule.teacherName}
+      teacherImage={schedule.teacherImage}
       todaySlot={
         todaySlot
           ? {
@@ -282,7 +226,6 @@ export async function HifdhCourse({
         mentorshipId: schedule.mentorshipId,
         teacherId: schedule.teacherId,
         teacherTimeZone: schedule.teacherTimeZone,
-        slots,
       }}
       teacherAvail={teacherAvail}
       mismatchNotifications={notifications}

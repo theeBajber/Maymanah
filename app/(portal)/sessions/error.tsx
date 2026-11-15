@@ -18,7 +18,7 @@ export default function SessionsError({
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 px-6 py-16 text-center">
       <div role="alert" className="flex flex-col items-center gap-2">
-        <h1 className="text-xl font-bold text-text-primary">Your lessons could not load</h1>
+        <h1 className="text-xl font-bold text-text-primary">Your sessions could not load</h1>
         <p className="text-sm text-text-secondary">
           This is usually temporary. Try again, or return to your dashboard.
         </p>

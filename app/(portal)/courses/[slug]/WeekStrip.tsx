@@ -9,7 +9,6 @@ import { RescheduleDialog } from "@/app/ui/RescheduleDialog";
 import { Panel } from "@/app/ui/portal";
 import { sessionTypeLabel, type JoinState, type LessonStatusKey } from "@/lib/live-session";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { RescheduleSlotButton } from "./RescheduleSlotButton";
 import { ScheduleSectionClient } from "./ScheduleSectionClient";
 
 export interface WeekSession {
@@ -29,15 +28,6 @@ export interface WeekSchedule {
   mentorshipId: string;
   teacherId: string;
   teacherTimeZone: string;
-  slots: {
-    type: string;
-    dayOfWeek: number;
-    startTime: string;
-    duration: number;
-    timeLabel: string;
-    slotTime: string | null;
-    nextOccurrence: string | null;
-  }[];
 }
 
 const HISTORY_STATUSES: LessonStatusKey[] = [
@@ -48,8 +38,6 @@ const HISTORY_STATUSES: LessonStatusKey[] = [
   "not-joined",
   "ended",
 ];
-
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const STATUS_CLASS: Record<LessonStatusKey, string> = {
   before: "text-text-secondary",
@@ -83,7 +71,7 @@ function statusText(
     case "upcoming":
       return isToday ? `Opens at ${formatTime(session.opensAt)}` : "Upcoming";
     case "ended":
-      return "Lesson ended";
+      return "Session ended";
   }
 }
 
@@ -146,49 +134,21 @@ function formatTime(iso: string): string {
 }
 
 /**
- * One readable line for the recurring arrangement.
- *
- * A pairing can hold several slots, so the footer names the days rather than
- * claiming "daily" for a single weekly hour. When the slots share an hour only
- * one time is printed; otherwise the strip below carries the detail.
- */
-function scheduleSummary(slots: WeekSchedule["slots"]) {
-  if (slots.length === 0) return null;
-
-  const days = new Set(slots.map((slot) => slot.dayOfWeek));
-  const label =
-    days.size === 7
-      ? "Daily"
-      : days.size >= 5
-        ? `${days.size} days a week`
-        : [...days].map((day) => `${DAY_NAMES[day]}s`).join(days.size === 2 ? " & " : ", ");
-
-  const times = new Set(
-    slots.map((slot) => (slot.slotTime ? formatTime(slot.slotTime) : slot.timeLabel)),
-  );
-  const first = slots[0];
-
-  return {
-    label,
-    timeIso: times.size === 1 ? first.slotTime : null,
-    fallback: times.size === 1 ? first.timeLabel : null,
-    mixedTimes: times.size > 1,
-    duration: first.duration,
-  };
-}
-
-/**
- * The seven days around today, with each lesson's real state and actions.
+ * The seven days around today, with each session's real state and actions.
  *
  * Back days come from the same appointment rows as history, so a missed or
- * cancelled lesson cannot disappear from the week just because the cron has
+ * cancelled session cannot disappear from the week just because the cron has
  * rewritten its status. "Before you joined" is the honest label for a row that
  * predates the pairing or enrolment.
+ *
+ * Every row in a day's popover is one link, so a past session is as easy to
+ * open as a future one; only a session that can still be moved carries the
+ * reschedule and cancel controls, which sit beneath the link rather than
+ * inside it.
  */
 export function WeekStrip({
   sessions,
   todayKey,
-  teacherName,
   schedule,
   teacherAvail,
   mismatchNotifications,
@@ -198,7 +158,6 @@ export function WeekStrip({
 }: {
   sessions: WeekSession[];
   todayKey: string | null;
-  teacherName: string | null;
   schedule: WeekSchedule | null;
   teacherAvail: { dayOfWeek: number; startTime: string; endTime: string }[];
   mismatchNotifications: { id: string; body: string | null }[];
@@ -248,8 +207,8 @@ export function WeekStrip({
     }
     for (const list of groups.values()) {
       list.sort((a, b) => {
-        // Today's cell leads with the lesson still to come, so a completed
-        // lesson earlier in the day does not hide the one the button opens.
+        // Today's cell leads with the session still to come, so a completed
+        // session earlier in the day does not hide the one the button opens.
         const rank = (session: WeekSession) =>
           session.statusKey === "open"
             ? 0
@@ -278,10 +237,6 @@ export function WeekStrip({
   const selectedDay = days.find((day) => day.key === selected) ?? null;
   const selectedSessions = selectedDay ? (byDay.get(selectedDay.key) ?? []) : [];
 
-  const dailySlot =
-    schedule?.slots.find((slot) => slot.type === "DAILY_HIFDH") ?? schedule?.slots[0] ?? null;
-  const summary = schedule ? scheduleSummary(schedule.slots) : null;
-
   function closePanel() {
     const key = selected;
     setSelected(null);
@@ -294,36 +249,26 @@ export function WeekStrip({
 
   return (
     <Panel className="flex flex-col gap-4 p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 id="this-week" className="text-lg font-bold text-text-primary">
           This week
         </h2>
-        <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end sm:gap-3">
-          {dailySlot?.nextOccurrence && schedule ? (
-            <RescheduleSlotButton
-              teacherId={schedule.teacherId}
-              teacherTimeZone={schedule.teacherTimeZone}
-              sessionType={dailySlot.type}
-              nextOccurrence={dailySlot.nextOccurrence}
-            />
-          ) : null}
-          <button
-            type="button"
-            aria-expanded={showHistory}
-            aria-controls="past-lessons"
-            onClick={() => setShowHistory((value) => !value)}
-            className="inline-flex min-h-11 items-center gap-1 rounded-[8px] text-xs font-semibold text-primary transition-colors hover:text-primary-dark focus-visible:outline-2 focus-visible:outline-offset-4"
-          >
-            All past lessons
-            <span aria-hidden className="font-normal text-text-secondary">
-              ({history.length})
-            </span>
-            <ChevronDown
-              aria-hidden
-              className={`size-3.5 transition-transform motion-reduce:transition-none ${showHistory ? "rotate-180" : ""}`}
-            />
-          </button>
-        </div>
+        <button
+          type="button"
+          aria-expanded={showHistory}
+          aria-controls="past-sessions"
+          onClick={() => setShowHistory((value) => !value)}
+          className="inline-flex min-h-11 items-center gap-1 rounded-[8px] text-xs font-semibold text-primary transition-colors hover:text-primary-dark focus-visible:outline-2 focus-visible:outline-offset-4"
+        >
+          All past sessions
+          <span aria-hidden className="font-normal text-text-secondary">
+            ({history.length})
+          </span>
+          <ChevronDown
+            aria-hidden
+            className={`size-3.5 transition-transform motion-reduce:transition-none ${showHistory ? "rotate-180" : ""}`}
+          />
+        </button>
       </div>
 
       {days.length === 0 ? (
@@ -337,7 +282,7 @@ export function WeekStrip({
             ))}
           </div>
           <span className="sr-only" role="status">
-            Loading this week&apos;s lessons.
+            Loading this week&apos;s sessions.
           </span>
         </div>
       ) : (
@@ -351,8 +296,8 @@ export function WeekStrip({
             const extra = daySessions.length - 1;
             const cellStatus = primary
               ? statusText(primary, day.isToday, formatTime)
-              : "No lesson";
-            const aria = `${day.label}, ${primary ? `${formatTime(primary.startTime)}, ${cellStatus}` : "no lesson"}${
+              : "No session";
+            const aria = `${day.label}, ${primary ? `${formatTime(primary.startTime)}, ${cellStatus}` : "no session"}${
               extra > 0 ? `, ${extra} more` : ""
             }`;
 
@@ -402,7 +347,7 @@ export function WeekStrip({
                         className="text-[11px]"
                       />
                     ) : (
-                      <span className="text-text-secondary">No lesson</span>
+                      <span className="text-text-secondary">No session</span>
                     )}
                   </span>
                   {extra > 0 ? (
@@ -447,61 +392,66 @@ export function WeekStrip({
 
                       {selectedSessions.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border p-4 text-sm text-text-secondary">
-                          No lesson on this day.
+                          No session on this day.
                         </p>
                       ) : (
                         <ul className="flex flex-col gap-2">
-                          {selectedSessions.map((session) => (
-                            <li
-                              key={session.id}
-                              className="rounded-xl border border-border bg-bg-primary/40 p-3"
-                            >
-                              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                                <p className="text-sm font-semibold text-text-primary">
-                                  <LocalTime iso={session.startTime} mode="time" />
-                                  <span className="ms-1.5 font-normal text-text-secondary">
-                                    {session.title ?? sessionTypeLabel(session.sessionType)}
-                                  </span>
-                                </p>
-                                <StatusText
-                                  session={session}
-                                  isToday={day.isToday}
-                                  formatTime={formatTime}
-                                  className="text-[11px]"
-                                />
-                              </div>
-                              <div className="mt-2 flex flex-wrap items-center gap-1">
+                          {selectedSessions.map((session) => {
+                            const canMove = session.statusKey === "upcoming" && schedule;
+                            return (
+                              <li
+                                key={session.id}
+                                className="overflow-hidden rounded-xl border border-border bg-bg-primary/40"
+                              >
                                 <Link
                                   href={`/session/${session.id}`}
-                                  className="inline-flex min-h-11 items-center gap-1 rounded-[8px] border border-border px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2"
+                                  className="flex flex-col gap-1 p-3 transition-colors hover:bg-bg-hover focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
                                 >
-                                  Open
-                                  <ExternalLink aria-hidden className="size-3" />
+                                  <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                                    <span className="text-sm font-semibold text-text-primary">
+                                      <LocalTime iso={session.startTime} mode="time" />
+                                      <span className="ms-1.5 font-normal text-text-secondary">
+                                        {session.title ?? sessionTypeLabel(session.sessionType)}
+                                      </span>
+                                    </span>
+                                    <StatusText
+                                      session={session}
+                                      isToday={day.isToday}
+                                      formatTime={formatTime}
+                                      className="text-[11px]"
+                                    />
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                                    {session.statusKey === "upcoming" || session.statusKey === "open"
+                                      ? "Open session"
+                                      : "View session"}
+                                    <ExternalLink aria-hidden className="size-3" />
+                                  </span>
                                 </Link>
-                                {session.statusKey === "upcoming" && schedule ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setReschedule(session);
-                                      setSelected(null);
-                                    }}
-                                    className="inline-flex min-h-11 items-center rounded-[8px] px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2"
-                                  >
-                                    Reschedule
-                                  </button>
+                                {canMove ? (
+                                  <div className="flex flex-wrap items-center gap-1 border-t border-border px-2 py-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setReschedule(session);
+                                        setSelected(null);
+                                      }}
+                                      className="inline-flex min-h-11 items-center rounded-[8px] px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2"
+                                    >
+                                      Reschedule
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmCancel(session)}
+                                      className="inline-flex min-h-11 items-center rounded-[8px] px-3 text-xs font-semibold text-danger transition-colors hover:bg-danger-muted focus-visible:outline-2 focus-visible:outline-offset-2"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
                                 ) : null}
-                                {session.statusKey === "upcoming" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => setConfirmCancel(session)}
-                                    className="inline-flex min-h-11 items-center rounded-[8px] px-3 text-xs font-semibold text-danger transition-colors hover:bg-danger-muted focus-visible:outline-2 focus-visible:outline-offset-2"
-                                  >
-                                    Cancel
-                                  </button>
-                                ) : null}
-                              </div>
-                            </li>
-                          ))}
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>
@@ -513,51 +463,30 @@ export function WeekStrip({
         </div>
       )}
 
-      <div className="flex flex-col gap-2 border-t border-border pt-3">
-        <p className="text-xs text-text-secondary">
-          <span className="font-semibold text-text-primary">Weekly schedule</span>
-          {summary ? (
-            <>
-              <span aria-hidden> · </span>
-              {summary.label}
-              {summary.mixedTimes ? (
-                <> at different times</>
-              ) : (
-                <>
-                  {" at "}
-                  {summary.timeIso ? (
-                    <LocalTime iso={summary.timeIso} mode="time" />
-                  ) : (
-                    summary.fallback
-                  )}
-                </>
-              )}
-              <span aria-hidden> · </span>
-              {summary.duration} min
-            </>
-          ) : null}
-          <span aria-hidden> · </span>
-          Teacher: {teacherName ?? "your teacher"}
-        </p>
-        {schedule ? (
+      {schedule ? (
+        <div className="border-t border-border pt-3">
           <ScheduleSectionClient
             mentorshipId={schedule.mentorshipId}
             teacherAvail={teacherAvail}
             mismatchNotifications={mismatchNotifications}
           />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {showHistory ? (
-        <section id="past-lessons" className="border-t border-border pt-4" aria-labelledby="past-lessons-heading">
+        <section
+          id="past-sessions"
+          className="border-t border-border pt-4"
+          aria-labelledby="past-sessions-heading"
+        >
           <h3
-            id="past-lessons-heading"
+            id="past-sessions-heading"
             className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary"
           >
-            Past lessons
+            Past sessions
           </h3>
           {history.length === 0 ? (
-            <p className="mt-2 text-sm text-text-secondary">No lessons have passed yet.</p>
+            <p className="mt-2 text-sm text-text-secondary">No sessions have passed yet.</p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
               {history.map((session) => (
@@ -601,16 +530,16 @@ export function WeekStrip({
         open={confirmCancel !== null}
         danger
         loading={confirmCancel !== null && cancellingId === confirmCancel.id}
-        title="Cancel this lesson?"
+        title="Cancel this session?"
         description={
           confirmCancel
-            ? `The lesson at ${formatTime(confirmCancel.startTime)} on ${new Date(
+            ? `The session at ${formatTime(confirmCancel.startTime)} on ${new Date(
                 confirmCancel.startTime,
               ).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} will be cancelled. This cannot be undone.`
             : ""
         }
-        confirmLabel="Cancel lesson"
-        cancelLabel="Keep lesson"
+        confirmLabel="Cancel session"
+        cancelLabel="Keep session"
         onConfirm={async () => {
           if (!confirmCancel) return;
           const ok = await onCancel(confirmCancel.id);

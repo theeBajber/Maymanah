@@ -90,7 +90,7 @@ export default async function FinalExamPage({
         </Panel>
       ) : (
         <GlassCard className="p-2">
-          <ExamRunner assessment={assessment} />
+          <ExamRunner assessment={assessment} courseSlug={slug} />
         </GlassCard>
       )}
     </div>

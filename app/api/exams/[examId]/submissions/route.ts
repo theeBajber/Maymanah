@@ -56,6 +56,12 @@ export async function POST(
     if (result.reason === "not_enrolled") {
       return NextResponse.json({ error: "Enrol in the course first" }, { status: 403 });
     }
+    if (result.reason === "not_complete") {
+      return NextResponse.json(
+        { error: "Complete every lesson before sitting the final exam" },
+        { status: 403 },
+      );
+    }
     if (result.reason === "closed") {
       return NextResponse.json({ error: "That exam is not currently open" }, { status: 410 });
     }

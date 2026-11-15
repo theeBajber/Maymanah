@@ -73,7 +73,7 @@ export function SessionsView({
 
   async function cancel(session: SessionRow) {
     const when = new Date(session.startTime).toLocaleString();
-    if (!window.confirm(`Cancel the lesson on ${when}? This cannot be undone.`)) return;
+    if (!window.confirm(`Cancel the session on ${when}? This cannot be undone.`)) return;
 
     setCancelling(session.id);
     try {
@@ -81,12 +81,12 @@ export function SessionsView({
       const body = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
-        toast({ title: body.error ?? "Could not cancel that lesson", variant: "error" });
+        toast({ title: body.error ?? "Could not cancel that session", variant: "error" });
         return;
       }
 
       setCancelled((current) => [...current, session.id]);
-      toast({ title: "Lesson cancelled", variant: "success" });
+      toast({ title: "Session cancelled", variant: "success" });
       router.refresh();
     } catch {
       toast({ title: "Could not reach the server", variant: "error" });
@@ -114,14 +114,14 @@ export function SessionsView({
         <EmptyState
           title={
             active.length === 0
-              ? "No lessons booked yet."
-              : "No upcoming lessons right now."
+              ? "No sessions booked yet."
+              : "No upcoming sessions right now."
           }
           action={
             <p className="mt-2 text-sm text-text-secondary">
               {active.length === 0
-                ? "Lessons appear here once your availability is booked."
-                : "Past lessons stay available from their session page."}
+                ? "Sessions appear here once your availability is booked."
+                : "Past sessions stay available from their session page."}
             </p>
           }
         />
@@ -195,7 +195,7 @@ function PendingReports({ rows }: { rows: PendingReportRow[] }) {
         <div className="flex items-start gap-2">
           <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
           <p className="text-sm text-text-secondary">
-            Nothing waiting. Finished lessons appear here until their report is written.
+            Nothing waiting. Finished sessions appear here until their report is written.
           </p>
         </div>
       ) : (

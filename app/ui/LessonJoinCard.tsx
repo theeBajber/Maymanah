@@ -54,10 +54,13 @@ export function LessonJoinCard({
   session,
   onJoinStateChange,
   className = "",
+  showUpcomingHint = true,
 }: {
   session: JoinTarget;
   onJoinStateChange?: (update: JoinStateUpdate) => void;
   className?: string;
+  /** The course hero is compact; the session page keeps the timing explainer. */
+  showUpcomingHint?: boolean;
 }) {
   const reasonId = useId();
   const notifyRef = useRef(onJoinStateChange);
@@ -163,7 +166,7 @@ export function LessonJoinCard({
       {call ? (
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-bg-elevated p-4">
           <p className="text-sm text-text-primary">
-            Your lesson room is ready. It opens in a new tab.
+            Your session room is ready. It opens in a new tab.
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <a
@@ -231,7 +234,7 @@ export function LessonJoinCard({
           ) : null}
 
           {joinState === "cancelled" ? (
-            <p className="text-sm text-text-secondary">This lesson was cancelled.</p>
+            <p className="text-sm text-text-secondary">This session was cancelled.</p>
           ) : joinState === "ended" ? (
             <>
               <button
@@ -240,10 +243,10 @@ export function LessonJoinCard({
                 aria-describedby={reasonId}
                 className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-[10px] border border-border bg-bg-hover px-6 text-sm font-semibold text-text-secondary sm:w-auto"
               >
-                Lesson ended
+                Session ended
               </button>
               <p id={reasonId} className="text-xs text-text-secondary">
-                Joining has closed. The lesson report stays available below.
+                Joining has closed. The session report stays available below.
               </p>
             </>
           ) : joinState === "upcoming" ? (
@@ -251,15 +254,17 @@ export function LessonJoinCard({
               <button
                 type="button"
                 disabled
-                aria-describedby={reasonId}
+                aria-describedby={showUpcomingHint ? reasonId : undefined}
                 className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 rounded-[10px] border border-border bg-bg-hover px-6 text-sm font-semibold text-text-secondary sm:w-auto"
               >
                 <Lock aria-hidden className="size-4" />
                 Opens at <LocalTime iso={opensAt} mode="time" />
               </button>
-              <p id={reasonId} className="text-xs text-text-secondary">
-                Joining opens 15 minutes before the lesson. The button updates on its own.
-              </p>
+              {showUpcomingHint ? (
+                <p id={reasonId} className="text-xs text-text-secondary">
+                  Joining opens 15 minutes before the session. The button updates on its own.
+                </p>
+              ) : null}
             </>
           ) : (
             <>
@@ -270,7 +275,7 @@ export function LessonJoinCard({
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary px-6 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
               >
                 {joining ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
-                {joining ? "Opening…" : session.isTeacher ? "Start lesson" : "Join lesson"}
+                {joining ? "Opening…" : session.isTeacher ? "Start session" : "Join session"}
               </button>
               <p className="text-xs text-text-secondary">{BROWSER_HELP}</p>
               {session.isTeacher ? (

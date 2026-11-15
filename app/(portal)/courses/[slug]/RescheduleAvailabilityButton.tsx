@@ -2,9 +2,15 @@
 
 import { Check, Clock, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { AvailabilityGrid, parseSlotKey, type GridWindow, type SlotKey } from "@/app/ui/AvailabilityGrid";
+import {
+  AvailabilityGrid,
+  slotsToWindows,
+  windowsToSlots,
+  type GridWindow,
+  type SlotKey,
+} from "@/app/ui/AvailabilityGrid";
 import { useToast } from "@/app/ui/toast";
 
 /**
@@ -28,6 +34,7 @@ export function RescheduleAvailabilityButton({
   const [open, setOpen] = useState(autoOpen);
   const [wasAutoOpen, setWasAutoOpen] = useState(autoOpen);
   const [selected, setSelected] = useState<Set<SlotKey>>(new Set());
+  const [prefilling, setPrefilling] = useState(false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -38,6 +45,32 @@ export function RescheduleAvailabilityButton({
     if (autoOpen) setOpen(true);
   }
 
+  // Start from the student's current hours, narrowed to the teacher's windows.
+  // A blank grid would quietly wipe the old availability on save.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setPrefilling(true);
+
+    fetch("/api/availability")
+      .then((response) => response.json())
+      .then((data: { slots?: GridWindow[] }) => {
+        if (cancelled) return;
+        setSelected(windowsToSlots(data.slots ?? [], teacherAvail));
+      })
+      .catch(() => {
+        // A failed prefill still leaves a usable grid; the toast on save covers
+        // a real problem.
+      })
+      .finally(() => {
+        if (!cancelled) setPrefilling(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, teacherAvail]);
+
   async function handleSave() {
     if (selected.size === 0) {
       toast({ title: "Select at least one time slot.", variant: "warning" });
@@ -45,10 +78,9 @@ export function RescheduleAvailabilityButton({
     }
 
     setSaving(true);
-    const slots = Array.from(selected).map((key) => {
-      const { day, start, end } = parseSlotKey(key);
-      return { dayOfWeek: day, startTime: start, endTime: end };
-    });
+    // Every contiguous run of painted cells becomes one window, matching what
+    // the teacher's stored availability looks like.
+    const slots = slotsToWindows(selected);
 
     try {
       const res = await fetch(`/api/mentorship/${mentorshipId}/reschedule`, {
@@ -130,7 +162,9 @@ export function RescheduleAvailabilityButton({
 
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <p className="text-[11px] text-text-secondary">
-                    {selected.size} slot{selected.size !== 1 ? "s" : ""} selected
+                    {prefilling
+                      ? "Loading your current hours…"
+                      : `${selected.size} slot${selected.size !== 1 ? "s" : ""} selected`}
                   </p>
                   <button
                     onClick={() => setOpen(false)}
@@ -140,13 +174,13 @@ export function RescheduleAvailabilityButton({
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={saving || prefilling}
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-text-inverse transition-all hover:brightness-110 disabled:opacity-50"
                   >
-                    {saving ? (
+                    {saving || prefilling ? (
                       <>
                         <Loader2 className="size-3.5 animate-spin" />
-                        Saving...
+                        {prefilling ? "Loading…" : "Saving..."}
                       </>
                     ) : (
                       "Save Schedule"

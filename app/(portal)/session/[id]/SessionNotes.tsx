@@ -136,13 +136,13 @@ export function SessionNotes({
       {showAdd && studentId ? (
         <div id="session-note-form" className="flex flex-col gap-3">
           <label htmlFor={noteId} className="text-sm font-semibold text-text-primary">
-            Note for yourself
+            Note for this student
           </label>
           <textarea
             id={noteId}
             value={content}
             onChange={(event) => setContent(event.target.value)}
-            placeholder="What to remember for this student"
+            placeholder="What the student should remember or work on"
             maxLength={500}
             rows={3}
             className={`${FIELD} resize-none`}

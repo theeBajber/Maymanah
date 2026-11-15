@@ -79,7 +79,7 @@ export function TodayLessonCard({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-            {today ? "Today's lesson" : "Your next lesson"}
+            {today ? "Today's session" : "Your next session"}
           </p>
           <p className="text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
             <LocalTime iso={session.startTime} mode="time" />
@@ -117,7 +117,7 @@ export function TodayLessonCard({
           href={`/session/${session.id}`}
           className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-[8px] text-sm font-semibold text-primary transition-colors hover:text-primary-dark focus-visible:outline-2 focus-visible:outline-offset-4"
         >
-          {isTeacher ? "Prepare this lesson" : "Lesson details"}
+          {isTeacher ? "Prepare this session" : "Session details"}
           <ArrowRight aria-hidden className="size-4 rtl:rotate-180" />
         </Link>
       ) : null}
@@ -303,7 +303,7 @@ export function ContinueFromCard({
           </div>
 
           <p className="text-sm leading-relaxed text-text-secondary">
-            Your teacher sets your starting point after your first lesson report. Until then there
+            Your teacher sets your starting point after your first session report. Until then there
             is no position to continue from.
           </p>
         </>
@@ -323,7 +323,7 @@ export function TipsPanel() {
     <Panel className="p-4">
       <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
         <Clock aria-hidden className="size-3.5" />
-        A smooth lesson
+        A smooth session
       </h2>
       <ul className="mt-3 grid gap-3 sm:grid-cols-3">
         {tips.map((tip) => (
