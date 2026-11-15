@@ -33,12 +33,11 @@ test("a student is paired, scheduled, and can change mentor", async ({ page }) =
 
   // A forced session stands in for waiting until the slot's clock arrives.
   await page.goto(`/courses/${E2E_HIFDH_COURSE_SLUG}?test=1`);
-  await expect(page.getByText("Today's Daily Session")).toBeVisible({ timeout: 20_000 });
-  const forceStart = page.getByRole("button", { name: "Force Start" });
-  if (await forceStart.count()) {
-    await forceStart.click();
-    await page.waitForURL(/\/session\//, { timeout: 20_000 });
-  }
+  await expect(page.getByText("Today's lesson")).toBeVisible({ timeout: 20_000 });
+  const forceStart = page.getByRole("button", { name: "Force Start session" });
+  await expect(forceStart).toBeVisible({ timeout: 20_000 });
+  await forceStart.click();
+  await page.waitForURL(/\/session\//, { timeout: 20_000 });
 
   // Change the weekly hours from inside the schedule.
   await page.goto(`/courses/${E2E_HIFDH_COURSE_SLUG}`);

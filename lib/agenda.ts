@@ -35,7 +35,11 @@ export interface ScheduleSession extends AgendaSession {
  * viewer's timezone) can still say "Lesson ended" rather than vanishing. The
  * join state is computed once, here, and never re-derived from a browser clock.
  */
-export async function getSessionSchedule(userId: string, days = 90): Promise<ScheduleSession[]> {
+export async function getSessionSchedule(
+  userId: string,
+  days = 90,
+  mentorshipId?: string,
+): Promise<ScheduleSession[]> {
   const now = new Date();
   const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const until = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
@@ -44,6 +48,7 @@ export async function getSessionSchedule(userId: string, days = 90): Promise<Sch
     where: {
       status: { in: ["SCHEDULED", "ONGOING"] },
       startTime: { gte: since, lte: until },
+      ...(mentorshipId ? { mentorshipId } : {}),
       OR: [{ teacherId: userId }, { mentorship: { studentId: userId } }],
     },
     orderBy: { startTime: "asc" },

@@ -60,6 +60,50 @@ export function joinStateFor(input: {
   return { ...window, state: "open" };
 }
 
+export interface FeaturableSession {
+  id: string;
+  startTime: string;
+  joinState: JoinState;
+}
+
+/** A date key in the viewer's own calendar, used only for grouping. */
+export function localDayKey(date: Date): string {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+/**
+ * Picks the lesson the screen leads with.
+ *
+ * A room that is open right now wins. Otherwise today's earliest upcoming
+ * lesson leads, then the one that just ended today, then the next one on the
+ * calendar. `todayKey` is the browser's local day, resolved after mount; the
+ * join state itself always comes from the server.
+ */
+export function pickFeaturedSession<T extends FeaturableSession>(
+  sessions: readonly T[],
+  todayKey: string | null,
+): T | null {
+  const open = sessions.find((session) => session.joinState === "open");
+  if (open) return open;
+
+  if (todayKey) {
+    const today = sessions.filter(
+      (session) => localDayKey(new Date(session.startTime)) === todayKey,
+    );
+    const todayUpcoming = today.find((session) => session.joinState === "upcoming");
+    if (todayUpcoming) return todayUpcoming;
+
+    const endedToday = today
+      .filter((session) => session.joinState === "ended")
+      .sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      );
+    if (endedToday.length > 0) return endedToday[endedToday.length - 1];
+  }
+
+  return sessions.find((session) => session.joinState === "upcoming") ?? null;
+}
+
 export interface SurahLike {
   number: number;
   name: string;

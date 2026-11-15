@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { GlassCard } from "@/app/ui/glass";
 import { EmptyState, Panel } from "@/app/ui/portal";
 import { auth } from "@/lib/auth";
 import { getCourseDetail } from "@/lib/courses";
-import { EnrollButton } from "./EnrollButton";
-import { HifdhSchedule } from "./HifdhSchedule";
+import { CourseIdentity } from "./CourseIdentity";
+import { HifdhCourse, HifdhCourseLoading } from "./HifdhCourse";
 import { ReviewSection } from "./ReviewSection";
 
 export async function generateMetadata({
@@ -40,58 +41,20 @@ export default async function CourseDetailPage({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
-      <GlassCard grade="lantern" mashrabiya className="p-6 md:p-8">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage">{course.category}</p>
-            {!course.enrollmentOpen ? (
-              <span className="rounded-full bg-warning-muted px-2.5 py-1 text-[11px] font-semibold text-warning">
-                {course.requiresMentor && course.seatsAvailable === 0 ? "Fully booked" : "Coming soon"}
-              </span>
-            ) : null}
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-text-primary md:text-4xl">{course.title}</h1>
-          {course.description ? (
-            <p className="max-w-2xl text-sm leading-relaxed text-text-secondary">{course.description}</p>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
-            <span>{course.lessonCount} {course.lessonCount === 1 ? "lesson" : "lessons"}</span>
-            {course.averageRating !== null ? (
-              <span aria-label={`Rated ${course.averageRating.toFixed(1)} out of 5`}>
-                ★ {course.averageRating.toFixed(1)} ({course.reviewCount} {course.reviewCount === 1 ? "review" : "reviews"})
-              </span>
-            ) : (
-              <span>No reviews yet</span>
-            )}
-            {course.enrolled && course.progress > 0 ? (
-              <span className="font-semibold text-primary">{course.progress}% complete</span>
-            ) : null}
-            {course.requiresMentor && !course.enrolled && course.seatsAvailable !== null ? (
-              <span>
-                {course.seatsAvailable === 0
-                  ? "No teaching seats free"
-                  : `${course.seatsAvailable} teaching ${course.seatsAvailable === 1 ? "seat" : "seats"} left`}
-              </span>
-            ) : null}
-          </div>
-          <div className="mt-2">
-            <EnrollButton
-              slug={course.slug}
-              isEnrolled={course.enrolled}
-              enrollmentOpen={course.enrollmentOpen}
-              requiresMentor={course.requiresMentor}
-              seatsAvailable={course.seatsAvailable}
-            />
-          </div>
-        </div>
-      </GlassCard>
-
-      {course.slug === "hifdh-ul-quran" ? (
-        <HifdhSchedule enrolled={course.enrolled} isTest={isTest} slug={course.slug} showAll={query.show === "all"} />
-      ) : null}
+      {course.slug === "hifdh-ul-quran" && course.enrolled ? (
+        // The course name and description paint immediately; the live lesson
+        // panel streams in once the pairing and progress have been read.
+        <Suspense fallback={<HifdhCourseLoading course={course} />}>
+          <HifdhCourse course={course} isTest={isTest} showAll={query.show === "all"} />
+        </Suspense>
+      ) : (
+        <GlassCard grade="lantern" mashrabiya className="p-6 md:p-8">
+          <CourseIdentity course={course} />
+        </GlassCard>
+      )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-bold text-text-primary">Lessons</h2>
+        <h2 className="text-lg font-bold text-text-primary">Curriculum</h2>
         {course.lessons.length === 0 ? (
           <EmptyState title="Lessons are being written for this course." />
         ) : (
@@ -109,7 +72,7 @@ export default async function CourseDetailPage({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-text-primary">{lesson.title}</span>
                   {lesson.duration ? (
-                    <span className="block text-xs text-text-muted">{lesson.duration} min</span>
+                    <span className="block text-xs text-text-secondary">{lesson.duration} min</span>
                   ) : null}
                 </span>
                 {lesson.completed ? (

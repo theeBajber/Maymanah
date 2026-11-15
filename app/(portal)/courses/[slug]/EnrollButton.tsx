@@ -62,7 +62,7 @@ export function EnrollButton({
 
   if (enrolled) {
     return (
-      <Button variant="ghost" size="md" loading={loading} onClick={() => act("drop")}>
+      <Button variant="outline" size="md" loading={loading} onClick={() => act("drop")}>
         Leave course
       </Button>
     );
@@ -70,7 +70,7 @@ export function EnrollButton({
 
   if (full) {
     return (
-      <Button variant="ghost" size="lg" disabled className="w-full sm:w-auto">
+      <Button variant="outline" size="lg" disabled className="w-full sm:w-auto">
         Fully booked
       </Button>
     );

@@ -6,7 +6,9 @@ import {
   checkRange,
   joinStateFor,
   joinWindow,
+  localDayKey,
   nextAyahAfter,
+  pickFeaturedSession,
   planRangeLabel,
   rangeHint,
   revisionPhraseExists,
@@ -276,5 +278,65 @@ describe("sessionTypeLabel", () => {
     expect(sessionTypeLabel("MURAJA")).toBe("Review");
     expect(sessionTypeLabel("EXTRA")).toBe("Extra session");
     expect(sessionTypeLabel("SOMETHING_ELSE")).toBe("Session");
+  });
+});
+
+describe("pickFeaturedSession", () => {
+  const today = new Date(2026, 10, 15, 12, 0, 0);
+  const todayKey = localDayKey(today);
+  const at = (dayOffset: number, hour: number) =>
+    new Date(2026, 10, 15 + dayOffset, hour, 0, 0).toISOString();
+
+  function row(id: string, startTime: string, joinState: "upcoming" | "open" | "ended") {
+    return { id, startTime, joinState };
+  }
+
+  it("prefers a room that is open right now", () => {
+    const sessions = [
+      row("later", at(1, 9), "upcoming"),
+      row("open", at(0, 11), "open"),
+    ];
+
+    expect(pickFeaturedSession(sessions, todayKey)?.id).toBe("open");
+  });
+
+  it("leads with today's next lesson before a later one", () => {
+    const sessions = [
+      row("next-week", at(7, 9), "upcoming"),
+      row("today-later", at(0, 15), "upcoming"),
+    ];
+
+    expect(pickFeaturedSession(sessions, todayKey)?.id).toBe("today-later");
+  });
+
+  it("falls back to the last lesson that ended today", () => {
+    const sessions = [
+      row("today-early", at(0, 8), "ended"),
+      row("today-late", at(0, 10), "ended"),
+    ];
+
+    expect(pickFeaturedSession(sessions, todayKey)?.id).toBe("today-late");
+  });
+
+  it("then takes the next upcoming lesson on the calendar", () => {
+    const sessions = [
+      row("past", at(-1, 9), "ended"),
+      row("next", at(3, 9), "upcoming"),
+    ];
+
+    expect(pickFeaturedSession(sessions, todayKey)?.id).toBe("next");
+  });
+
+  it("returns null when nothing is joinable or ahead", () => {
+    expect(pickFeaturedSession([row("past", at(-1, 9), "ended")], todayKey)).toBeNull();
+  });
+
+  it("ignores today until the browser's day is known", () => {
+    const sessions = [
+      row("today-ended", at(0, 8), "ended"),
+      row("next", at(1, 9), "upcoming"),
+    ];
+
+    expect(pickFeaturedSession(sessions, null)?.id).toBe("next");
   });
 });

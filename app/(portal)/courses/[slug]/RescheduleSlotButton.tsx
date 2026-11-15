@@ -59,7 +59,7 @@ export function RescheduleSlotButton({
       <button
         onClick={handleClick}
         disabled={loading}
-        className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+        className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary hover:underline disabled:opacity-50"
       >
         <Calendar className="size-3" />
         {loading ? "..." : "Reschedule this week"}

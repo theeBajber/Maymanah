@@ -246,13 +246,21 @@ function slotsToWindows(slots: { dayOfWeek: number; startTime: string; duration:
   });
 }
 
-/** The active Hifdh pairing a student already runs, if one exists. */export async function getStudentSchedule(studentId: string): Promise<StudentSchedule | null> {
+/** The timezone stored on a profile, read alongside the row that needs it. */
+function timeZoneFrom(profile: { timezone: string } | null | undefined): string {
+  return profile?.timezone ?? "Africa/Nairobi";
+}
+
+/** The active Hifdh pairing a student already runs, if one exists. */
+export async function getStudentSchedule(studentId: string): Promise<StudentSchedule | null> {
+  // The teacher's timezone comes back with the mentorship in one read: the
+  // course page renders on every visit, so an extra round trip here is felt.
   const mentorship = await db.mentorship.findFirst({
     where: { studentId, status: "ACTIVE" },
     select: {
       id: true,
       teacherId: true,
-      teacher: { select: { name: true } },
+      teacher: { select: { name: true, profile: { select: { timezone: true } } } },
       recurringSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
     },
   });
@@ -262,7 +270,7 @@ function slotsToWindows(slots: { dayOfWeek: number; startTime: string; duration:
     mentorshipId: mentorship.id,
     teacherId: mentorship.teacherId,
     teacherName: mentorship.teacher.name,
-    teacherTimeZone: await timeZoneFor(mentorship.teacherId),
+    teacherTimeZone: timeZoneFrom(mentorship.teacher.profile),
     slots: mentorship.recurringSlots.map((slot) => ({
       type: slot.type as SlotType,
       dayOfWeek: slot.dayOfWeek,
@@ -276,18 +284,25 @@ function slotsToWindows(slots: { dayOfWeek: number; startTime: string; duration:
 export async function getTodayHifdhSlot(
   studentId: string,
 ): Promise<{ startTime: Date; endTime: Date; duration: number } | null> {
+  // One read: the pairing, its teacher's timezone, and its daily slot. This is
+  // on the course page's first paint, so it must not walk three queries.
   const mentorship = await db.mentorship.findFirst({
     where: { studentId, status: "ACTIVE" },
-    select: { id: true, teacherId: true },
+    select: {
+      teacher: { select: { profile: { select: { timezone: true } } } },
+      recurringSlots: {
+        where: { type: "DAILY_HIFDH" },
+        select: { dayOfWeek: true, startTime: true, duration: true },
+        take: 1,
+      },
+    },
   });
   if (!mentorship) return null;
 
-  const slot = await db.recurringSlot.findFirst({
-    where: { mentorshipId: mentorship.id, type: "DAILY_HIFDH" },
-  });
+  const slot = mentorship.recurringSlots[0];
   if (!slot) return null;
 
-  const timeZone = await timeZoneFor(mentorship.teacherId);
+  const timeZone = timeZoneFrom(mentorship.teacher.profile);
   const today = zonedParts(new Date(), timeZone);
   if (slot.dayOfWeek !== weekdayOfDate(today.year, today.month, today.day)) return null;
 

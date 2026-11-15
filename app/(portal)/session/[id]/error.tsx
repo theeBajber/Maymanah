@@ -33,10 +33,10 @@ export default function SessionError({
           Try again
         </button>
         <Link
-          href="/sessions"
+          href="/dashboard"
           className="inline-flex min-h-11 items-center rounded-[10px] border border-border px-5 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
         >
-          Back to lessons
+          Back to dashboard
         </Link>
       </div>
     </div>

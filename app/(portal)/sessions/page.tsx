@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import type { PendingReportRow, SessionRow } from "@/app/ui/session-cards";
 import { getSessionSchedule } from "@/lib/agenda";
 import { auth } from "@/lib/auth";
 import { pendingLessonReports } from "@/lib/lesson-report";
 import { planRangeLabel } from "@/lib/live-session";
-import { SURAHS, TOTAL_QURAN_AYAHS } from "@/lib/quran-meta";
-import { memorizationProgress } from "@/lib/quran-progress";
+import { SURAHS } from "@/lib/quran-meta";
 import { getCurrentUser } from "@/lib/session";
 import { SessionsView } from "./SessionsView";
-import type { PendingReportRow, ProgressSummary, SessionRow } from "./types";
 
 export const metadata: Metadata = {
   title: "Sessions",
@@ -17,22 +16,20 @@ export const metadata: Metadata = {
 };
 
 /**
- * The schedule screen.
+ * The teacher's schedule screen.
  *
- * The schedule, progress, and pending reports are read together on the server
- * so the first paint is the real list rather than a loading placeholder. The
- * join state on each row is computed there too; the browser only displays it.
+ * Students are sent to their course, where the next lesson and its join button
+ * now live. The schedule and pending reports are read together on the server,
+ * so the first paint is the real list rather than a loading placeholder.
  */
 export default async function SessionsPage() {
   const user = await getCurrentUser(await auth());
   if (!user) redirect("/login");
+  if (user.role === "STUDENT") redirect("/courses/hifdh-ul-quran");
 
-  const isStudent = user.role === "STUDENT";
-
-  const [schedule, progress, pending] = await Promise.all([
+  const [schedule, pending] = await Promise.all([
     getSessionSchedule(user.id),
-    isStudent ? memorizationProgress(user.id) : Promise.resolve(null),
-    isStudent ? Promise.resolve([]) : pendingLessonReports(user.id),
+    pendingLessonReports(user.id),
   ]);
 
   const sessions: SessionRow[] = schedule.map((session) => ({
@@ -50,15 +47,6 @@ export default async function SessionsPage() {
     closesAt: session.closesAt.toISOString(),
   }));
 
-  const progressSummary: ProgressSummary | null = progress
-    ? {
-        rangeCount: progress.rangeCount,
-        uniqueAyahs: progress.uniqueAyahs,
-        percent: progress.percent,
-        lastStop: progress.lastStop,
-      }
-    : null;
-
   const pendingReports: PendingReportRow[] = pending.map((row) => ({
     id: row.id,
     title: row.title,
@@ -70,11 +58,8 @@ export default async function SessionsPage() {
   return (
     <SessionsView
       name={user.name}
-      isTeacher={!isStudent}
       sessions={sessions}
-      progress={progressSummary}
       pendingReports={pendingReports}
-      totalAyahs={TOTAL_QURAN_AYAHS}
     />
   );
 }
