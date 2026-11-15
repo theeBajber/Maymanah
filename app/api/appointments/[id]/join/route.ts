@@ -2,14 +2,9 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { DEFAULT_LESSON_MS, JOIN_EARLY_MS, JOIN_LATE_MS } from "@/lib/live-session";
 import { createLessonRoom, MeetingError } from "@/lib/meetings";
 import { getCurrentUser } from "@/lib/session";
-
-/** A session is joinable from fifteen minutes before it starts. */
-const JOIN_EARLY_MS = 15 * 60 * 1000;
-
-/** ...until an hour after it was meant to end, for sessions that run over. */
-const JOIN_LATE_MS = 60 * 60 * 1000;
 
 function unauthorized() {
   return NextResponse.json({ error: "Sign in to do this" }, { status: 401 });
@@ -65,20 +60,23 @@ export async function GET(
   }
 
   if (appointment.status === "CANCELLED") {
-    return NextResponse.json({ error: "That session was cancelled" }, { status: 410 });
+    return NextResponse.json({ error: "That session was cancelled", code: "cancelled" }, { status: 410 });
   }
   if (appointment.status === "COMPLETED") {
-    return NextResponse.json({ error: "That session has ended" }, { status: 410 });
+    return NextResponse.json({ error: "That session has ended", code: "ended" }, { status: 410 });
   }
 
   const now = Date.now();
-  const end = appointment.endTime?.getTime() ?? appointment.startTime.getTime() + JOIN_LATE_MS;
+  const end = appointment.endTime?.getTime() ?? appointment.startTime.getTime() + DEFAULT_LESSON_MS;
 
   if (now < appointment.startTime.getTime() - JOIN_EARLY_MS) {
-    return NextResponse.json({ error: "That session has not started yet" }, { status: 425 });
+    return NextResponse.json(
+      { error: "That session has not started yet", code: "not_started" },
+      { status: 425 },
+    );
   }
   if (now > end + JOIN_LATE_MS) {
-    return NextResponse.json({ error: "That session has ended" }, { status: 410 });
+    return NextResponse.json({ error: "That session has ended", code: "ended" }, { status: 410 });
   }
 
   const isTeacher = appointment.teacherId === user.id;
@@ -113,6 +111,7 @@ export async function GET(
           error: isTeacher
             ? "Your calendar connection needs to be renewed. Reconnect it in settings, or add a meeting link to this lesson."
             : "The meeting room is temporarily unavailable. Your teacher has been asked to reconnect.",
+          code: "reauth",
         },
         { status: 503 },
       );
@@ -123,12 +122,16 @@ export async function GET(
           error: isTeacher
             ? "Add a meeting link or connect your calendar before opening this lesson."
             : "Your teacher has not set up the meeting room yet.",
+          code,
         },
         { status: 503 },
       );
     }
     return NextResponse.json(
-      { error: "That meeting room could not be opened. Try again in a moment." },
+      {
+        error: "That meeting room could not be opened. Try again in a moment.",
+        code: "provider_error",
+      },
       { status: 502 },
     );
   }

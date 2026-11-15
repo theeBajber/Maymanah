@@ -10,13 +10,16 @@ import { CountUp } from "./count-up";
  */
 export function Panel({
   className = "",
+  id,
   children,
 }: {
   className?: string;
+  id?: string;
   children: ReactNode;
 }) {
   return (
     <div
+      id={id}
       className={`rounded-2xl border border-border bg-bg-elevated shadow-raise ${className}`}
     >
       {children}
@@ -26,7 +29,7 @@ export function Panel({
 
 export function PanelHeading({ children }: { children: ReactNode }) {
   return (
-    <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+    <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
       {children}
     </h3>
   );
