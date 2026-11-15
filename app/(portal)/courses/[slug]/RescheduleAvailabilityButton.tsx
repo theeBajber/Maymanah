@@ -80,7 +80,7 @@ export function RescheduleAvailabilityButton({
       <div className="mt-4 border-t border-border pt-4">
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary hover:underline"
         >
           <Clock className="size-3" />
           Change my weekly schedule
@@ -124,12 +124,12 @@ export function RescheduleAvailabilityButton({
 
                 <AvailabilityGrid selected={selected} onSelectedChange={setSelected} enabledWindows={teacherAvail} />
 
-                <p className="text-xs text-text-muted">
+                <p className="text-xs text-text-secondary">
                   Click and drag to select multiple slots. Only times your teacher is available are shown.
                 </p>
 
                 <div className="flex items-center justify-end gap-3 pt-2">
-                  <p className="text-[11px] text-text-muted">
+                  <p className="text-[11px] text-text-secondary">
                     {selected.size} slot{selected.size !== 1 ? "s" : ""} selected
                   </p>
                   <button

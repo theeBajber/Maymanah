@@ -79,10 +79,10 @@ export default async function AccountStatusPage() {
                 Back to dashboard
               </Link>
               <Link
-                href="/sessions"
+                href={user.role === "TEACHER" ? "/sessions" : "/courses/hifdh-ul-quran"}
                 className="inline-flex h-11 items-center rounded-[10px] border border-border px-5 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
               >
-                Your sessions
+                {user.role === "TEACHER" ? "Your sessions" : "Your course"}
               </Link>
             </>
           )}

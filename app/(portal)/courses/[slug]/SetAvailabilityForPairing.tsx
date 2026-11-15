@@ -91,12 +91,12 @@ export function SetAvailabilityForPairing() {
 
       <AvailabilityGrid selected={selected} onSelectedChange={setSelected} />
 
-      <p className="mt-4 text-xs text-text-muted">
+      <p className="mt-4 text-xs text-text-secondary">
         Click and drag to select multiple slots. Selected = available, blank = unavailable.
       </p>
 
       <div className="mt-5 flex items-center justify-end gap-3">
-        <p className="text-[11px] text-text-muted">
+        <p className="text-[11px] text-text-secondary">
           {selected.size} slot{selected.size !== 1 ? "s" : ""} selected
         </p>
         <button

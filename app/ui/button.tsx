@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { Loader2 } from "lucide-react";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost" | "quiet";
+  variant?: "primary" | "ghost" | "outline" | "quiet";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
 };
@@ -17,6 +17,8 @@ const VARIANTS = {
   primary:
     "bg-accent text-text-inverse hover:brightness-95 hover:shadow-glow-accent",
   ghost: "border border-ivory/15 text-ivory hover:bg-ivory/5 hover:border-ivory/25",
+  outline:
+    "border border-border bg-bg-elevated text-text-secondary hover:bg-bg-hover hover:text-text-primary",
   quiet: "text-lapis hover:text-ivory",
 };
 

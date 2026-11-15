@@ -134,10 +134,10 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
             Try again
           </button>
           <Link
-            href="/sessions"
+            href="/dashboard"
             className="inline-flex min-h-11 items-center rounded-[10px] border border-border px-5 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
           >
-            Back to sessions
+            Back to dashboard
           </Link>
         </div>
       </div>
@@ -169,12 +169,12 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">
       <Link
-        href="/sessions"
+        href={teacher ? "/sessions" : "/courses/hifdh-ul-quran"}
         onClick={guardNavigation}
         className="inline-flex w-fit items-center gap-1.5 rounded-[8px] text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-4"
       >
         <ArrowLeft aria-hidden className="size-4 rtl:rotate-180" />
-        All sessions
+        {teacher ? "All sessions" : "Back to course"}
       </Link>
 
       <GlassCard grade="lantern" mashrabiya className="p-5 sm:p-6">

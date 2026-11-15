@@ -327,7 +327,6 @@ export function SideNav() {
       ]
     : [
         { name: "Dashboard", href: "/dashboard", icon: Home },
-        { name: "Sessions", href: "/sessions", icon: Video },
         { name: "Courses", href: "/courses", icon: GraduationCap },
         { name: "Mushaf", href: "/mushaf", icon: BookOpen },
         { name: "AI Revision", href: "/revision", icon: Brain },

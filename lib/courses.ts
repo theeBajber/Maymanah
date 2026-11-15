@@ -126,24 +126,27 @@ export async function getCourseDetail(
 
   if (!course || !course.isPublished) return null;
 
-  const completed = user
-    ? await db.lessonProgress.findMany({
-        where: { studentId: user.id, lessonId: { in: course.lessons.map((lesson) => lesson.id) }, completed: true },
-        select: { lessonId: true },
-      })
-    : [];
+  // These three reads are independent; running them together saves two round
+  // trips on every course visit.
+  const [completed, certificate, seatsAvailable] = await Promise.all([
+    user
+      ? db.lessonProgress.findMany({
+          where: { studentId: user.id, lessonId: { in: course.lessons.map((lesson) => lesson.id) }, completed: true },
+          select: { lessonId: true },
+        })
+      : [],
+    user
+      ? db.ijazah.findUnique({
+          where: { userId_courseId: { userId: user.id, courseId: course.id } },
+          select: { id: true },
+        })
+      : null,
+    course.requiresMentor ? mentorSeatsFor(user) : null,
+  ]);
   const done = new Set(completed.map((row) => row.lessonId));
-
-  const certificate = user
-    ? await db.ijazah.findUnique({
-        where: { userId_courseId: { userId: user.id, courseId: course.id } },
-        select: { id: true },
-      })
-    : null;
 
   const ratings = course.reviews.map((review) => review.rating);
   const enrolled = course.enrollments.length > 0;
-  const seatsAvailable = course.requiresMentor ? await mentorSeatsFor(user) : null;
 
   return {
     id: course.id,
