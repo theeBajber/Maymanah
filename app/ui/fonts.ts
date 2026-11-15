@@ -10,28 +10,36 @@ import {
 
 /** Display: Latin drawn to harmonize with Arabic Naskh. Headings, wordmark. */
 export const elMessiri = El_Messiri({
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   subsets: ["latin", "arabic"],
+  display: "swap",
 });
 
 /** Body: quiet engineered grotesque with a true Arabic sibling. */
 export const plexSans = IBM_Plex_Sans({
   weight: ["400", "500", "600"],
   subsets: ["latin"],
+  display: "swap",
 });
 
 /** UI-level Arabic (labels, names, dates) — matched rhythm with plexSans. */
 export const plexArabic = IBM_Plex_Sans_Arabic({
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
   subsets: ["arabic"],
+  display: "swap",
 });
 
 /** Quranic Arabic: Bulaq-press Naskh revival. Ayat, hadith, bismillah. */
-export const amiri = Amiri({ weight: ["400", "700"], subsets: ["arabic"] });
+export const amiri = Amiri({
+  weight: ["400", "700"],
+  subsets: ["arabic"],
+  display: "swap",
+});
 
 export const naskh = Noto_Naskh_Arabic({
   weight: "variable",
   subsets: ["arabic"],
+  display: "swap",
 });
 
 /** Alias kept so call sites can ask for the body face by either name. */

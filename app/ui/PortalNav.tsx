@@ -178,7 +178,7 @@ export function TopNav() {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 h-16 bg-bg-primary">
       <div className="flex h-full items-center justify-between gap-4 px-6 border-b border-border">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+        <Link href="/" aria-label="Maymanah home" className="flex min-h-11 shrink-0 items-center gap-2.5">
           <Image
             src="/logo.png"
             alt=""
@@ -205,7 +205,7 @@ export function TopNav() {
                 setNotifOpen((prev) => !prev);
                 setProfileOpen(false);
               }}
-              className="relative flex size-9 items-center justify-center rounded-xl text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary active:scale-95"
+              className="relative flex size-11 items-center justify-center rounded-xl text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary active:scale-95"
               aria-label="Notifications"
               aria-expanded={notifOpen}
             >
@@ -281,7 +281,7 @@ export function TopNav() {
           </div>
           <div className="relative">
             <button
-              className={`flex items-center p-1 rounded-xl transition-all duration-200 ${
+              className={`flex size-11 items-center justify-center rounded-xl transition-all duration-200 ${
                 profileOpen
                   ? "bg-bg-hover ring-1 ring-border"
                   : "hover:bg-bg-hover"
@@ -327,6 +327,7 @@ export function SideNav() {
       ]
     : [
         { name: "Dashboard", href: "/dashboard", icon: Home },
+        { name: "Sessions", href: "/sessions", icon: Video },
         { name: "Courses", href: "/courses", icon: GraduationCap },
         { name: "Mushaf", href: "/mushaf", icon: BookOpen },
         { name: "AI Revision", href: "/revision", icon: Brain },
@@ -373,7 +374,7 @@ export function SideNav() {
             <Link
               href={link.href}
               key={link.name}
-              className={`flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-[10px] px-2 py-1.5 transition-colors ${
+              className={`flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[10px] px-0.5 py-1.5 transition-colors ${
                 isActive ? "text-primary" : "text-text-secondary"
               }`}
             >

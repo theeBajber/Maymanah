@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { joinStateFor } from "@/lib/live-session";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -42,17 +43,28 @@ export async function GET(): Promise<NextResponse> {
   });
 
   return NextResponse.json({
-    sessions: appointments.map((appointment) => ({
-      id: appointment.id,
-      title: appointment.title,
-      startTime: appointment.startTime,
-      endTime: appointment.endTime,
-      status: appointment.status,
-      sessionType: appointment.sessionType,
-      isTeacher: appointment.teacherId === user.id,
-      otherParty:
-        appointment.teacherId === user.id ? appointment.mentorship.student : appointment.mentorship.teacher,
-      plan: appointment.sessionPlan,
-    })),
+    sessions: appointments.map((appointment) => {
+      const join = joinStateFor({
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        status: appointment.status,
+      });
+
+      return {
+        id: appointment.id,
+        title: appointment.title,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        status: appointment.status,
+        sessionType: appointment.sessionType,
+        isTeacher: appointment.teacherId === user.id,
+        otherParty:
+          appointment.teacherId === user.id ? appointment.mentorship.student : appointment.mentorship.teacher,
+        plan: appointment.sessionPlan,
+        joinState: join.state,
+        opensAt: join.opensAt,
+        closesAt: join.closesAt,
+      };
+    }),
   });
 }

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "./db";
+import { joinStateFor, type JoinState } from "./live-session";
 
 export interface AgendaSession {
   id: string;
@@ -10,6 +11,91 @@ export interface AgendaSession {
   sessionType: string;
   isTeacher: boolean;
   otherPartyName: string;
+}
+
+export interface PlannedRange {
+  fromSurah: number;
+  fromVerse: number;
+  toSurah: number;
+  toVerse: number;
+}
+
+export interface ScheduleSession extends AgendaSession {
+  status: string;
+  plan: PlannedRange | null;
+  joinState: JoinState;
+  opensAt: Date;
+  closesAt: Date;
+}
+
+/**
+ * The schedule shown on the sessions screen.
+ *
+ * Starts a day in the past so a lesson that ended earlier today (in any
+ * viewer's timezone) can still say "Lesson ended" rather than vanishing. The
+ * join state is computed once, here, and never re-derived from a browser clock.
+ */
+export async function getSessionSchedule(userId: string, days = 90): Promise<ScheduleSession[]> {
+  const now = new Date();
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const until = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+  const rows = await db.appointment.findMany({
+    where: {
+      status: { in: ["SCHEDULED", "ONGOING"] },
+      startTime: { gte: since, lte: until },
+      OR: [{ teacherId: userId }, { mentorship: { studentId: userId } }],
+    },
+    orderBy: { startTime: "asc" },
+    take: 100,
+    select: {
+      id: true,
+      title: true,
+      startTime: true,
+      endTime: true,
+      status: true,
+      sessionType: true,
+      teacherId: true,
+      sessionPlan: true,
+      mentorship: {
+        select: {
+          student: { select: { name: true } },
+          teacher: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  return rows.map((row) => {
+    const join = joinStateFor({
+      startTime: row.startTime,
+      endTime: row.endTime,
+      status: row.status,
+    });
+
+    return {
+      id: row.id,
+      title: row.title,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      sessionType: row.sessionType,
+      status: row.status,
+      isTeacher: row.teacherId === userId,
+      otherPartyName:
+        row.teacherId === userId ? row.mentorship.student.name : row.mentorship.teacher.name,
+      plan: row.sessionPlan
+        ? {
+            fromSurah: row.sessionPlan.fromSurah,
+            fromVerse: row.sessionPlan.fromVerse,
+            toSurah: row.sessionPlan.toSurah,
+            toVerse: row.sessionPlan.toVerse,
+          }
+        : null,
+      joinState: join.state,
+      opensAt: join.opensAt,
+      closesAt: join.closesAt,
+    };
+  });
 }
 
 /**
