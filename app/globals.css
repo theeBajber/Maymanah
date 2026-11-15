@@ -57,6 +57,8 @@
     --success: #357040;
     --success-muted: #dceadb;
     --warning: #a6742a;
+    /* Small amber text on paper: 5.5:1 on --bg-elevated at 11px. */
+    --warning-strong: #8a5a10;
     --warning-muted: #f3e6c8;
     --danger: #b23b30;
     --danger-muted: #f5dad5;
@@ -100,6 +102,7 @@
     --color-success: var(--success);
     --color-success-muted: var(--success-muted);
     --color-warning: var(--warning);
+    --color-warning-strong: var(--warning-strong);
     --color-warning-muted: var(--warning-muted);
     --color-danger: var(--danger);
     --color-danger-muted: var(--danger-muted);
@@ -168,6 +171,7 @@
         --success: #8fbf9a;
         --success-muted: #14251a;
         --warning: #d9a441;
+        --warning-strong: #d9a441;
         --warning-muted: #2a2210;
         --danger: #e08a7e;
         --danger-muted: #2c1714;
@@ -347,6 +351,7 @@
     --success: #8fbf9a;
     --success-muted: #14251a;
     --warning: #d9a441;
+    --warning-strong: #d9a441;
     --warning-muted: #2a2210;
     --danger: #e08a7e;
     --danger-muted: #2c1714;
@@ -396,6 +401,8 @@
     --success: #357040;
     --success-muted: #dceadb;
     --warning: #a6742a;
+    /* Small amber text on paper: 5.5:1 on --bg-elevated at 11px. */
+    --warning-strong: #8a5a10;
     --warning-muted: #f3e6c8;
     --danger: #b23b30;
     --danger-muted: #f5dad5;

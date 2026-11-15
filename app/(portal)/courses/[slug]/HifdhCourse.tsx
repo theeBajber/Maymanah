@@ -4,51 +4,44 @@ import { getSessionSchedule } from "@/lib/agenda";
 import { auth } from "@/lib/auth";
 import type { CourseDetail } from "@/lib/courses";
 import { db } from "@/lib/db";
-import { planRangeLabel } from "@/lib/live-session";
+import { joinStateFor, lessonStatusKey, planRangeLabel } from "@/lib/live-session";
 import { getStudentSchedule, getTeacherAvailability, getTodayHifdhSlot } from "@/lib/pairing";
 import { SURAHS, TOTAL_QURAN_AYAHS } from "@/lib/quran-meta";
 import { memorizationProgress } from "@/lib/quran-progress";
 import { getCurrentUser } from "@/lib/session";
-import { CourseIdentity } from "./CourseIdentity";
-import {
-  HifdhCourseView,
-  type PastSession,
-  type WeeklySlot,
-} from "./HifdhCourseView";
-
-const PAST_PREVIEW = 5;
+import { weekdayOfDate, zonedParts, zonedTimeToUtc } from "@/lib/timezone";
+import { CourseHeader } from "./CourseHeader";
+import { HifdhCourseView, type WeeklySlot } from "./HifdhCourseView";
+import type { WeekSession } from "./WeekStrip";
 
 /**
  * The shape of the page while its live data loads.
  *
- * It carries the real course identity, so the hero's name and description are
- * painted in the first streamed frame rather than waiting on the pairing.
+ * The page header and the lesson-grid frame paint immediately, so the layout
+ * does not jump when the pairing, progress, and week arrive.
  */
 export function HifdhCourseLoading({ course }: { course: CourseDetail }) {
   return (
     <div className="flex flex-col gap-6" aria-busy="true">
-      <GlassCard grade="lantern" mashrabiya className="p-5 sm:p-6">
-        <div className="relative flex flex-col gap-6">
-          <CourseIdentity course={course} />
+      <CourseHeader course={course} />
 
-          <div className="border-t border-border pt-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Today&apos;s lesson
-            </p>
-            <div className="mt-3 h-10 w-32 rounded-lg bg-bg-hover motion-safe:animate-pulse" />
-            <div className="mt-3 h-4 w-56 max-w-full rounded bg-bg-hover motion-safe:animate-pulse" />
-            <div className="mt-5 h-11 w-44 max-w-full rounded-[10px] bg-bg-hover motion-safe:animate-pulse" />
+      <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
+        <GlassCard grade="lantern" mashrabiya className="p-5 sm:p-6">
+          <div className="relative flex flex-col gap-4">
+            <div className="h-6 w-32 rounded-full bg-bg-hover motion-safe:animate-pulse" />
+            <div className="h-14 w-44 rounded-lg bg-bg-hover motion-safe:animate-pulse" />
+            <div className="h-4 w-64 max-w-full rounded bg-bg-hover motion-safe:animate-pulse" />
+            <div className="mt-2 h-10 w-40 rounded-full bg-bg-hover motion-safe:animate-pulse" />
+            <div className="h-12 w-full max-w-xs rounded-[10px] bg-bg-hover motion-safe:animate-pulse" />
           </div>
-        </div>
-      </GlassCard>
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]">
-        <div className="h-40 rounded-2xl border border-border bg-bg-elevated motion-safe:animate-pulse lg:order-2" />
-        <div className="h-56 rounded-2xl border border-border bg-bg-elevated motion-safe:animate-pulse lg:order-1" />
+        </GlassCard>
+        <div className="h-64 rounded-2xl border border-border bg-bg-elevated motion-safe:animate-pulse" />
       </div>
 
+      <div className="h-52 rounded-2xl border border-border bg-bg-elevated motion-safe:animate-pulse" />
+
       <span className="sr-only" role="status">
-        Loading today&apos;s lesson and your progress.
+        Loading your lessons and progress.
       </span>
     </div>
   );
@@ -65,11 +58,41 @@ function formatSlotTime(startTime: string): string {
 }
 
 /**
+ * The next time the recurring slot itself comes round, in the teacher's zone.
+ *
+ * The footer describes the weekly arrangement, so it must keep showing the
+ * slot's own hour even when this week's instance was moved to another time.
+ */
+function nextSlotOccurrence(
+  slot: { dayOfWeek: number; startTime: string },
+  timeZone: string,
+  now: Date,
+): Date | null {
+  const today = zonedParts(now, timeZone);
+  const [hour, minute] = slot.startTime.split(":").map(Number);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+
+  for (let offset = 0; offset < 8; offset += 1) {
+    const date = new Date(Date.UTC(today.year, today.month - 1, today.day + offset));
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    if (weekdayOfDate(year, month, day) !== slot.dayOfWeek) continue;
+
+    const at = zonedTimeToUtc(year, month, day, hour, minute, timeZone);
+    if (at.getTime() > now.getTime()) return at;
+  }
+
+  return null;
+}
+
+/**
  * The enrolled student's Hifdh page.
  *
- * Reads the pairing, the schedule, and progress together so the hero, the
- * coming-up list, and the weekly timetable all agree. The join state on every
- * row is computed here; the browser only renders it.
+ * The join state on every row is computed here; the browser only renders it.
+ * Every appointment for the pairing is read once, so the week strip and the
+ * history agree, and a row that predates the current pairing or enrolment is
+ * marked before it reaches the client.
  */
 export async function HifdhCourse({
   course,
@@ -83,9 +106,13 @@ export async function HifdhCourse({
   const user = await getCurrentUser(await auth());
   if (!user) return null;
 
-  const [schedule, progress] = await Promise.all([
+  const [schedule, progress, enrollment] = await Promise.all([
     getStudentSchedule(user.id),
     memorizationProgress(user.id),
+    db.enrollment.findUnique({
+      where: { userId_courseId: { userId: user.id, courseId: course.id } },
+      select: { enrolledAt: true },
+    }),
   ]);
 
   const progressSummary = {
@@ -98,16 +125,15 @@ export async function HifdhCourse({
   if (!schedule || schedule.slots.length === 0) {
     return (
       <HifdhCourseView
-        identity={<CourseIdentity course={course} />}
+        header={<CourseHeader course={course} />}
         isTest={isTest}
         totalAyahs={TOTAL_QURAN_AYAHS}
         sessions={[]}
+        weekSessions={[]}
         progress={progressSummary}
         teacherName={null}
         todaySlot={null}
-        pastSessions={[]}
-        pastTotal={0}
-        showAll={showAll}
+        defaultShowHistory={showAll}
         schedule={null}
         teacherAvail={[]}
         mismatchNotifications={[]}
@@ -127,12 +153,29 @@ export async function HifdhCourse({
       }),
       db.appointment.findMany({
         where: { mentorshipId: schedule.mentorshipId },
-        select: { id: true, title: true, startTime: true, status: true },
-        orderBy: { startTime: "desc" },
+        select: {
+          id: true,
+          title: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          missed: true,
+          sessionType: true,
+        },
+        orderBy: { startTime: "asc" },
       }),
     ]);
 
   const now = new Date();
+  // A session belongs to the current stint only if it started after both the
+  // pairing and the enrolment. Older rows are kept as history, never counted
+  // as the student's absence.
+  const floorTime = Math.max(
+    schedule.startedAt.getTime(),
+    enrollment?.enrolledAt.getTime() ?? schedule.startedAt.getTime(),
+  );
+  const floor = new Date(floorTime);
+
   const nextByType = new Map<string, string>();
   for (const session of sessionSchedule) {
     if (session.joinState !== "upcoming" && session.joinState !== "open") continue;
@@ -147,45 +190,83 @@ export async function HifdhCourse({
   const slots: WeeklySlot[] = schedule.slots.map((slot) => ({
     ...slot,
     timeLabel: formatSlotTime(slot.startTime),
+    slotTime: nextSlotOccurrence(slot, schedule.teacherTimeZone, now)?.toISOString() ?? null,
     nextOccurrence: nextByType.get(slot.type) ?? null,
   }));
 
-  const sessions: SessionRow[] = sessionSchedule.map((session) => ({
-    id: session.id,
-    title: session.title,
-    startTime: session.startTime.toISOString(),
-    endTime: session.endTime?.toISOString() ?? null,
-    status: session.status,
-    sessionType: session.sessionType,
-    isTeacher: false,
-    otherPartyName: session.otherPartyName,
-    planLabel: session.plan ? planRangeLabel(session.plan, SURAHS) : null,
-    joinState: session.joinState,
-    opensAt: session.opensAt.toISOString(),
-    closesAt: session.closesAt.toISOString(),
-  }));
+  const sessions: SessionRow[] = sessionSchedule
+    .filter((session) => session.startTime >= floor)
+    .map((session) => ({
+      id: session.id,
+      title: session.title,
+      startTime: session.startTime.toISOString(),
+      endTime: session.endTime?.toISOString() ?? null,
+      status: session.status,
+      sessionType: session.sessionType,
+      isTeacher: false,
+      otherPartyName: session.otherPartyName,
+      planLabel: session.plan ? planRangeLabel(session.plan, SURAHS) : null,
+      joinState: session.joinState,
+      opensAt: session.opensAt.toISOString(),
+      closesAt: session.closesAt.toISOString(),
+    }));
 
-  const pastAppointments = appointments.filter(
-    (appointment) =>
-      appointment.status !== "CANCELLED" &&
-      (appointment.status === "COMPLETED" || appointment.startTime <= now),
-  );
-  const pastSessions: PastSession[] = (
-    showAll ? pastAppointments : pastAppointments.slice(0, PAST_PREVIEW)
-  ).map((appointment) => ({
-    id: appointment.id,
-    title: appointment.title,
-    startTime: appointment.startTime.toISOString(),
-    status: appointment.status,
-  }));
+  const byId = new Map(sessionSchedule.map((session) => [session.id, session]));
+  const weekSessions: WeekSession[] = appointments.map((appointment) => {
+    const live = byId.get(appointment.id);
+    const join =
+      live !== undefined
+        ? { joinState: live.joinState, opensAt: live.opensAt, closesAt: live.closesAt }
+        : (() => {
+            const computed = joinStateFor({
+              startTime: appointment.startTime,
+              endTime: appointment.endTime,
+              status: appointment.status,
+              now,
+            });
+            return {
+              joinState: computed.state,
+              opensAt: computed.opensAt,
+              closesAt: computed.closesAt,
+            };
+          })();
+    const beforeYouJoined = appointment.startTime < floor;
+
+    return {
+      id: appointment.id,
+      title: appointment.title,
+      startTime: appointment.startTime.toISOString(),
+      endTime: appointment.endTime?.toISOString() ?? null,
+      sessionType: appointment.sessionType,
+      joinState: join.joinState,
+      opensAt: join.opensAt.toISOString(),
+      closesAt: join.closesAt.toISOString(),
+      beforeYouJoined,
+      statusKey: lessonStatusKey({
+        status: appointment.status,
+        missed: appointment.missed,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        joinState: join.joinState,
+        beforeYouJoined,
+        now,
+      }),
+    };
+  });
+
+  const targetLabel =
+    sessions.find((session) => session.joinState === "upcoming" || session.joinState === "open")
+      ?.planLabel ?? null;
 
   return (
     <HifdhCourseView
-      identity={<CourseIdentity course={course} />}
+      header={<CourseHeader course={course} />}
       isTest={isTest}
       totalAyahs={TOTAL_QURAN_AYAHS}
       sessions={sessions}
+      weekSessions={weekSessions}
       progress={progressSummary}
+      targetLabel={targetLabel}
       teacherName={schedule.teacherName}
       todaySlot={
         todaySlot
@@ -196,9 +277,7 @@ export async function HifdhCourse({
             }
           : null
       }
-      pastSessions={pastSessions}
-      pastTotal={pastAppointments.length}
-      showAll={showAll}
+      defaultShowHistory={showAll}
       schedule={{
         mentorshipId: schedule.mentorshipId,
         teacherId: schedule.teacherId,

@@ -4,8 +4,10 @@ import {
   JOIN_EARLY_MS,
   JOIN_LATE_MS,
   checkRange,
+  countdownLabel,
   joinStateFor,
   joinWindow,
+  lessonStatusKey,
   localDayKey,
   nextAyahAfter,
   pickFeaturedSession,
@@ -338,5 +340,52 @@ describe("pickFeaturedSession", () => {
     ];
 
     expect(pickFeaturedSession(sessions, null)?.id).toBe("next");
+  });
+});
+
+describe("lessonStatusKey", () => {
+  const base = {
+    status: "SCHEDULED",
+    startTime: START,
+    endTime: END,
+    joinState: "ended" as const,
+    now: new Date("2026-11-15T12:00:00.000Z"),
+  };
+
+  it("trusts the recorded verdict over the current time", () => {
+    expect(lessonStatusKey({ ...base, status: "COMPLETED" })).toBe("completed");
+    expect(lessonStatusKey({ ...base, status: "CANCELLED", missed: true })).toBe("missed");
+    expect(lessonStatusKey({ ...base, status: "CANCELLED", missed: false })).toBe("cancelled");
+  });
+
+  it("calls a past row the cron has not reached yet 'not joined', not 'missed'", () => {
+    expect(lessonStatusKey(base)).toBe("not-joined");
+  });
+
+  it("keeps a lesson inside its late window joinable", () => {
+    expect(lessonStatusKey({ ...base, joinState: "open" })).toBe("open");
+  });
+
+  it("labels anything before the pairing or enrolment as before", () => {
+    expect(
+      lessonStatusKey({ ...base, beforeYouJoined: true, status: "CANCELLED", missed: true }),
+    ).toBe("before");
+  });
+});
+
+describe("countdownLabel", () => {
+  it("rounds partial minutes up so it never reads zero while still closed", () => {
+    expect(countdownLabel(60_000 * 3 + 1)).toBe("4 m");
+  });
+
+  it("drops an empty minute part", () => {
+    expect(countdownLabel(60_000 * 120)).toBe("2 h");
+    expect(countdownLabel(60_000 * 200)).toBe("3 h 20 m");
+  });
+
+  it("returns null once the window is open or the value is unusable", () => {
+    expect(countdownLabel(0)).toBeNull();
+    expect(countdownLabel(-500)).toBeNull();
+    expect(countdownLabel(Number.NaN)).toBeNull();
   });
 });

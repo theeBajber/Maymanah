@@ -95,6 +95,7 @@ export async function absenceSummary(
       endTime: true,
       status: true,
       missed: true,
+      mentorship: { select: { startedAt: true } },
       report: { select: { attendance: true } },
       joins: { where: { userId }, select: { id: true }, take: 1 },
     },
@@ -104,6 +105,10 @@ export async function absenceSummary(
   let lastAbsenceAt: Date | null = null;
 
   for (const appointment of appointments) {
+    // A pairing's start is the floor for its history. Rows that predate it
+    // belong to an earlier stint and must not count against this one.
+    if (appointment.startTime < appointment.mentorship.startedAt) continue;
+
     const end = appointment.endTime ?? new Date(appointment.startTime.getTime() + 60 * 60_000);
     if (end >= now) continue;
     if (appointment.status === "CANCELLED" && !appointment.missed) continue;

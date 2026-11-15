@@ -50,6 +50,8 @@ export interface StudentSchedule {
   teacherId: string;
   teacherName: string;
   teacherTimeZone: string;
+  /** The current stint's start; sessions before it belong to an earlier one. */
+  startedAt: Date;
   slots: ScheduleSlot[];
 }
 
@@ -260,6 +262,7 @@ export async function getStudentSchedule(studentId: string): Promise<StudentSche
     select: {
       id: true,
       teacherId: true,
+      startedAt: true,
       teacher: { select: { name: true, profile: { select: { timezone: true } } } },
       recurringSlots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
     },
@@ -271,6 +274,7 @@ export async function getStudentSchedule(studentId: string): Promise<StudentSche
     teacherId: mentorship.teacherId,
     teacherName: mentorship.teacher.name,
     teacherTimeZone: timeZoneFrom(mentorship.teacher.profile),
+    startedAt: mentorship.startedAt,
     slots: mentorship.recurringSlots.map((slot) => ({
       type: slot.type as SlotType,
       dayOfWeek: slot.dayOfWeek,
@@ -646,6 +650,10 @@ export async function generateUpcomingAppointments(mentorshipId: string, days = 
 export async function createTodaysAppointment(studentId: string): Promise<{ id: string } | null> {
   const slot = await getTodayHifdhSlot(studentId);
   if (!slot) return null;
+
+  // After the slot's end there is nothing to start: creating the row anyway
+  // would write a lesson into the past, which the cron would then mark missed.
+  if (slot.endTime.getTime() < Date.now()) return null;
 
   const mentorship = await db.mentorship.findFirst({
     where: { studentId, status: "ACTIVE" },

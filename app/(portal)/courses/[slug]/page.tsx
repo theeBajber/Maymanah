@@ -53,7 +53,7 @@ export default async function CourseDetailPage({
         </GlassCard>
       )}
 
-      <section className="flex flex-col gap-3">
+      <section id="curriculum" className="flex flex-col gap-3">
         <h2 className="text-lg font-bold text-text-primary">Curriculum</h2>
         {course.lessons.length === 0 ? (
           <EmptyState title="Lessons are being written for this course." />

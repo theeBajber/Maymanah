@@ -7,8 +7,10 @@ import { useState } from "react";
 import { LessonJoinCard } from "@/app/ui/LessonJoinCard";
 import { LocalTime } from "@/app/ui/LocalTime";
 import { StatusChip, type StatusTone } from "@/app/ui/chips";
+import { amiri } from "@/app/ui/fonts";
 import { Panel } from "@/app/ui/portal";
 import { sessionTypeLabel, type JoinState } from "@/lib/live-session";
+import { surahArabicName } from "@/lib/surah-arabic";
 
 export interface SessionRow {
   id: string;
@@ -182,54 +184,77 @@ export function SessionRowCard({
   );
 }
 
-export function ProgressPanel({
+export function ContinueFromCard({
   progress,
   totalAyahs,
+  targetLabel,
 }: {
   progress: ProgressSummary;
   totalAyahs: number;
+  /** The next lesson's planned range, when the teacher has set one. */
+  targetLabel?: string | null;
 }) {
   const hasProgress = progress.uniqueAyahs > 0 && progress.lastStop;
 
   return (
-    <Panel className="flex flex-col gap-3 p-5">
-      <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+    <Panel className="flex h-full flex-col gap-4 p-5">
+      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
         <TrendingUp aria-hidden className="size-3.5" />
         Continue from
-      </p>
+      </h2>
 
       {hasProgress && progress.lastStop ? (
         <>
-          <p className="text-lg font-semibold text-text-primary">
-            {progress.lastStop.surahName} {progress.lastStop.surah}:{progress.lastStop.ayah}
-          </p>
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-sm font-bold tabular-nums text-primary">{progress.percent}%</p>
-            <p className="text-xs tabular-nums text-text-secondary">
-              {progress.uniqueAyahs.toLocaleString("en-US")} / {totalAyahs.toLocaleString("en-US")}{" "}
-              ayahs
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+            <div className="min-w-0">
+              <p className="text-balance text-2xl font-bold tracking-tight text-text-primary">
+                {progress.lastStop.surahName}
+              </p>
+              <p className="mt-0.5 text-sm tabular-nums text-text-secondary">
+                Surah {progress.lastStop.surah} · Ayah {progress.lastStop.ayah}
+              </p>
+            </div>
+            <p
+              lang="ar"
+              dir="rtl"
+              className={`${amiri.className} shrink-0 text-3xl leading-snug text-text-primary`}
+            >
+              {surahArabicName(progress.lastStop.surah)}
             </p>
           </div>
-          <div
-            role="progressbar"
-            aria-label="Quran memorised"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={progress.percent}
-            className="h-1.5 overflow-hidden rounded-full bg-bg-hover"
-          >
+
+          {targetLabel ? (
+            <div className="rounded-xl bg-bg-hover/60 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
+                Today&apos;s target
+              </p>
+              <p className="mt-1 text-sm font-medium text-text-primary">{targetLabel}</p>
+            </div>
+          ) : null}
+
+          <div className="mt-auto flex flex-col gap-2">
             <div
-              className="h-full rounded-full bg-primary"
-              style={{ width: `${progress.percent}%` }}
-            />
+              role="progressbar"
+              aria-label="Quran memorised"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress.percent}
+              className="h-2 overflow-hidden rounded-full bg-bg-hover"
+            >
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+            <p className="text-xs tabular-nums text-text-secondary">
+              {progress.uniqueAyahs.toLocaleString("en-US")} of{" "}
+              {totalAyahs.toLocaleString("en-US")} ayahs memorised · {progress.percent}%
+            </p>
           </div>
-          <p className="text-xs text-text-secondary">
-            Your teacher records new memorisation after each lesson. This is your last recorded
-            stop.
-          </p>
+
           <Link
             href="/mushaf"
-            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary-dark focus-visible:outline-2 focus-visible:outline-offset-4"
+            className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-[8px] text-sm font-semibold text-primary transition-colors hover:text-primary-dark focus-visible:outline-2 focus-visible:outline-offset-4"
           >
             Open the Mushaf
             <ArrowRight aria-hidden className="size-4 rtl:rotate-180" />
@@ -237,11 +262,49 @@ export function ProgressPanel({
         </>
       ) : (
         <>
-          <p className="text-sm text-text-secondary">
-            Your starting point appears here after your first lesson report.
-          </p>
-          <p className="text-xs text-text-secondary">
-            Nothing is recorded yet, so there is no position to continue from.
+          <div className="flex items-center gap-4">
+            <div
+              role="img"
+              aria-label={`${progress.percent}% of the Quran memorised`}
+              className="relative flex size-16 shrink-0 items-center justify-center"
+            >
+              <svg viewBox="0 0 64 64" className="size-16 -rotate-90" aria-hidden>
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="27"
+                  fill="none"
+                  stroke="var(--border)"
+                  strokeWidth="5"
+                />
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="27"
+                  fill="none"
+                  stroke="var(--primary)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeDasharray={`${(progress.percent / 100) * 2 * Math.PI * 27} ${2 * Math.PI * 27}`}
+                />
+              </svg>
+              <span className="absolute text-sm font-bold tabular-nums text-text-primary">
+                {progress.percent}%
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-lg font-bold tracking-tight text-text-primary">
+                Your journey starts here
+              </p>
+              <p className="mt-0.5 text-sm tabular-nums text-text-secondary">
+                0 of {totalAyahs.toLocaleString("en-US")} ayahs
+              </p>
+            </div>
+          </div>
+
+          <p className="text-sm leading-relaxed text-text-secondary">
+            Your teacher sets your starting point after your first lesson report. Until then there
+            is no position to continue from.
           </p>
         </>
       )}
@@ -250,16 +313,25 @@ export function ProgressPanel({
 }
 
 export function TipsPanel() {
+  const tips = [
+    "Join a few minutes early so the room is ready on time.",
+    "If the call doesn't load, use Chrome or the Google Meet app.",
+    "Find a quiet room and check your microphone first.",
+  ];
+
   return (
-    <Panel className="flex flex-col gap-3 p-5">
-      <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+    <Panel className="p-4">
+      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
         <Clock aria-hidden className="size-3.5" />
         A smooth lesson
-      </p>
-      <ul className="flex flex-col gap-2 text-sm text-text-secondary">
-        <li>Join a few minutes early so the room is ready on time.</li>
-        <li>If the call does not load, use Chrome or the Google Meet app.</li>
-        <li>Find a quiet room and check your microphone first.</li>
+      </h2>
+      <ul className="mt-3 grid gap-3 sm:grid-cols-3">
+        {tips.map((tip) => (
+          <li key={tip} className="flex gap-2 text-sm leading-snug text-text-secondary">
+            <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+            {tip}
+          </li>
+        ))}
       </ul>
     </Panel>
   );

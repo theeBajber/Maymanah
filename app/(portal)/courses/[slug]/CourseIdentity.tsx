@@ -16,7 +16,7 @@ export function CourseIdentity({ course }: { course: CourseDetail }) {
           {course.category}
         </p>
         {!course.enrollmentOpen ? (
-          <span className="rounded-full bg-warning-muted px-2.5 py-1 text-[11px] font-semibold text-warning">
+          <span className="rounded-full bg-warning-muted px-2.5 py-1 text-[11px] font-semibold text-warning-strong">
             {course.requiresMentor && course.seatsAvailable === 0 ? "Fully booked" : "Coming soon"}
           </span>
         ) : null}

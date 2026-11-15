@@ -307,6 +307,11 @@ export async function heldSeat(studentId: string, now = new Date()): Promise<{ i
  * commit together, so a pairing is never ACTIVE without a schedule.
  */
 export async function activateMentorship(tx: Prisma.TransactionClient, mentorshipId: string): Promise<void> {
+  const current = await tx.mentorship.findUnique({
+    where: { id: mentorshipId },
+    select: { endedAt: true },
+  });
+
   await tx.mentorship.update({
     where: { id: mentorshipId },
     data: {
@@ -315,6 +320,9 @@ export async function activateMentorship(tx: Prisma.TransactionClient, mentorshi
       pausedAt: null,
       endedAt: null,
       endReason: null,
+      // A row reused after a pairing ended starts a new stint. Keeping the old
+      // start would graft the previous pairing's sessions onto the new one.
+      ...(current?.endedAt ? { startedAt: new Date() } : {}),
     },
   });
 }

@@ -72,6 +72,58 @@ export function localDayKey(date: Date): string {
 }
 
 /**
+ * What a day cell in the week strip says about one lesson.
+ *
+ * Stored facts win over inference. A past row the cron has not reached yet is
+ * "not joined", not "missed": only `missed: true` is a verdict the platform
+ * actually recorded. A lesson from before the pairing or enrolment is "before",
+ * so a student who has just joined never sees someone else's history as their
+ * own absence.
+ */
+export type LessonStatusKey =
+  | "before"
+  | "completed"
+  | "missed"
+  | "cancelled"
+  | "not-joined"
+  | "open"
+  | "upcoming"
+  | "ended";
+
+export function lessonStatusKey(input: {
+  status: string;
+  missed?: boolean;
+  startTime: Date;
+  endTime: Date | null;
+  joinState: JoinState;
+  beforeYouJoined?: boolean;
+  now?: Date;
+}): LessonStatusKey {
+  if (input.beforeYouJoined) return "before";
+  if (input.status === "COMPLETED") return "completed";
+  if (input.status === "CANCELLED") return input.missed ? "missed" : "cancelled";
+  if (input.joinState === "open") return "open";
+  if (input.joinState === "upcoming") return "upcoming";
+
+  const now = (input.now ?? new Date()).getTime();
+  const end = input.endTime?.getTime() ?? input.startTime.getTime() + DEFAULT_LESSON_MS;
+  if (end < now) return "not-joined";
+  return "ended";
+}
+
+/** "3 h 20 m" — display only, never the authority on whether a room is open. */
+export function countdownLabel(ms: number): string | null {
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+
+  const minutes = Math.ceil(ms / 60_000);
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  if (hours === 0) return `${rest} m`;
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} m`;
+}
+
+/**
  * Picks the lesson the screen leads with.
  *
  * A room that is open right now wins. Otherwise today's earliest upcoming

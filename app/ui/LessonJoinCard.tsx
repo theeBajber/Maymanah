@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Loader2, ShieldAlert } from "lucide-react";
+import { ExternalLink, Loader2, Lock, ShieldAlert } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { LocalTime } from "@/app/ui/LocalTime";
@@ -252,9 +252,10 @@ export function LessonJoinCard({
                 type="button"
                 disabled
                 aria-describedby={reasonId}
-                className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-[10px] border border-border bg-bg-hover px-6 text-sm font-semibold text-text-secondary sm:w-auto"
+                className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 rounded-[10px] border border-border bg-bg-hover px-6 text-sm font-semibold text-text-secondary sm:w-auto"
               >
-                Opens at <LocalTime iso={opensAt} mode="time" className="ms-1" />
+                <Lock aria-hidden className="size-4" />
+                Opens at <LocalTime iso={opensAt} mode="time" />
               </button>
               <p id={reasonId} className="text-xs text-text-secondary">
                 Joining opens 15 minutes before the lesson. The button updates on its own.
