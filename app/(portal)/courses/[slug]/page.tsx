@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { GlassCard } from "@/app/ui/glass";
 import { EmptyState, Panel } from "@/app/ui/portal";
 import { auth } from "@/lib/auth";
+import { HIFDH_SLUG } from "@/lib/course-completion";
 import { getCourseDetail } from "@/lib/courses";
 import { CourseIdentity } from "./CourseIdentity";
 import { HifdhCourse, HifdhCourseLoading } from "./HifdhCourse";
@@ -38,7 +39,7 @@ export default async function CourseDetailPage({
 
   const query = searchParams ? await searchParams : {};
   const isTest = process.env.TEST_MODE === "true" && (query.test === "1" || query.test === "true");
-  const isHifdh = course.slug === "hifdh-ul-quran";
+  const isHifdh = course.slug === HIFDH_SLUG;
   // The course ends at the review; the exam comes first when one exists. A
   // course with no final exam goes straight from the lessons to the review.
   const reviewReady = course.completed && (!course.hasFinalExam || course.finalExamPassed);
@@ -119,7 +120,9 @@ export default async function CourseDetailPage({
               <p className="text-sm text-text-secondary">
                 {course.finalExamPassed
                   ? "Your result is recorded. The course review is the last step before your certificate."
-                  : "You have completed every lesson. Sit the final exam to unlock the course review and certificate."}
+                  : course.completion === "memorization"
+                    ? "You have memorised the whole Quran. Sit the final exam to unlock the course review and certificate."
+                    : "You have completed every lesson. Sit the final exam to unlock the course review and certificate."}
               </p>
             </div>
             <Link

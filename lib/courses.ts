@@ -1,15 +1,19 @@
 import "server-only";
 
+import { completionModeFor, evaluateCompletion, type CompletionMode } from "./course-completion";
 import { db } from "./db";
 import { didPassExam } from "./exams";
 import { availableSeats, releaseStudentSeats, reserveMentor } from "./mentoring";
+import { memorizationProgress } from "./quran-progress";
 import { getCurrentUser, type SessionLike } from "./session";
 
 /**
  * Everything a course list needs, computed in as few queries as the shape allows.
  *
- * Progress is read from the cached percentage on the enrollment, never counted
- * per row, so listing twenty courses costs the same as listing two.
+ * Lesson progress is read from the cached percentage on the enrollment, never
+ * counted per row, so listing twenty courses costs the same as listing two.
+ * Memorisation is one extra read for the whole list, because it belongs to the
+ * student rather than to a single course.
  */
 export interface CourseSummary {
   id: string;
@@ -21,6 +25,8 @@ export interface CourseSummary {
   lessonCount: number;
   enrolled: boolean;
   progress: number;
+  /** What `progress` measures, and what finishing this course means. */
+  completion: CompletionMode;
   enrollmentOpen: boolean;
   /** Whether joining takes one of a teacher's limited seats. */
   requiresMentor: boolean;
@@ -68,8 +74,16 @@ export async function listCourses(session: SessionLike | null): Promise<CourseSu
   // than once per row.
   const mentorSeats = courses.some((course) => course.requiresMentor) ? await mentorSeatsFor(user) : null;
 
+  // Memorisation belongs to the student, not the course, so one read covers
+  // every memorisation-track card in the list.
+  const memorized =
+    user && courses.some((course) => course.enrollments.length > 0 && completionModeFor(course.slug) === "memorization")
+      ? await memorizationProgress(user.id)
+      : null;
+
   return courses.map((course) => {
     const enrolled = course.enrollments.length > 0;
+    const completion = completionModeFor(course.slug);
     const seatsAvailable = course.requiresMentor ? mentorSeats : null;
 
     return {
@@ -81,7 +95,12 @@ export async function listCourses(session: SessionLike | null): Promise<CourseSu
       image: course.image,
       lessonCount: course._count.lessons,
       enrolled,
-      progress: course.enrollments[0]?.progress ?? 0,
+      progress: enrolled
+        ? completion === "memorization"
+          ? memorized?.percent ?? 0
+          : course.enrollments[0]?.progress ?? 0
+        : 0,
+      completion,
       enrollmentOpen: course.isActive && (!course.requiresMentor || enrolled || seatsAvailable !== 0),
       requiresMentor: course.requiresMentor,
       seatsAvailable,
@@ -96,7 +115,7 @@ export interface CourseDetail extends CourseSummary {
   certificate: { id: string } | null;
   /** Published lessons the reader has finished. */
   completedLessons: number;
-  /** Every published lesson is done; the final exam unlocks from here. */
+  /** The course's own finish line: all lessons, or the whole Quran. */
   completed: boolean;
   /** A published final exam exists, and whether the reader has passed it. */
   hasFinalExam: boolean;
@@ -135,10 +154,13 @@ export async function getCourseDetail(
 
   if (!course || !course.isPublished) return null;
 
+  const completion = completionModeFor(course.slug);
+
   // These reads are independent; running them together saves round trips on
-  // every course visit.
-  const [completed, certificate, seatsAvailable, finalExam, myReview] = await Promise.all([
-    user
+  // every course visit. A memorisation course reads the student's Quran ledger
+  // instead of the hidden lesson rows.
+  const [completed, certificate, seatsAvailable, finalExam, myReview, memorized] = await Promise.all([
+    user && completion === "lessons"
       ? db.lessonProgress.findMany({
           where: { studentId: user.id, lessonId: { in: course.lessons.map((lesson) => lesson.id) }, completed: true },
           select: { lessonId: true },
@@ -172,6 +194,7 @@ export async function getCourseDetail(
           select: { rating: true, comment: true },
         })
       : null,
+    user && completion === "memorization" ? memorizationProgress(user.id) : null,
   ]);
   const done = new Set(completed.map((row) => row.lessonId));
 
@@ -179,7 +202,12 @@ export async function getCourseDetail(
   const enrolled = course.enrollments.length > 0;
 
   const completedLessons = course.lessons.filter((lesson) => done.has(lesson.id)).length;
-  const courseComplete = course.lessons.length > 0 && completedLessons >= course.lessons.length;
+  const completionState = evaluateCompletion({
+    mode: completion,
+    completedLessons,
+    lessonCount: course.lessons.length,
+    memorizedAyahs: memorized?.uniqueAyahs ?? 0,
+  });
   const finalMarks = finalExam?.questions.reduce((sum, question) => sum + question.marks, 0) ?? 0;
   const latestAttempt = finalExam?.submissions[0] ?? null;
   const finalExamPassed = Boolean(
@@ -197,7 +225,8 @@ export async function getCourseDetail(
     image: course.image,
     lessonCount: course.lessons.length,
     enrolled,
-    progress: course.enrollments[0]?.progress ?? 0,
+    progress: enrolled ? completionState.progress : 0,
+    completion,
     enrollmentOpen: course.isActive && (!course.requiresMentor || enrolled || seatsAvailable !== 0),
     requiresMentor: course.requiresMentor,
     seatsAvailable,
@@ -206,7 +235,7 @@ export async function getCourseDetail(
     reviewCount: ratings.length,
     certificate,
     completedLessons,
-    completed: courseComplete,
+    completed: enrolled && completionState.completed,
     hasFinalExam: Boolean(finalExam),
     finalExamPassed,
     myReview,

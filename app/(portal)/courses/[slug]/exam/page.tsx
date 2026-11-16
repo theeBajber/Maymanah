@@ -7,6 +7,7 @@ import { GlassCard } from "@/app/ui/glass";
 import { Panel } from "@/app/ui/portal";
 import { getFinalExam } from "@/lib/assessments";
 import { auth } from "@/lib/auth";
+import { courseCompletion } from "@/lib/completion";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { ExamRunner } from "./ExamRunner";
@@ -36,13 +37,8 @@ export default async function FinalExamPage({
 
   const assessment = await getFinalExam(user.id, course.id);
 
-  const [completedLessons, totalLessons] = await Promise.all([
-    db.lessonProgress.count({
-      where: { studentId: user.id, completed: true, lesson: { courseId: course.id } },
-    }),
-    db.lesson.count({ where: { courseId: course.id, isPublished: true } }),
-  ]);
-  const allComplete = totalLessons > 0 && completedLessons >= totalLessons;
+  const completion = await courseCompletion(user.id, course);
+  const memorizing = completion.mode === "memorization";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
@@ -64,20 +60,23 @@ export default async function FinalExamPage({
             The final exam for this course has not been published yet.
           </p>
         </Panel>
-      ) : !allComplete ? (
+      ) : !completion.completed ? (
         <Panel className="flex flex-col items-center gap-4 p-12 text-center">
           <span className="flex size-16 items-center justify-center rounded-full bg-warning-muted">
             <Lock className="size-6 text-warning" />
           </span>
-          <h2 className="text-lg font-bold text-text-primary">Complete All Lessons First</h2>
+          <h2 className="text-lg font-bold text-text-primary">
+            {memorizing ? "Finish Your Memorisation First" : "Complete All Lessons First"}
+          </h2>
           <p className="text-sm text-text-secondary">
-            You must complete all {totalLessons} lessons before taking the final exam. You have completed{" "}
-            {completedLessons} of {totalLessons}.
+            {memorizing
+              ? `You must memorise the whole Quran before taking the final exam. You are ${completion.progress}% of the way there.`
+              : `You must complete every lesson before taking the final exam. You are ${completion.progress}% of the way there.`}
           </p>
           <div className="h-2 w-full max-w-xs rounded-full bg-bg-primary">
             <div
               className="h-full rounded-full bg-primary"
-              style={{ width: `${totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0}%` }}
+              style={{ width: `${completion.progress}%` }}
             />
           </div>
           <Link
@@ -85,7 +84,7 @@ export default async function FinalExamPage({
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-bold text-text-inverse transition-all hover:bg-primary-dark"
           >
             <GraduationCap className="size-4" />
-            Continue Learning
+            {memorizing ? "Continue Memorising" : "Continue Learning"}
           </Link>
         </Panel>
       ) : (

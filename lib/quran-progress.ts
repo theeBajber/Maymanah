@@ -1,11 +1,11 @@
 import "server-only";
 
+import { memorizationPercentFromAyahs } from "./course-completion";
 import { db } from "./db";
 import {
   absoluteAyah,
   positionToAyah,
   surahByNumber,
-  TOTAL_QURAN_AYAHS,
   type AyahRangeInput,
 } from "./quran-meta";
 
@@ -72,10 +72,7 @@ export function uniqueAyahCount(ranges: readonly AyahRangeInput[]): number {
  * memorisation reach the ledger, so repeating an old juz never moves the bar.
  */
 export function memorizationPercent(ranges: readonly AyahRangeInput[]): number {
-  const covered = uniqueAyahCount(ranges);
-  if (covered === 0) return 0;
-  const percent = (covered / TOTAL_QURAN_AYAHS) * 100;
-  return Math.min(100, Math.round(percent * 10) / 10);
+  return memorizationPercentFromAyahs(uniqueAyahCount(ranges));
 }
 
 /**

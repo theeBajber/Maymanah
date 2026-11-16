@@ -38,6 +38,10 @@ test("a student is paired, scheduled, and can change mentor", async ({ page }) =
   await page.reload();
   await expect(page.getByRole("heading", { name: "This week" })).toBeVisible({ timeout: 20_000 });
 
+  // The hero shows the teacher's real photo once one is set, rather than the
+  // initials fallback.
+  await expect(page.locator('img[src="/portraits/abkar.jpg"]')).toBeVisible({ timeout: 20_000 });
+
   // A forced session stands in for waiting until the slot's clock arrives.
   await page.goto(`/courses/${E2E_HIFDH_COURSE_SLUG}?test=1`);
   await expect(page.getByText("Today's session", { exact: true })).toBeVisible({ timeout: 20_000 });

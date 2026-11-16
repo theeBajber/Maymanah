@@ -22,6 +22,42 @@ function durationMinutes(session: SessionRow): number | null {
   return minutes > 0 ? minutes : null;
 }
 
+/** The teacher's portrait and name, shared by both states of the hero. */
+function TeacherLine({ name, image }: { name: string | null; image: string | null }) {
+  const teacherInitials = initials(name);
+
+  return (
+    <div className="flex items-center gap-3">
+      {image ? (
+        // Profile images can be uploaded or come from an OAuth provider, so a
+        // plain image avoids an allowlist of every possible host.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={image}
+          alt=""
+          width={40}
+          height={40}
+          loading="lazy"
+          className="size-10 shrink-0 rounded-full object-cover ring-1 ring-border"
+        />
+      ) : (
+        <span
+          aria-hidden
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-muted text-sm font-bold text-primary"
+        >
+          {teacherInitials ?? <UserRound className="size-4" />}
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-text-primary">
+          {name || "Your teacher"}
+        </p>
+        <p className="text-xs text-text-secondary">Your teacher</p>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Today's session, or the next one when today has none.
  *
@@ -54,7 +90,7 @@ export function LessonHero({
   unpaired?: boolean;
   onStartToday: () => void;
 }) {
-  const teacherInitials = initials(teacherName);
+  const sessionTeacher = session?.otherPartyName || teacherName;
   const minutes = session ? durationMinutes(session) : null;
 
   return (
@@ -69,9 +105,10 @@ export function LessonHero({
           </p>
           <p className="text-sm text-text-secondary">
             {todaySlot
-              ? `${todaySlot.duration} min session · with ${teacherName ?? "your teacher"}`
+              ? `${todaySlot.duration} min session`
               : "Force-start a session without waiting for the clock."}
           </p>
+          <TeacherLine name={teacherName} image={teacherImage} />
           <button
             type="button"
             onClick={onStartToday}
@@ -106,34 +143,7 @@ export function LessonHero({
             </p>
           ) : null}
 
-          <div className="flex items-center gap-3">
-            {teacherImage ? (
-              // Profile images can be uploaded or come from an OAuth provider,
-              // so a plain image avoids an allowlist of every possible host.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={teacherImage}
-                alt=""
-                width={40}
-                height={40}
-                loading="lazy"
-                className="size-10 shrink-0 rounded-full object-cover ring-1 ring-border"
-              />
-            ) : (
-              <span
-                aria-hidden
-                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-muted text-sm font-bold text-primary"
-              >
-                {teacherInitials ?? <UserRound className="size-4" />}
-              </span>
-            )}
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-text-primary">
-                {session.otherPartyName || teacherName || "Your teacher"}
-              </p>
-              <p className="text-xs text-text-secondary">Your teacher</p>
-            </div>
-          </div>
+          <TeacherLine name={sessionTeacher} image={teacherImage} />
 
           <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
             <LessonJoinCard session={session} showUpcomingHint={false} />

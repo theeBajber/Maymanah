@@ -127,6 +127,9 @@ export default async function globalSetup(): Promise<void> {
         passwordHash: hifdhPasswordHash,
         role: "TEACHER",
         gender: "male",
+        // The Hifdh hero shows the paired teacher's photo; a public portrait
+        // keeps the assertion real without an external host.
+        image: "/portraits/abkar.jpg",
         profile: { create: { timezone: "Africa/Nairobi" } },
         ustadhProfile: { create: { isApproved: true, availableForTeaching: true } },
         availabilities: {

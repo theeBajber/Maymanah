@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { issueCertificate } from "@/lib/certificate";
+import { courseCompletion } from "@/lib/completion";
 import { db } from "@/lib/db";
 import { didPassExam } from "@/lib/exams";
 import { getCurrentUser } from "@/lib/session";
@@ -45,7 +46,7 @@ export async function POST(
     return NextResponse.json({ error: "Rating must be between 1 and 5" }, { status: 422 });
   }
 
-  const course = await db.course.findUnique({ where: { slug }, select: { id: true } });
+  const course = await db.course.findUnique({ where: { slug }, select: { id: true, slug: true } });
   if (!course) {
     return NextResponse.json({ error: "That course could not be found" }, { status: 404 });
   }
@@ -55,7 +56,15 @@ export async function POST(
     select: { status: true },
   });
 
-  if (!enrollment || enrollment.status !== "COMPLETED") {
+  if (!enrollment || enrollment.status === "DROPPED") {
+    return NextResponse.json({ error: "Finish the course before reviewing it" }, { status: 403 });
+  }
+
+  // The completion rule is the course's own: every lesson, or — for Hifdh —
+  // the whole Quran. Reading it here keeps a direct request from rating a
+  // course the page would not yet open for review.
+  const completion = await courseCompletion(user.id, course);
+  if (!completion.completed) {
     return NextResponse.json({ error: "Finish the course before reviewing it" }, { status: 403 });
   }
 

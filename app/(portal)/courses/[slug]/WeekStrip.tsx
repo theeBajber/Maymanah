@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Clock, ExternalLink, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Clock, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useEffect, useRef } from "react";
 
@@ -425,7 +425,7 @@ export function WeekStrip({
                                     {session.statusKey === "upcoming" || session.statusKey === "open"
                                       ? "Open session"
                                       : "View session"}
-                                    <ExternalLink aria-hidden className="size-3" />
+                                    <ArrowRight aria-hidden className="size-3 rtl:rotate-180" />
                                   </span>
                                 </Link>
                                 {canMove ? (

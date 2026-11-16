@@ -2,6 +2,7 @@ import "server-only";
 
 import type { AttendanceStatus } from "@prisma/client";
 
+import { evaluateCompletion, HIFDH_SLUG } from "./course-completion";
 import { db } from "./db";
 import { createNotification } from "./notifications";
 import {
@@ -12,6 +13,7 @@ import {
   type AyahRangeInput,
   type RangeProblem,
 } from "./quran-meta";
+import { uniqueAyahCount } from "./quran-progress";
 
 export interface LessonReportInput {
   appointmentId: string;
@@ -134,6 +136,35 @@ export async function submitLessonReport(input: LessonReportInput): Promise<Less
           });
         }
       }
+
+      // Hifdh finishes at the whole Quran, so the cached enrolment moves with
+      // the ledger in the same commit. The course page reads the ledger
+      // directly; this keeps the course card and admin views honest.
+      const ledger = await tx.memorizedRange.findMany({
+        where: { studentId },
+        select: { startSurah: true, startAyah: true, endSurah: true, endAyah: true },
+      });
+      const memorized = evaluateCompletion({
+        mode: "memorization",
+        completedLessons: 0,
+        lessonCount: 0,
+        memorizedAyahs: uniqueAyahCount(
+          ledger.map((row) => ({
+            fromSurah: row.startSurah,
+            fromAyah: row.startAyah,
+            toSurah: row.endSurah,
+            toAyah: row.endAyah,
+          })),
+        ),
+      });
+
+      await tx.enrollment.updateMany({
+        where: { userId: studentId, course: { slug: HIFDH_SLUG } },
+        data: {
+          progress: memorized.progress,
+          ...(memorized.completed ? { status: "COMPLETED" as const, completedAt: now } : {}),
+        },
+      });
     }
 
     // A submitted report is the teacher's confirmation that the session took

@@ -56,7 +56,9 @@ export function CourseIdentity({
           <span>No reviews yet</span>
         )}
         {course.enrolled && course.progress > 0 ? (
-          <span className="font-semibold text-primary">{course.progress}% complete</span>
+          <span className="font-semibold text-primary">
+            {course.progress}% {course.completion === "memorization" ? "memorised" : "complete"}
+          </span>
         ) : null}
         {course.requiresMentor && !course.enrolled && course.seatsAvailable !== null ? (
           <span>

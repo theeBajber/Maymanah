@@ -5,17 +5,21 @@ import { CourseOptions } from "./CourseOptions";
  * The student's Hifdh session header.
  *
  * The uppercase course kicker already names the course, so the headline is the
- * reader's own schedule. The meta line carries the count and progress without
- * repeating "Quran Hifdh" a second time. Course options stay quiet on the
- * right; nothing destructive sits next to the join button.
+ * reader's own schedule. The meta line carries the progress that matters on
+ * this course — how much of the Quran is memorised — without repeating "Quran
+ * Hifdh" a second time. Course options stay quiet on the right; nothing
+ * destructive sits next to the join button.
  */
 export function CourseHeader({ course }: { course: CourseDetail }) {
-  const meta = [
-    course.lessonCount > 0
-      ? `${course.lessonCount} ${course.lessonCount === 1 ? "session" : "sessions"}`
-      : null,
-    course.progress > 0 ? `${course.progress}% complete` : null,
-  ].filter((part): part is string => part !== null);
+  const meta =
+    course.completion === "memorization"
+      ? [`${course.progress}% of the Quran memorised`]
+      : [
+          course.lessonCount > 0
+            ? `${course.lessonCount} ${course.lessonCount === 1 ? "session" : "sessions"}`
+            : null,
+          course.progress > 0 ? `${course.progress}% complete` : null,
+        ].filter((part): part is string => part !== null);
 
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">

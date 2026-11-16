@@ -14,6 +14,7 @@ export function CourseCard({
   title,
   progress,
   lessons,
+  lessonsLabel,
   href,
   image,
   badge,
@@ -21,6 +22,8 @@ export function CourseCard({
   title: string;
   progress: number;
   lessons: number;
+  /** Overrides the lesson count when the course is not measured in lessons. */
+  lessonsLabel?: string;
   href: string;
   image?: string | null;
   badge?: string;
@@ -55,7 +58,7 @@ export function CourseCard({
           <span className="text-[11px] font-semibold text-text-muted">{pct}%</span>
         </div>
         <p className="text-[11px] text-text-muted">
-          {lessons} {lessons === 1 ? "lesson" : "lessons"}
+          {lessonsLabel ?? `${lessons} ${lessons === 1 ? "lesson" : "lessons"}`}
         </p>
       </div>
     </Link>

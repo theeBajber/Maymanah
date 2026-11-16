@@ -16,6 +16,7 @@ interface CourseItem {
   lessonCount: number;
   enrolled: boolean;
   progress: number;
+  completion: "lessons" | "memorization";
   enrollmentOpen: boolean;
   requiresMentor: boolean;
   seatsAvailable: number | null;
@@ -100,6 +101,7 @@ export function CoursesView() {
                 title={course.title}
                 progress={course.progress}
                 lessons={course.lessonCount}
+                lessonsLabel={course.completion === "memorization" ? "Quran memorisation" : undefined}
                 href={`/courses/${course.slug}`}
                 image={course.image}
               />
@@ -131,6 +133,7 @@ export function CoursesView() {
                 title={course.title}
                 progress={course.progress}
                 lessons={course.lessonCount}
+                lessonsLabel={course.completion === "memorization" ? "Quran memorisation" : undefined}
                 href={`/courses/${course.slug}`}
                 image={course.image}
                 badge={

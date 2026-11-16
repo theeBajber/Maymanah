@@ -1,5 +1,6 @@
 import "server-only";
 
+import { courseCompletion } from "./completion";
 import { db } from "./db";
 import { getCurrentUser, type SessionLike } from "./session";
 
@@ -96,7 +97,7 @@ export async function submitExam(
       totalMarks: true,
       startTime: true,
       endTime: true,
-      course: { select: { isPublished: true } },
+      course: { select: { isPublished: true, slug: true } },
       questions: { select: { id: true, questionType: true, options: true, correctAnswer: true, marks: true } },
     },
   });
@@ -118,20 +119,16 @@ export async function submitExam(
   if (!enrolled) return { ok: false, reason: "not_enrolled" };
 
   // The final exam is the step after the course, not a shortcut past it. The
-  // page hides it until every lesson is done; this repeats the rule at the
-  // endpoint so a direct request cannot skip the work.
+  // page hides it until the course is finished; this repeats the rule at the
+  // endpoint so a direct request cannot skip the work. "Finished" is the
+  // course's own rule, so a memorisation course is not held to its hidden
+  // lesson list.
   if (exam.examType === "FINAL") {
-    const [completedLessons, totalLessons] = await Promise.all([
-      db.lessonProgress.count({
-        where: {
-          studentId: user.id,
-          completed: true,
-          lesson: { courseId: exam.courseId, isPublished: true },
-        },
-      }),
-      db.lesson.count({ where: { courseId: exam.courseId, isPublished: true } }),
-    ]);
-    if (totalLessons > 0 && completedLessons < totalLessons) {
+    const completion = await courseCompletion(user.id, {
+      id: exam.courseId,
+      slug: exam.course.slug,
+    });
+    if (!completion.completed) {
       return { ok: false, reason: "not_complete" };
     }
   }
