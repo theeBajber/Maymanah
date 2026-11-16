@@ -1,7 +1,6 @@
 "use client";
 
 import { Ellipsis, LogOut } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -80,13 +79,13 @@ export function CourseOptions({ slug, courseTitle }: { slug: string; courseTitle
       <button
         ref={triggerRef}
         type="button"
+        aria-label="Course options"
         aria-expanded={open}
         aria-controls="course-options-menu"
         onClick={() => setOpen((value) => !value)}
         className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-border bg-bg-elevated px-3.5 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         <Ellipsis aria-hidden className="size-4" />
-        Course options
       </button>
 
       {open ? (
@@ -94,13 +93,6 @@ export function CourseOptions({ slug, courseTitle }: { slug: string; courseTitle
           id="course-options-menu"
           className="absolute end-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-bg-elevated p-1.5 shadow-xl"
         >
-          <Link
-            href="#curriculum"
-            onClick={() => setOpen(false)}
-            className="flex min-h-11 items-center rounded-[8px] px-3 text-sm text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2"
-          >
-            View curriculum
-          </Link>
           <button
             type="button"
             onClick={() => {
@@ -123,7 +115,7 @@ export function CourseOptions({ slug, courseTitle }: { slug: string; courseTitle
         description={
           <>
             You will leave <span className="font-semibold text-text-primary">{courseTitle}</span>.
-            Your lesson progress and history are kept, and you can rejoin later.
+            Your progress and history are kept, and you can rejoin later.
           </>
         }
         confirmLabel="Leave course"

@@ -25,7 +25,7 @@ export function ScheduleSectionClient({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [autoOpen, setAutoOpen] = useState(false);
+  const [openRequest, setOpenRequest] = useState(0);
   const [repairing, setRepairing] = useState(false);
 
   async function handleRePair() {
@@ -66,7 +66,7 @@ export function ScheduleSectionClient({
           <div className="flex items-center gap-3 pt-1">
             <button
               onClick={() => {
-                setAutoOpen(true);
+                setOpenRequest((count) => count + 1);
                 document.getElementById("schedule-section")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
               }}
               className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-text-inverse transition-all hover:brightness-110"
@@ -96,7 +96,7 @@ export function ScheduleSectionClient({
         <RescheduleAvailabilityButton
           mentorshipId={mentorshipId}
           teacherAvail={teacherAvail}
-          autoOpen={autoOpen}
+          openRequest={openRequest}
         />
       </div>
     </>

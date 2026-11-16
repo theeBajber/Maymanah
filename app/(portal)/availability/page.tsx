@@ -21,7 +21,7 @@ export default async function AvailabilityPage() {
         title="Weekly Availability"
         subtitle="Set the times you can teach so students can be scheduled with you."
       />
-      <AvailabilityEditor />
+      <AvailabilityEditor heading={false} />
     </div>
   );
 }

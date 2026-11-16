@@ -59,7 +59,10 @@ test("a student is paired, scheduled, and can change mentor", async ({ page }) =
     timeout: 20_000,
   });
 
-  await page.reload();
+  // The dialog closes and asks the server to refresh, so let that navigation
+  // settle before opening the page again.
+  await page.waitForTimeout(2_000);
+  await page.goto(`/courses/${E2E_HIFDH_COURSE_SLUG}`);
   await page.getByRole("button", { name: "Change my weekly schedule" }).click();
   await expect(page.getByRole("button", { name: `${newDay} 09:00` })).toHaveAttribute(
     "aria-pressed",

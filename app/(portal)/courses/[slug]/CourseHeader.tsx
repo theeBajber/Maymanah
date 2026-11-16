@@ -26,7 +26,16 @@ export function CourseHeader({ course }: { course: CourseDetail }) {
         <h1 className="mt-1 text-balance text-3xl font-bold tracking-tight text-text-primary md:text-4xl">
           Your sessions
         </h1>
-
+        {meta.length > 0 ? (
+          <p className="mt-2 text-sm text-text-secondary">
+            {meta.map((part, index) => (
+              <span key={part}>
+                {index > 0 ? <span aria-hidden> · </span> : null}
+                {part}
+              </span>
+            ))}
+          </p>
+        ) : null}
       </div>
 
       <CourseOptions slug={course.slug} courseTitle={course.title} />
