@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { mailer, oneTimeCodeEmailContent } from "@/lib/mailer";
 import { hashOneTimeCode, verifyOneTimeCode, verifyPassword } from "@/lib/password";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { locationFromHeaders } from "@/lib/request-info";
 import { revokeLoginSession } from "@/lib/session";
 import { evaluateTwoFactorCode } from "@/lib/two-factor";
 import { generateOneTimeCode, ONE_TIME_CODE_MAX_ATTEMPTS, ONE_TIME_CODE_TTL_MS } from "@/lib/tokens";
@@ -155,12 +156,16 @@ async function openLoginSession(user: CredentialUser) {
   const headerStore = await headers();
   const userAgent = headerStore.get("user-agent") ?? "unknown device";
   const forwarded = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ?? headerStore.get("x-real-ip") ?? "unknown";
+  // The edge stamps the region on the way in; stored so the device list can
+  // say where a sign-in happened without ever showing the raw address.
+  const location = locationFromHeaders(headerStore);
 
   const loginSession = await db.loginSession.create({
     data: {
       userId: user.id,
       deviceName: userAgent.slice(0, 255),
       ipAddress: forwarded.slice(0, 64),
+      location: location?.slice(0, 120),
     },
     select: { id: true },
   });

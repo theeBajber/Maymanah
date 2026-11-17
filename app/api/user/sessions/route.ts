@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/session";
+import { deviceLabel } from "@/lib/request-info";
+import { currentLoginSessionId, getCurrentUser } from "@/lib/session";
 
 function unauthorized() {
   return NextResponse.json({ error: "Sign in to do this" }, { status: 401 });
@@ -12,30 +13,34 @@ function unauthorized() {
  * Lists the signed-in devices.
  *
  * Sessions older than seven days are omitted. They expire on their own and
- * would otherwise accumulate into a list nobody reads.
+ * would otherwise accumulate into a list nobody reads. The page renders what
+ * a person recognises — device, region, recency — so the raw user agent and
+ * address stay on the server: they are audit data, not display data.
  */
 export async function GET(): Promise<NextResponse> {
-  const user = await getCurrentUser(await auth());
+  const session = await auth();
+  const user = await getCurrentUser(session);
   if (!user) return unauthorized();
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const currentSessionId = currentLoginSessionId(session);
 
-  const sessions = await db.loginSession.findMany({
-    where: { userId: user.id, isActive: true, lastSeenAt: { gte: weekAgo } },
-    orderBy: { lastSeenAt: "desc" },
-    select: { id: true, deviceName: true, ipAddress: true, lastSeenAt: true, createdAt: true },
-  });
+  const [sessions] = await Promise.all([
+    db.loginSession.findMany({
+      where: { userId: user.id, isActive: true, lastSeenAt: { gte: weekAgo } },
+      orderBy: { lastSeenAt: "desc" },
+      select: { id: true, deviceName: true, location: true, lastSeenAt: true, createdAt: true },
+    }),
+  ]);
 
-  // `lastActivity` is the name the settings page reads. Renamed at the
-  // boundary so the stored field can keep the name the rest of the codebase
-  // uses without the page needing to know.
   return NextResponse.json({
     sessions: sessions.map((session) => ({
       id: session.id,
-      deviceName: session.deviceName,
-      ipAddress: session.ipAddress,
+      device: deviceLabel(session.deviceName),
+      location: session.location,
       lastActivity: session.lastSeenAt,
       createdAt: session.createdAt,
+      current: session.id === currentSessionId,
     })),
   });
 }

@@ -164,6 +164,10 @@ model LoginSession {
   userId     String
   deviceName String
   ipAddress  String
+  /// Where the sign-in happened, read from the edge's geo headers and stored
+  /// as a display string ("Nairobi, KE"). Null when the deployment exposes no
+  /// geo headers, which is the common case on a plain reverse proxy.
+  location   String?
   isActive   Boolean  @default(true)
   lastSeenAt DateTime @default(now())
   createdAt  DateTime @default(now())

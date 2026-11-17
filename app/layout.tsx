@@ -51,10 +51,10 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
-  // icons, manifest, and openGraph/twitter images are resolved
-  // automatically from the file conventions (icon.tsx, apple-icon.tsx,
-  // manifest.ts, opengraph-image.tsx, twitter-image.tsx) — declaring
-  // them here too would risk duplicate <link>/meta tags.
+  // The browser tab icon is the static app/favicon.ico. The PWA manifest
+  // ships the same artwork as a square PNG, and the openGraph/twitter share
+  // cards come from the file conventions — declaring icon links here too
+  // would risk duplicate <link>/meta tags.
 };
 
 export const viewport: Viewport = {
@@ -73,7 +73,7 @@ const organizationJsonLd = {
   "@type": "EducationalOrganization",
   name: SITE_NAME,
   url: SITE_URL,
-  logo: `${SITE_URL}/icon-512`,
+  logo: `${SITE_URL}/logo.png`,
   description: SITE_DESCRIPTION,
   slogan: "The Quran, without borders.",
   nonprofitStatus: "Nonprofit",
