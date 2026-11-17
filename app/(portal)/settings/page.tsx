@@ -2,25 +2,29 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { Monitor, Smartphone } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-
 import { ThemeSelector } from "@/app/ui/theme-selector";
 import { useToast } from "@/app/ui/toast";
 import { Dropdown } from "@/app/ui/Dropdown";
 import Image from "next/image";
-import { Settings as SettingsIcon, Palette, ShieldCheck, GraduationCap, Pen, X } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Palette,
+  ShieldCheck,
+  Save,
+  X,
+  Menu,
+  GraduationCap,
+  Pen,
+  type LucideIcon,
+} from "lucide-react";
 import { Skeleton } from "@/app/ui/Skeleton";
 import { AvailabilityEditor } from "@/app/ui/AvailabilityEditor";
+import { useDrawerBehavior } from "@/lib/useDrawer";
 import { OtpInput } from "@/app/ui/OtpInput";
 import { defaultAvatar } from "@/lib/avatar";
-import { Button } from "@/app/ui/button";
-import { Field, Input, PasswordInput } from "@/app/ui/input";
-import { EmptyState, Panel, PanelHeading, PortalHeader } from "@/app/ui/portal";
 
 type TabType = "profile" | "preferences" | "account" | "teacher";
 
-/** One entry of the settings tab row — the same pill nav the dashboard uses. */
 interface SettingsTab {
   id: TabType;
   label: string;
@@ -36,6 +40,8 @@ const baseTabs: SettingsTab[] = [
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<TabType>("profile");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  useDrawerBehavior(sidebarOpen, () => setSidebarOpen(false));
 
   const tabs: SettingsTab[] =
     session?.user?.role === "TEACHER"
@@ -43,81 +49,90 @@ export default function SettingsPage() {
       : baseTabs;
 
   return (
-    <div className="stagger-fade mx-auto w-full max-w-4xl space-y-6 p-6 md:py-10">
-      <PortalHeader title="Settings" subtitle="Your profile, preferences, and signed-in devices." />
+    <div className="flex h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] w-full md:h-[calc(100dvh-4rem)]">
+      <aside className="hidden md:flex md:w-56 border-r border-border bg-bg-elevated p-5 flex-col shrink-0">
+        <h2 className="text-lg font-bold text-text-primary mb-5">Settings</h2>
+        <nav className="space-y-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left ${
+                activeTab === tab.id
+                  ? "bg-primary text-text-inverse hover:shadow-glow-accent"
+                  : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+              }`}
+            >
+              <tab.icon className="size-4 shrink-0" />
+              <span className="text-sm font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      <nav
-        aria-label="Settings sections"
-        className="flex w-full gap-1 overflow-x-auto rounded-xl border border-border bg-bg-elevated p-1"
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 top-16 bg-black/30 md:hidden z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`fixed top-16 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 w-56 border-r border-border bg-bg-elevated p-5 overflow-y-auto md:hidden transition-transform z-40 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        {tabs.map((tab) => (
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-text-primary">Settings</h2>
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            aria-current={activeTab === tab.id ? "true" : undefined}
-            className={`flex shrink-0 flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-              activeTab === tab.id
-                ? "bg-primary text-text-inverse"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
+            onClick={() => setSidebarOpen(false)}
+            className="text-text-secondary hover:text-text-primary transition-colors"
           >
-            <tab.icon className="size-4 shrink-0" />
-            <span>{tab.label}</span>
+            <X className="size-5" />
           </button>
-        ))}
-      </nav>
+        </div>
+        <nav className="space-y-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-left ${
+                activeTab === tab.id
+                  ? "bg-primary text-text-inverse hover:shadow-glow-accent"
+                  : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+              }`}
+            >
+              <tab.icon className="size-4 shrink-0" />
+              <span className="text-sm font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      <div key={activeTab} className="space-y-6">
-        {activeTab === "profile" && <ProfileSettings />}
-        {activeTab === "preferences" && <PreferencesSettings />}
-        {activeTab === "account" && <AccountSettings />}
-        {activeTab === "teacher" && <TeacherSettings />}
-      </div>
-    </div>
-  );
-}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="md:hidden border-b border-border bg-bg-primary/80 backdrop-blur-md p-4 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-text-secondary hover:text-text-primary transition-colors"
+            aria-label="Toggle menu"
+          >
+            <Menu className="size-5" />
+          </button>
+          <h2 className="text-lg font-bold text-text-primary">
+            {tabs.find((t) => t.id === activeTab)?.label}
+          </h2>
+          <div className="w-5" />
+        </div>
 
-/** One settings surface: the portal Panel, a labelled heading, and an optional save row. */
-function SettingsPanel({
-  label,
-  description,
-  children,
-  save,
-}: {
-  label: string;
-  description?: string;
-  children: React.ReactNode;
-  save?: React.ReactNode;
-}) {
-  return (
-    <Panel className="p-5 sm:p-6">
-      <PanelHeading>{label}</PanelHeading>
-      {description ? <p className="mb-4 text-sm text-text-secondary">{description}</p> : null}
-      {children}
-      {save ? (
-        <div className="mt-5 flex justify-end border-t border-border pt-4">{save}</div>
-      ) : null}
-    </Panel>
-  );
-}
-
-/** A labelled row with its control on the far side. */
-function SettingRow({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-bg-primary/40 p-4">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-text-primary">{title}</p>
-        {description ? <p className="mt-0.5 text-xs text-text-muted">{description}</p> : null}
-      </div>
-      {children}
+        <div key={activeTab} className="flex-1 overflow-y-auto p-4 md:p-8">
+          {activeTab === "profile" && <ProfileSettings />}
+          {activeTab === "preferences" && <PreferencesSettings />}
+          {activeTab === "account" && <AccountSettings />}
+          {activeTab === "teacher" && <TeacherSettings />}
+        </div>
+      </main>
     </div>
   );
 }
@@ -181,7 +196,9 @@ function ProfileSettings() {
   ];
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -208,6 +225,7 @@ function ProfileSettings() {
 
       toast({ title: "Profile updated successfully", variant: "success" });
       await update({ name: formData.name, image: formData.portrait, gender: formData.gender || undefined });
+      setLoading(false);
       setShowAvatarPicker(false);
     } catch (error) {
       toast({
@@ -220,24 +238,19 @@ function ProfileSettings() {
   };
 
   return (
-    <SettingsPanel
-      label="Profile"
-      description="How you appear to your teacher and classmates."
-      save={
-        <Button type="submit" form="profile-form" loading={loading}>
-          Save changes
-        </Button>
-      }
-    >
-      <form id="profile-form" onSubmit={handleSubmit} className="space-y-5">
-        <div className="flex items-center gap-4">
+    <div className="max-w-4xl">
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Profile Settings
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex items-center gap-6">
           <div className="relative">
             <Image
-              width={72}
-              height={72}
+              width={80}
+              height={80}
               src={formData.portrait}
               alt="Profile"
-              className="size-18 rounded-full object-cover ring-2 ring-border"
+              className="size-20 rounded-full object-cover ring-2 ring-border"
             />
             <button
               type="button"
@@ -248,9 +261,13 @@ function ProfileSettings() {
               <Pen className="size-3" />
             </button>
           </div>
-          <div className="min-w-0">
-            <p className="truncate font-semibold text-text-primary">{session?.user?.name}</p>
-            <p className="truncate text-sm text-text-secondary">{session?.user?.email}</p>
+          <div>
+            <h3 className="font-semibold text-text-primary">
+              {session?.user?.name}
+            </h3>
+            <p className="text-sm text-text-secondary">
+              {session?.user?.email}
+            </p>
           </div>
         </div>
 
@@ -258,16 +275,16 @@ function ProfileSettings() {
           <div className="relative">
             <div
               ref={avatarPickerRef}
-              className="absolute z-10 mt-2 w-full max-w-sm bg-bg-elevated border border-border rounded-2xl p-4 shadow-float"
+              className="absolute z-10 mt-2 bg-bg-elevated border border-border rounded-2xl p-4 shadow-float"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-text-primary">Choose avatar</span>
+                <span className="text-sm font-medium text-text-primary">Choose Avatar</span>
                 <button
                   type="button"
                   onClick={() => setShowAvatarPicker(false)}
                   className="text-text-muted hover:text-text-primary transition-colors"
                 >
-                  <X className="size-4" />
+                  <X className="size-3" />
                 </button>
               </div>
               <div className="flex gap-3 flex-wrap">
@@ -285,7 +302,13 @@ function ProfileSettings() {
                         : "ring-border hover:ring-primary/50"
                     }`}
                   >
-                    <Image src={portrait} alt="Avatar option" fill sizes="56px" className="object-cover" />
+                    <Image
+                      src={portrait}
+                      alt="Avatar option"
+                      fill
+                      sizes="56px"
+                      className="object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -293,7 +316,10 @@ function ProfileSettings() {
           </div>
         )}
 
-        <Field label="Gender" htmlFor="gender">
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-1.5">
+            Gender
+          </label>
           <div className="flex gap-3">
             {(["male", "female"] as const).map((g) => {
               const isGenderLocked = !!formData.gender;
@@ -301,58 +327,104 @@ function ProfileSettings() {
               return (
                 <button
                   key={g}
-                  id={g}
                   type="button"
                   disabled={isGenderLocked}
                   onClick={() => setFormData((prev) => ({ ...prev, gender: g }))}
-                  className={`rounded-[10px] px-6 py-2.5 text-sm font-semibold transition-all ${
+                  className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                     isSelected
                       ? "bg-primary text-text-inverse"
                       : "border border-border text-text-secondary hover:border-primary"
-                  } ${isGenderLocked ? "opacity-60 cursor-not-allowed hover:border-border" : ""}`}
+                  } ${isGenderLocked ? "opacity-60 cursor-not-allowed hover:border-border hover:shadow-none" : "hover:shadow-glow-accent"}`}
                 >
                   {g === "male" ? "Male" : "Female"}
                 </button>
               );
             })}
           </div>
-          <p className="text-[13px] leading-snug text-text-secondary/80 px-0.5">
-            {formData.gender
-              ? "Gender is locked after your first save — it matches you with a same-gender teacher for live sessions. Contact support if this needs to change."
-              : "Used to match you with a same-gender teacher for live sessions."}
-          </p>
-        </Field>
-
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <Field label="Name" htmlFor="name">
-            <Input id="name" name="name" value={formData.name} onChange={handleChange} />
-          </Field>
-          <Field label="Email" htmlFor="email" hint="Cannot be changed">
-            <Input id="email" name="email" value={formData.email} disabled />
-          </Field>
+          {formData.gender && (
+            <p className="text-xs text-text-muted mt-2">
+              Gender is locked after your first save — it&apos;s used to match you with a same-gender teacher for live sessions. Contact support if this needs to change.
+            </p>
+          )}
         </div>
 
-        <Field label="Bio" htmlFor="bio">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Name
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Email (Cannot be changed)
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              disabled
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-hover text-text-secondary cursor-not-allowed opacity-60 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-1.5">
+            Bio
+          </label>
           <textarea
-            id="bio"
             name="bio"
             value={formData.bio}
             onChange={handleChange}
             rows={4}
-            className="w-full rounded-[10px] border border-border bg-bg-elevated/60 px-4 py-3 text-[15px] text-text-primary transition-all duration-300 focus:border-accent/60 focus:outline-none focus:shadow-[0_0_0_3px_rgb(var(--accent-rgb)_/_0.12),0_0_28px_-8px_rgb(var(--accent-rgb)_/_0.35)] resize-none"
+            className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
           />
-        </Field>
-
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <Field label="Phone" htmlFor="phone">
-            <Input id="phone" type="tel" name="phone" value={formData.phone} onChange={handleChange} />
-          </Field>
-          <Field label="Country" htmlFor="country">
-            <Input id="country" name="country" value={formData.country} onChange={handleChange} />
-          </Field>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Phone
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              Country
+            </label>
+            <input
+              type="text"
+              name="country"
+              value={formData.country}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
+        >
+          <Save className="size-4" />
+          {loading ? "Saving..." : "Save Changes"}
+        </button>
       </form>
-    </SettingsPanel>
+    </div>
   );
 }
 
@@ -392,234 +464,83 @@ function TimezoneSetting() {
   };
 
   return (
-    <SettingsPanel
-      label="Timezone"
-      description="Your local timezone, for accurate session scheduling."
-      save={
-        <Button onClick={handleSave} loading={saving}>
-          Save
-        </Button>
-      }
-    >
-      <Dropdown
-        label="Timezone"
-        options={[
-          { value: "Africa/Nairobi", label: "Africa/Nairobi" },
-          { value: "Africa/Cairo", label: "Africa/Cairo" },
-          { value: "Asia/Dubai", label: "Asia/Dubai" },
-          { value: "Europe/London", label: "Europe/London" },
-          { value: "America/New_York", label: "America/New York" },
-          { value: "Asia/Kolkata", label: "Asia/Kolkata" },
-        ]}
-        value={timezone}
-        onChange={(v) => setTimezone(v)}
-      />
-    </SettingsPanel>
-  );
-}
-
-function InterfaceSettings() {
-  const { toast } = useToast();
-  const [preferences, setPreferences] = useState({
-    language: "en",
-    quranFont: "default",
-  });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/user/update-preferences")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.language) {
-          setPreferences((prev) => ({
-            ...prev,
-            language: data.language ?? "en",
-            quranFont: data.quranFont ?? "default",
-          }));
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/user/update-preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(preferences),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to update preferences");
-      }
-
-      toast({ title: "Interface settings saved", variant: "success" });
-    } catch (error) {
-      toast({
-        title: error instanceof Error ? error.message : "Failed to save settings",
-        variant: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <SettingsPanel
-      label="Appearance and interface"
-      save={
-        <Button onClick={handleSave} loading={loading}>
-          Save settings
-        </Button>
-      }
-    >
-      <div className="space-y-5">
-        <SettingRow title="Theme" description="Light, dark, or one of the decorated themes.">
-          <ThemeSelector />
-        </SettingRow>
-        <Dropdown
-          label="Language"
-          options={[
-            { value: "en", label: "English" },
-            { value: "ar", label: "العربية (Arabic)" },
-            { value: "fr", label: "Français (French)" },
-            { value: "es", label: "Español (Spanish)" },
-          ]}
-          value={preferences.language}
-          onChange={(v) => setPreferences((prev) => ({ ...prev, language: v }))}
-        />
-        <Dropdown
-          label="Quran font"
-          options={[
-            { value: "default", label: "Default" },
-            { value: "uthmani", label: "Uthmani" },
-            { value: "madina", label: "Madina" },
-          ]}
-          value={preferences.quranFont}
-          onChange={(v) => setPreferences((prev) => ({ ...prev, quranFont: v }))}
-        />
+    <div className="max-w-2xl">
+      <h2 className="text-2xl font-bold text-text-primary mb-6">Timezone</h2>
+      <p className="text-sm text-text-secondary mb-4">
+        Set your local timezone for accurate session scheduling.
+      </p>
+      <div className="flex items-end gap-3">
+        <div className="flex-1">
+          <Dropdown
+            label="Timezone"
+            options={[
+              { value: "Africa/Nairobi", label: "Africa/Nairobi" },
+              { value: "Africa/Cairo", label: "Africa/Cairo" },
+              { value: "Asia/Dubai", label: "Asia/Dubai" },
+              { value: "Europe/London", label: "Europe/London" },
+              { value: "America/New_York", label: "America/New York" },
+              { value: "Asia/Kolkata", label: "Asia/Kolkata" },
+            ]}
+            value={timezone}
+            onChange={(v) => setTimezone(v)}
+          />
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent shrink-0"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
       </div>
-    </SettingsPanel>
-  );
-}
-
-function NotificationsSettings() {
-  const { toast } = useToast();
-  const [preferences, setPreferences] = useState({
-    emailNotifications: true,
-    studyReminders: true,
-    reminderTime: "09:00",
-  });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/user/update-preferences")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.emailNotifications !== undefined) {
-          setPreferences((prev) => ({
-            ...prev,
-            emailNotifications: data.emailNotifications,
-            studyReminders: data.studyReminders,
-            reminderTime: data.reminderTime ?? "09:00",
-          }));
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleToggle = (field: string) => {
-    setPreferences((prev) => ({
-      ...prev,
-      [field]: !prev[field as keyof typeof prev],
-    }));
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/user/update-preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(preferences),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to update preferences");
-      }
-
-      toast({ title: "Notification preferences saved", variant: "success" });
-    } catch (error) {
-      toast({
-        title: error instanceof Error ? error.message : "Failed to save preferences",
-        variant: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <SettingsPanel
-      label="Notifications"
-      save={
-        <Button onClick={handleSave} loading={loading}>
-          Save preferences
-        </Button>
-      }
-    >
-      <div className="space-y-3">
-        <SettingRow title="Email notifications" description="Course updates and messages, by email.">
-          <ToggleSwitch value={preferences.emailNotifications} onChange={() => handleToggle("emailNotifications")} />
-        </SettingRow>
-        <SettingRow title="Daily study reminder" description="A nudge at the same time every day.">
-          <ToggleSwitch value={preferences.studyReminders} onChange={() => handleToggle("studyReminders")} />
-        </SettingRow>
-        {preferences.studyReminders ? (
-          <Field label="Reminder time" htmlFor="reminder-time" className="max-w-40">
-            <Input
-              id="reminder-time"
-              type="time"
-              value={preferences.reminderTime}
-              onChange={(e) => setPreferences((prev) => ({ ...prev, reminderTime: e.target.value }))}
-            />
-          </Field>
-        ) : null}
-      </div>
-    </SettingsPanel>
+    </div>
   );
 }
 
 function PreferencesSettings() {
   return (
-    <div className="space-y-6">
-      <TimezoneSetting />
-      <InterfaceSettings />
-      <NotificationsSettings />
+    <div className="space-y-10">
+      <section>
+        <TimezoneSetting />
+      </section>
+      <section>
+        <InterfaceSettings />
+      </section>
+      <section>
+        <NotificationsSettings />
+      </section>
     </div>
   );
 }
 
 function AccountSettings() {
   return (
-    <div className="space-y-6">
-      <SecuritySettings />
-      <SessionsSettings />
-      <DangerZoneSettings />
+    <div className="space-y-10">
+      <section>
+        <SecuritySettings />
+      </section>
+      <section>
+        <SessionsSettings />
+      </section>
+      <section>
+        <DangerZoneSettings />
+      </section>
     </div>
   );
 }
 
 function TeacherSettings() {
   return (
-    <div className="space-y-6">
-      <Panel className="p-5 sm:p-6">
-        <PanelHeading>Weekly availability</PanelHeading>
-        <AvailabilityEditor heading={false} />
-      </Panel>
-      <UstadhSettings />
-      <MeetingSettings />
+    <div className="space-y-10">
+      <section>
+        <AvailabilityEditor />
+        <div className="mt-6">
+          <UstadhSettings />
+        </div>
+        <div className="mt-6">
+          <MeetingSettings />
+        </div>
+      </section>
     </div>
   );
 }
@@ -759,169 +680,444 @@ function SecuritySettings() {
   };
 
   return (
-    <>
-      <SettingsPanel
-        label="Password"
-        save={
-          <Button type="submit" form="password-form" loading={loading}>
-            Update password
-          </Button>
-        }
-      >
-        <form id="password-form" onSubmit={handlePasswordSubmit} className="space-y-5">
-          <Field label="Current password" htmlFor="current-password">
-            <PasswordInput
-              id="current-password"
-              name="currentPassword"
-              value={formData.currentPassword}
-              onChange={handleChange}
-              autoComplete="current-password"
-            />
-          </Field>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <Field label="New password" htmlFor="new-password">
-              <PasswordInput
-                id="new-password"
-                name="newPassword"
-                value={formData.newPassword}
+    <div className="max-w-4xl space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-text-primary mb-6">
+          Security Settings
+        </h2>
+
+        <div className="mb-6 p-6 rounded-2xl border border-border bg-bg-elevated shadow-raise">
+          <h3 className="text-lg font-semibold text-text-primary mb-4">
+            Change Password
+          </h3>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                Current Password
+              </label>
+              <input
+                type="password"
+                name="currentPassword"
+                value={formData.currentPassword}
                 onChange={handleChange}
-                autoComplete="new-password"
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
               />
-            </Field>
-            <Field label="Confirm new password" htmlFor="confirm-password">
-              <PasswordInput
-                id="confirm-password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                autoComplete="new-password"
-              />
-            </Field>
-          </div>
-        </form>
-      </SettingsPanel>
-
-      <SettingsPanel
-        label="Two-factor authentication"
-        description="A second code by email whenever you sign in."
-      >
-        <SettingRow
-          title={twoFAEnabled ? "Enabled" : "Disabled"}
-          description={
-            twoFALoading
-              ? "Checking your account…"
-              : twoFAEnabled
-                ? "Sign-ins ask for a code after your password."
-                : "Turn it on to require a code after your password."
-          }
-        >
-          {twoFALoading ? (
-            <Skeleton className="h-9 w-24 rounded-[10px]" />
-          ) : twoFAEnabled ? (
-            <button
-              type="button"
-              onClick={() => {
-                setTwoFAStep("disable");
-                setDisablePassword("");
-                setShow2FAModal(true);
-              }}
-              className="inline-flex h-9 items-center rounded-[10px] border border-border px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-danger"
-            >
-              Disable
-            </button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() => {
-                setTwoFAStep("prompt");
-                setShow2FAModal(true);
-              }}
-            >
-              Enable
-            </Button>
-          )}
-        </SettingRow>
-      </SettingsPanel>
-
-      {show2FAModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-bg-elevated p-6 shadow-float">
-            {twoFAStep === "prompt" && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-text-primary">Enable two-factor</h3>
-                <p className="text-sm text-text-secondary">
-                  A verification code will be sent to your email. Enter it to confirm.
-                </p>
-                <div className="flex gap-3 pt-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setShow2FAModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button className="flex-1" onClick={handleEnable2FA} loading={twoFAActionLoading}>
-                    Send code
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {twoFAStep === "otp" && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-text-primary">Enter verification code</h3>
-                <p className="text-center text-sm text-text-secondary">
-                  Check your email for the 6-digit code.
-                </p>
-                <OtpInput value={twoFAOTP} onChange={setTwoFAOTP} disabled={twoFAActionLoading} />
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      setShow2FAModal(false);
-                      setTwoFAStep("prompt");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={handleVerifyOTP}
-                    loading={twoFAActionLoading}
-                    disabled={twoFAOTP.length !== 6}
-                  >
-                    Verify
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {twoFAStep === "disable" && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-text-primary">Disable two-factor</h3>
-                <p className="text-sm text-text-secondary">Enter your password to confirm.</p>
-                <PasswordInput
-                  value={disablePassword}
-                  onChange={(e) => setDisablePassword(e.target.value)}
-                  placeholder="Your password"
-                  autoComplete="current-password"
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  name="newPassword"
+                  value={formData.newPassword}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                 />
-                <div className="flex gap-3 pt-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setShow2FAModal(false)}>
-                    Cancel
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={handleDisable2FA}
-                    disabled={twoFAActionLoading || !disablePassword}
-                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-danger px-5 text-sm font-semibold text-white transition-all duration-300 hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    {twoFAActionLoading ? "Disabling…" : "Disable"}
-                  </button>
-                </div>
               </div>
-            )}
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
+            >
+              {loading ? "Updating..." : "Update Password"}
+            </button>
+          </form>
+        </div>
+
+        <div className="p-6 rounded-2xl border border-border bg-bg-elevated shadow-raise">
+          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <ShieldCheck className="size-5 text-primary" />
+            Two-Factor Authentication
+          </h3>
+          <p className="text-sm text-text-secondary mb-4">
+            Add an extra layer of security to your account.
+          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <span className="text-text-primary text-sm">2FA Status:</span>
+            <div className="flex items-center gap-4">
+              {twoFALoading ? (
+                <Skeleton className="h-5 w-16" />
+              ) : (
+                <>
+                  <span
+                    className={`text-sm font-medium ${twoFAEnabled ? "text-success" : "text-text-muted"}`}
+                  >
+                    {twoFAEnabled ? "Enabled" : "Disabled"}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (twoFAEnabled) {
+                        setTwoFAStep("disable");
+                        setDisablePassword("");
+                      } else {
+                        setTwoFAStep("prompt");
+                      }
+                      setShow2FAModal(true);
+                    }}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                      twoFAEnabled
+                        ? "bg-danger/10 text-danger hover:bg-danger/20"
+                        : "bg-primary text-text-inverse hover:brightness-110"
+                    }`}
+                  >
+                    {twoFAEnabled ? "Disable" : "Enable"}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      )}
-    </>
+
+        {show2FAModal && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-bg-elevated rounded-2xl border border-border shadow-2xl p-6 w-full max-w-md">
+              {twoFAStep === "prompt" && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-bold text-text-primary">Enable 2FA</h4>
+                  <p className="text-sm text-text-secondary">
+                    A verification code will be sent to your email. Enter it to confirm.
+                  </p>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShow2FAModal(false)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-border text-text-secondary font-medium hover:bg-bg-hover transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleEnable2FA}
+                      disabled={twoFAActionLoading}
+                      className="flex-1 px-4 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50"
+                    >
+                      {twoFAActionLoading ? "Sending..." : "Send Code"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {twoFAStep === "otp" && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-bold text-text-primary">Enter verification code</h4>
+                  <p className="text-sm text-text-secondary text-center">Check your email for the 6-digit code.</p>
+                  <OtpInput value={twoFAOTP} onChange={setTwoFAOTP} disabled={twoFAActionLoading} />
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => { setShow2FAModal(false); setTwoFAStep("prompt"); }}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-border text-text-secondary font-medium hover:bg-bg-hover transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleVerifyOTP}
+                      disabled={twoFAActionLoading || twoFAOTP.length !== 6}
+                      className="flex-1 px-4 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50"
+                    >
+                      {twoFAActionLoading ? "Verifying..." : "Verify"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {twoFAStep === "disable" && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-bold text-text-primary">Disable 2FA</h4>
+                  <p className="text-sm text-text-secondary">Enter your password to confirm.</p>
+                  <input
+                    type="password"
+                    value={disablePassword}
+                    onChange={(e) => setDisablePassword(e.target.value)}
+                    placeholder="Your password"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                  />
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShow2FAModal(false)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-border text-text-secondary font-medium hover:bg-bg-hover transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDisable2FA}
+                      disabled={twoFAActionLoading || !disablePassword}
+                      className="flex-1 px-4 py-2.5 bg-danger text-white rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50"
+                    >
+                      {twoFAActionLoading ? "Disabling..." : "Disable"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NotificationsSettings() {
+  const { toast } = useToast();
+  const [preferences, setPreferences] = useState({
+    emailNotifications: true,
+    studyReminders: true,
+    reminderTime: "09:00",
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/update-preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.emailNotifications !== undefined) {
+          setPreferences((prev) => ({
+            ...prev,
+            emailNotifications: data.emailNotifications,
+            studyReminders: data.studyReminders,
+            reminderTime: data.reminderTime ?? "09:00",
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleToggle = (field: string) => {
+    setPreferences((prev) => ({
+      ...prev,
+      [field]: !prev[field as keyof typeof prev],
+    }));
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPreferences((prev) => ({
+      ...prev,
+      reminderTime: e.target.value,
+    }));
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/user/update-preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(preferences),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update preferences");
+      }
+
+      toast({ title: "Notification preferences saved", variant: "success" });
+    } catch (error) {
+      toast({
+        title: error instanceof Error ? error.message : "Failed to save preferences",
+        variant: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Notification Settings
+      </h2>
+
+      <div className="space-y-4">
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated shadow-raise">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-text-primary">
+              Email Notifications
+            </h3>
+            <button
+              onClick={() => handleToggle("emailNotifications")}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                preferences.emailNotifications ? "bg-primary" : "bg-text-muted"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-text-inverse transition-transform ${
+                  preferences.emailNotifications
+                    ? "translate-x-6"
+                    : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-sm text-text-secondary">
+            Receive email updates about your courses and messages
+          </p>
+        </div>
+
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated shadow-raise">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-text-primary">
+              Daily Study Reminders
+            </h3>
+            <button
+              onClick={() => handleToggle("studyReminders")}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                preferences.studyReminders ? "bg-primary" : "bg-text-muted"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-text-inverse transition-transform ${
+                  preferences.studyReminders ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+          {preferences.studyReminders && (
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                Reminder Time
+              </label>
+              <input
+                type="time"
+                value={preferences.reminderTime}
+                onChange={handleTimeChange}
+                className="px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={loading}
+        className="mt-5 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
+      >
+        {loading ? "Saving..." : "Save Preferences"}
+      </button>
+    </div>
+  );
+}
+
+function InterfaceSettings() {
+  const { toast } = useToast();
+  const [preferences, setPreferences] = useState({
+    language: "en",
+    quranFont: "default",
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/update-preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.language) {
+          setPreferences((prev) => ({
+            ...prev,
+            language: data.language ?? "en",
+            quranFont: data.quranFont ?? "default",
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/user/update-preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(preferences),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update preferences");
+      }
+
+      toast({ title: "Interface settings saved", variant: "success" });
+    } catch (error) {
+      toast({
+        title: error instanceof Error ? error.message : "Failed to save settings",
+        variant: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl">
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Interface Settings
+      </h2>
+
+      <div className="space-y-6">
+        <div className="p-5 rounded-2xl border border-border bg-bg-elevated shadow-raise">
+          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <Palette className="size-5 text-primary" />
+            Theme
+          </h3>
+          <p className="text-sm text-text-secondary mb-4">
+            Choose your preferred color scheme
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <ThemeSelector />
+          </div>
+        </div>
+
+        <div>
+          <Dropdown
+            label="Language"
+            options={[
+              { value: "en", label: "English" },
+              { value: "ar", label: "العربية (Arabic)" },
+              { value: "fr", label: "Français (French)" },
+              { value: "es", label: "Español (Spanish)" },
+            ]}
+            value={preferences.language}
+            onChange={(v) => setPreferences((prev) => ({ ...prev, language: v }))}
+          />
+          <p className="text-xs text-text-secondary mt-1">
+            Select your preferred interface language
+          </p>
+        </div>
+
+        <div>
+          <Dropdown
+            label="Quran Font"
+            options={[
+              { value: "default", label: "Default" },
+              { value: "uthmani", label: "Uthmani" },
+              { value: "madina", label: "Madina" },
+            ]}
+            value={preferences.quranFont}
+            onChange={(v) => setPreferences((prev) => ({ ...prev, quranFont: v }))}
+          />
+          <p className="text-xs text-text-secondary mt-1">
+            Choose your preferred Quran font style
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={loading}
+        className="mt-6 px-6 py-2.5 bg-primary text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] hover:shadow-glow-accent"
+      >
+        {loading ? "Saving..." : "Save Settings"}
+      </button>
+    </div>
   );
 }
 
@@ -937,19 +1133,18 @@ function timeAgo(date: string | Date): string {
   return new Date(date).toLocaleDateString();
 }
 
-/** One row of the device list, as the sessions endpoint returns it. */
-interface DeviceSession {
-  id: string;
-  device: string;
-  location: string | null;
-  lastActivity: string;
-  createdAt: string;
-  current: boolean;
-}
-
 function SessionsSettings() {
   const { toast } = useToast();
-  const [sessions, setSessions] = useState<DeviceSession[]>([]);
+  const [sessions, setSessions] = useState<
+    {
+      id: string;
+      device: string;
+      location: string | null;
+      lastActivity: string;
+      createdAt: string;
+      current: boolean;
+    }[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -978,25 +1173,29 @@ function SessionsSettings() {
 
       if (res.ok) {
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-        toast({ title: "Device signed out", variant: "success" });
+        toast({ title: "Session logged out", variant: "success" });
       }
     } catch {
-      toast({ title: "Failed to sign out the device", variant: "error" });
+      toast({ title: "Failed to logout session", variant: "error" });
     }
   };
 
   return (
-    <SettingsPanel
-      label="Signed-in devices"
-      description="Sessions older than 7 days are removed from this list on their own."
-    >
+    <div className="max-w-2xl">
+      <h2 className="text-2xl font-bold text-text-primary mb-6">
+        Active Sessions
+      </h2>
+      <p className="text-sm text-text-secondary mb-6">
+        Sessions older than 7 days are automatically removed from this list.
+      </p>
+
       {loading ? (
         <div className="space-y-3">
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="rounded-xl border border-border p-4">
-              <div className="flex items-center justify-between gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-5 rounded-2xl border border-border bg-bg-elevated shadow-raise">
+              <div className="flex items-center justify-between">
                 <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-5 w-1/3" />
                   <Skeleton className="h-3 w-1/2" />
                 </div>
               </div>
@@ -1004,51 +1203,40 @@ function SessionsSettings() {
           ))}
         </div>
       ) : sessions.length === 0 ? (
-        <EmptyState title="No signed-in devices found." />
+        <p className="text-sm text-text-secondary">No active sessions found</p>
       ) : (
-        <ul className="space-y-3">
-          {sessions.map((s) => {
-            const isPhone = /iPhone|iPad|Android|Mobile/.test(s.device);
-            const DeviceIcon: LucideIcon = isPhone ? Smartphone : Monitor;
-            return (
-              <li
-                key={s.id}
-                className="flex items-start justify-between gap-3 rounded-xl border border-border bg-bg-primary/40 p-4"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] border border-border text-text-secondary">
-                    <DeviceIcon className="size-4.5" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-text-primary">
-                      <span className="truncate">{s.device}</span>
-                      {s.current ? (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                          This device
-                        </span>
-                      ) : null}
-                    </p>
-                    <p className="mt-0.5 text-xs text-text-secondary">
-                      {s.location ?? "Location not shared"}
-                    </p>
-                    <p className="mt-1 text-[11px] text-text-muted">
-                      Active {timeAgo(s.lastActivity)} · signed in {timeAgo(s.createdAt)}
-                    </p>
-                  </div>
+        <div className="space-y-3">
+          {sessions.map((s) => (
+            <div
+              key={s.id}
+              className="p-5 rounded-2xl border border-border bg-bg-elevated flex items-start justify-between gap-3"
+            >
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-text-primary truncate" title={s.device}>
+                  {s.device}
+                </h3>
+                <p className="text-sm text-text-secondary mt-1">{s.location ?? "Location not shared"}</p>
+                <div className="flex items-center gap-3 text-xs text-text-muted mt-1.5">
+                  <span>Active {timeAgo(s.lastActivity)}</span>
+                  {s.createdAt && (
+                    <>
+                      <span className="text-border">·</span>
+                      <span>Started {timeAgo(s.createdAt)}</span>
+                    </>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleLogoutSession(s.id)}
-                  className="shrink-0 rounded-[10px] border border-border px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-danger"
-                >
-                  Sign out
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+              </div>
+              <button
+                onClick={() => handleLogoutSession(s.id)}
+                className="shrink-0 px-4 py-2 bg-danger/10 text-danger rounded-xl text-sm font-medium hover:bg-danger/20 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          ))}
+        </div>
       )}
-    </SettingsPanel>
+    </div>
   );
 }
 
@@ -1092,63 +1280,62 @@ function DangerZoneSettings() {
   };
 
   return (
-    <SettingsPanel label="Danger zone">
-      <div className="rounded-xl border border-danger/30 bg-danger/5 p-4">
-        <p className="text-sm font-semibold text-danger">Delete account</p>
-        <p className="mt-1 text-xs text-danger/80">
-          Once you delete your account, there is no going back. Everything is removed.
+    <div className="max-w-2xl">
+      <h2 className="text-2xl font-bold text-danger mb-6">Danger Zone</h2>
+
+      <div className="p-6 rounded-2xl border-2 border-danger/30 bg-danger/5">
+        <h3 className="text-lg font-semibold text-danger mb-2">
+          Delete Account
+        </h3>
+        <p className="text-sm text-danger/80 mb-4">
+          Once you delete your account, there is no going back. Please be certain.
         </p>
         <button
-          type="button"
           onClick={() => setShowDeleteModal(true)}
-          className="mt-4 inline-flex h-11 items-center justify-center rounded-[10px] bg-danger px-5 text-sm font-semibold text-white transition-all duration-300 hover:brightness-110 active:scale-[0.985]"
+          className="px-6 py-2.5 bg-danger text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all active:scale-[0.97] "
         >
-          Delete my account
+          Delete My Account
         </button>
       </div>
 
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-bg-elevated p-6 shadow-float">
-            <h3 className="text-lg font-semibold text-text-primary">Confirm account deletion</h3>
-            <p className="mt-2 text-sm text-text-secondary">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-elevated rounded-2xl p-8 max-w-md w-full shadow-float border border-border">
+            <h3 className="text-xl font-bold text-text-primary mb-4">
+              Confirm Account Deletion
+            </h3>
+            <p className="text-sm text-text-secondary mb-4">
               This action cannot be undone. All your data will be permanently deleted.
             </p>
-            <div className="mt-4">
-              <Field label="Password" htmlFor="delete-password">
-                <PasswordInput
-                  id="delete-password"
-                  placeholder="Enter your password to confirm"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </Field>
-            </div>
-            <div className="mt-5 flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
+            <input
+              type="password"
+              placeholder="Enter your password to confirm"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg-primary text-text-primary focus:outline-none focus:ring-2 focus:ring-danger/30 focus:border-danger transition-all mb-4"
+            />
+            <div className="flex gap-3">
+              <button
                 onClick={() => {
                   setShowDeleteModal(false);
                   setPassword("");
                 }}
+                className="flex-1 px-4 py-2.5 bg-bg-hover text-text-primary rounded-xl font-medium hover:bg-bg-hover/80 transition-colors"
               >
                 Cancel
-              </Button>
+              </button>
               <button
-                type="button"
                 onClick={handleDeleteAccount}
                 disabled={loading}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-danger px-5 text-sm font-semibold text-white transition-all duration-300 hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-danger text-text-inverse rounded-xl font-medium hover:brightness-110 transition-all disabled:opacity-50 active:scale-[0.97] "
               >
-                {loading ? "Deleting…" : "Delete"}
+                {loading ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
         </div>
       )}
-    </SettingsPanel>
+    </div>
   );
 }
 
@@ -1215,30 +1402,37 @@ function UstadhSettings() {
   };
 
   return (
-    <SettingsPanel label="Teaching status" description="Your acceptance of new mentorship pairings.">
+    <div>
+      <div className="mb-4 p-4 rounded-2xl border border-border bg-bg-elevated shadow-raise">
+        <p className="text-sm text-text-secondary mb-1">Approval Status</p>
+        <span
+          className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${
+            isApproved
+              ? "bg-success/10 text-success"
+              : "bg-warning/10 text-warning"
+          }`}
+        >
+          <span className={`size-2 rounded-full ${isApproved ? "bg-success" : "bg-warning"}`} />
+          {isApproved ? "Approved" : "Pending Review"}
+        </span>
+      </div>
+
       {!loaded ? (
         <Skeleton className="h-16 w-full rounded-xl" />
       ) : (
-        <div className="space-y-3">
-          <SettingRow title="Approval status" description="Admins approve teachers before they can pair.">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${
-                isApproved ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-              }`}
-            >
-              <span className={`size-2 rounded-full ${isApproved ? "bg-success" : "bg-warning"}`} />
-              {isApproved ? "Approved" : "Pending review"}
-            </span>
-          </SettingRow>
-          <SettingRow
-            title="Available for teaching"
-            description="Toggle on to accept new mentorship requests."
-          >
-            <ToggleSwitch value={availableForTeaching} onChange={handleToggle} disabled={loading} />
-          </SettingRow>
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-bg-elevated">
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Available for Teaching</p>
+            <p className="text-xs text-text-muted mt-0.5">Toggle on to accept new mentorship requests</p>
+          </div>
+          <ToggleSwitch
+            value={availableForTeaching}
+            onChange={handleToggle}
+            disabled={loading}
+          />
         </div>
       )}
-    </SettingsPanel>
+    </div>
   );
 }
 
@@ -1355,134 +1549,139 @@ function MeetingSettings() {
   }
 
   if (!settings) {
-    return (
-      <SettingsPanel label="Lesson rooms">
-        <Skeleton className="h-40 w-full rounded-xl" />
-      </SettingsPanel>
-    );
+    return <Skeleton className="h-40 w-full rounded-2xl" />;
   }
 
   return (
-    <SettingsPanel
-      label="Lesson rooms"
-      description="Students only see a Join lesson button. The room address is released when they join."
-    >
-      <div className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => choose("AUTO")}
-            disabled={saving}
-            className={`rounded-xl border p-4 text-left transition-colors ${
-              settings.preference === "AUTO"
-                ? "border-primary/60 bg-primary/5"
-                : "border-border hover:bg-bg-hover"
-            }`}
-          >
-            <p className="text-sm font-semibold text-text-primary">Create rooms automatically</p>
-            <p className="mt-1 text-xs text-text-secondary">
-              A meeting room is created for each lesson in your connected calendar.
-            </p>
-          </button>
-          <button
-            type="button"
-            onClick={() => choose("MANUAL")}
-            disabled={saving}
-            className={`rounded-xl border p-4 text-left transition-colors ${
-              settings.preference === "MANUAL"
-                ? "border-primary/60 bg-primary/5"
-                : "border-border hover:bg-bg-hover"
-            }`}
-          >
-            <p className="text-sm font-semibold text-text-primary">Use my own link</p>
-            <p className="mt-1 text-xs text-text-secondary">
-              Save a link below and every session uses it automatically. Nothing external is connected.
-            </p>
-          </button>
-        </div>
+    <div className="rounded-2xl border border-border bg-bg-elevated p-5 shadow-raise">
+      <div className="mb-4">
+        <p className="font-semibold text-sm text-text-primary">Lesson meetings</p>
+        <p className="text-xs text-text-muted mt-0.5">
+          Students only see a Join lesson button. The room address is released when they join.
+        </p>
+      </div>
 
-        {/* The teacher's standing room: reused for every session, overridable
-            per session from the session page. */}
-        <div className="rounded-xl border border-border bg-bg-primary/40 p-4">
-          <Field
-            label="Your lesson link"
-            htmlFor="default-meeting-url"
-            hint="A Google Meet address reused for every session. A link pasted on a single session page overrides this one."
-          >
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                id="default-meeting-url"
-                type="url"
-                inputMode="url"
-                autoComplete="off"
-                value={defaultUrl}
-                onChange={(event) => setDefaultUrl(event.target.value)}
-                placeholder="https://meet.google.com/abc-defg-hij"
-                className="flex-1"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="md"
-                  onClick={() => saveDefaultUrl(defaultUrl)}
-                  disabled={saving || defaultUrl.trim() === (settings.defaultUrl ?? "")}
-                >
-                  Save link
-                </Button>
-                {settings.defaultUrl ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="md"
-                    onClick={() => saveDefaultUrl("")}
-                    disabled={saving}
-                    className="hover:text-danger"
-                  >
-                    Remove
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          </Field>
-        </div>
-
-        {!settings.configured ? (
-          <p className="text-xs text-text-secondary">
-            Automatic rooms are not available on this deployment. Your saved link above is what
-            students join with.
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => choose("AUTO")}
+          disabled={saving}
+          className={`rounded-xl border p-4 text-left transition-colors ${
+            settings.preference === "AUTO"
+              ? "border-primary/60 bg-primary/5"
+              : "border-border hover:bg-bg-hover"
+          }`}
+        >
+          <p className="text-sm font-semibold text-text-primary">Create rooms automatically</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            A meeting room is created for each lesson in your connected calendar.
           </p>
-        ) : (
-          <SettingRow
-            title={
-              settings.connected
+        </button>
+        <button
+          type="button"
+          onClick={() => choose("MANUAL")}
+          disabled={saving}
+          className={`rounded-xl border p-4 text-left transition-colors ${
+            settings.preference === "MANUAL"
+              ? "border-primary/60 bg-primary/5"
+              : "border-border hover:bg-bg-hover"
+          }`}
+        >
+          <p className="text-sm font-semibold text-text-primary">Use my own link</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            Save a link below and every session uses it automatically. Nothing external is connected.
+          </p>
+        </button>
+      </div>
+
+      {/* The teacher's standing room: the input that was missing entirely
+          before, which left manual preference unusable without hunting for a
+          session page first. */}
+      <div className="mt-4 rounded-xl border border-border p-4">
+        <label htmlFor="default-meeting-url" className="block text-sm font-semibold text-text-primary">
+          Your lesson link
+        </label>
+        <p className="mt-0.5 text-xs text-text-muted">
+          A Google Meet address reused for every session. A link pasted on a single session page
+          overrides this one.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            id="default-meeting-url"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            value={defaultUrl}
+            onChange={(event) => setDefaultUrl(event.target.value)}
+            placeholder="https://meet.google.com/abc-defg-hij"
+            className="min-h-11 flex-1 rounded-[10px] border border-border bg-bg-primary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <button
+            type="button"
+            onClick={() => saveDefaultUrl(defaultUrl)}
+            disabled={saving || defaultUrl.trim() === (settings.defaultUrl ?? "")}
+            className="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-semibold text-text-inverse transition-all hover:bg-primary-dark disabled:opacity-50"
+          >
+            Save link
+          </button>
+          {settings.defaultUrl ? (
+            <button
+              type="button"
+              onClick={() => saveDefaultUrl("")}
+              disabled={saving}
+              className="inline-flex h-11 items-center justify-center rounded-[10px] border border-border px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-danger disabled:opacity-50"
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {!settings.configured ? (
+        <p className="mt-4 text-xs text-text-secondary">
+          Automatic rooms are not available on this deployment. Your saved link above is what
+          students join with.
+        </p>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">
+          <div>
+            <p className="text-sm font-semibold text-text-primary">
+              {settings.connected
                 ? `Connected${settings.calendarName ? ` · ${settings.calendarName}` : ""}`
                 : settings.status === "REAUTH_REQUIRED"
                   ? "Connection needs renewing"
-                  : "No calendar connected"
-            }
-            description={
-              settings.connected
+                  : "No calendar connected"}
+            </p>
+            <p className="mt-0.5 text-xs text-text-muted">
+              {settings.connected
                 ? "Rooms are created there; a link you paste is kept as a fallback."
                 : settings.status === "REAUTH_REQUIRED"
                   ? "Access expired. Reconnect to keep automatic rooms working; lessons fall back to your link."
-                  : "Connect to create rooms automatically. Lessons fall back to your link."
-            }
-          >
+                  : "Connect to create rooms automatically. Lessons fall back to your link."}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
             {settings.connected ? (
-              <Button type="button" variant="outline" size="sm" onClick={disconnect} disabled={saving} className="hover:text-danger">
+              <button
+                type="button"
+                onClick={disconnect}
+                disabled={saving}
+                className="inline-flex h-9 items-center rounded-[10px] border border-border px-3 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-danger disabled:opacity-50"
+              >
                 Disconnect
-              </Button>
+              </button>
             ) : (
               <a
                 href="/api/meetings/google/connect"
-                className="inline-flex h-9 items-center rounded-[10px] bg-accent px-4 text-sm font-semibold text-text-inverse transition-all duration-300 hover:brightness-95"
+                className="inline-flex h-9 items-center rounded-[10px] bg-accent px-4 text-sm font-semibold text-text-inverse transition-all hover:brightness-95"
               >
                 {settings.status === "REAUTH_REQUIRED" ? "Reconnect Google" : "Connect Google Calendar"}
               </a>
             )}
-          </SettingRow>
-        )}
-      </div>
-    </SettingsPanel>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
