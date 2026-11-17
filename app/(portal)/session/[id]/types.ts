@@ -81,6 +81,8 @@ export interface MeetingSettings {
   connected: boolean;
   status: "CONNECTED" | "REAUTH_REQUIRED" | null;
   calendarName: string | null;
+  /** The teacher's standing room address, or null when none is saved. */
+  defaultUrl: string | null;
 }
 
 export interface SummaryPayload {

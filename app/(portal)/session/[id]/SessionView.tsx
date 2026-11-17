@@ -10,6 +10,7 @@ import { LocalTime } from "@/app/ui/LocalTime";
 import { Skeleton } from "@/app/ui/Skeleton";
 import { StatusChip, type StatusTone } from "@/app/ui/chips";
 import { Panel } from "@/app/ui/portal";
+import { HIFDH_SLUG } from "@/lib/course-completion";
 import { sessionTypeLabel, type JoinState, type PlanRange } from "@/lib/live-session";
 import { BeforeLesson } from "./BeforeLesson";
 import { LessonBrief, PendingReport, ReportCard } from "./LessonBrief";
@@ -169,7 +170,7 @@ export function SessionView({ appointmentId }: { appointmentId: string }) {
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">
       <Link
-        href={teacher ? "/sessions" : "/courses/hifdh-ul-quran"}
+        href={teacher ? "/sessions" : `/courses/${HIFDH_SLUG}`}
         onClick={guardNavigation}
         className="inline-flex w-fit items-center gap-1.5 rounded-[8px] text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-4"
       >

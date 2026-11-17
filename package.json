@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "db:seed": "tsx prisma/seed.ts",
+    "quiz:repair": "tsx scripts/repair-quizzes.ts",
     "mpesa:test": "node scripts/mpesa-stk-test.mjs",
     "lint": "eslint",
     "test": "vitest run",

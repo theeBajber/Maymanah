@@ -80,7 +80,7 @@ async function seedCourse(course: SeedCourse): Promise<void> {
         title: `${lesson.title} Quiz`,
         description: `Test your knowledge of "${lesson.title}"`,
         totalMarks,
-        passMark: Math.ceil(totalMarks * 0.6),
+        passMark: 60,
         isPublished: true,
       },
       create: {
@@ -89,7 +89,7 @@ async function seedCourse(course: SeedCourse): Promise<void> {
         title: `${lesson.title} Quiz`,
         description: `Test your knowledge of "${lesson.title}"`,
         totalMarks,
-        passMark: Math.ceil(totalMarks * 0.6),
+        passMark: 60,
         durationMinutes: 15,
         isPublished: true,
         shuffleQuestions: true,

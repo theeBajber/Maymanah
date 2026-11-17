@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { GlassCard } from "@/app/ui/glass";
 import { auth } from "@/lib/auth";
+import { HIFDH_SLUG } from "@/lib/course-completion";
 import { currentLoginSessionId, getCurrentUser, isLoginSessionActive } from "@/lib/session";
 import { standingLabel } from "@/lib/standing";
 
@@ -79,7 +80,7 @@ export default async function AccountStatusPage() {
                 Back to dashboard
               </Link>
               <Link
-                href={user.role === "TEACHER" ? "/sessions" : "/courses/hifdh-ul-quran"}
+                href={user.role === "TEACHER" ? "/sessions" : `/courses/${HIFDH_SLUG}`}
                 className="inline-flex h-11 items-center rounded-[10px] border border-border px-5 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
               >
                 {user.role === "TEACHER" ? "Your sessions" : "Your course"}

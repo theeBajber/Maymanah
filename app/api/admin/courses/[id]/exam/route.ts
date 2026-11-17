@@ -4,6 +4,7 @@ import { requireAdmin, UnauthorizedError } from "@/lib/admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { logAuditEvent } from "@/lib/audit";
+import { choiceProblemMessage, normalizeExamQuestions } from "@/lib/question-options";
 
 const optionSchema = z.object({
   text: z.string().min(1),
@@ -93,6 +94,18 @@ export async function POST(req: Request, { params }: RouteContext) {
     const { questions, ...examData } = parsed.data;
     const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
 
+    // The ticked option becomes the stored answer index, so the exam can be
+    // graded. No single right answer means no save.
+    const storedQuestions = normalizeExamQuestions(questions);
+    if (!storedQuestions.ok) {
+      return NextResponse.json(
+        {
+          error: `${choiceProblemMessage(storedQuestions.problem)} Question ${storedQuestions.questionIndex + 1}.`,
+        },
+        { status: 422 },
+      );
+    }
+
     const exam = await db.$transaction(async (tx) => {
       return tx.exam.create({
         data: {
@@ -102,11 +115,12 @@ export async function POST(req: Request, { params }: RouteContext) {
           courseId: id,
           isPublished: examData.isPublished ?? false,
           questions: {
-            create: questions.map((q, idx) => ({
+            create: storedQuestions.questions.map((q, idx) => ({
               questionText: q.questionText,
               questionType: "MCQ",
               marks: q.marks,
               options: q.options,
+              correctAnswer: q.correctAnswer,
               orderIndex: idx,
             })),
           },
@@ -159,6 +173,16 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const { questions, ...examData } = parsed.data;
 
+    const storedQuestions = questions ? normalizeExamQuestions(questions) : null;
+    if (storedQuestions && !storedQuestions.ok) {
+      return NextResponse.json(
+        {
+          error: `${choiceProblemMessage(storedQuestions.problem)} Question ${storedQuestions.questionIndex + 1}.`,
+        },
+        { status: 422 },
+      );
+    }
+
     const exam = await db.$transaction(async (tx) => {
       if (questions) {
         await tx.question.deleteMany({ where: { examId: existing.id } });
@@ -173,14 +197,15 @@ export async function PUT(req: Request, { params }: RouteContext) {
         data: {
           ...examData,
           ...(totalMarks !== undefined ? { totalMarks } : {}),
-          ...(questions
+          ...(storedQuestions?.ok
             ? {
                 questions: {
-                  create: questions.map((q, idx) => ({
+                  create: storedQuestions.questions.map((q, idx) => ({
                     questionText: q.questionText,
                     questionType: "MCQ",
                     marks: q.marks,
                     options: q.options,
+                    correctAnswer: q.correctAnswer,
                     orderIndex: idx,
                   })),
                 },

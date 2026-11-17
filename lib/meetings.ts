@@ -384,13 +384,19 @@ export interface MeetingSettings {
   connected: boolean;
   status: MeetingConnectionStatus | null;
   calendarName: string | null;
+  /**
+   * The teacher's standing room address, or null when none is set. It is the
+   * teacher's own link, so settings may echo it; the join route is still the
+   * only place that hands it to a student.
+   */
+  defaultUrl: string | null;
 }
 
 export async function meetingSettingsFor(userId: string): Promise<MeetingSettings> {
   const [profile, account] = await Promise.all([
     db.ustadhProfile.findUnique({
       where: { userId },
-      select: { meetingPreference: true },
+      select: { meetingPreference: true, defaultMeetingUrl: true },
     }),
     db.meetingAccount.findUnique({
       where: { userId },
@@ -404,7 +410,30 @@ export async function meetingSettingsFor(userId: string): Promise<MeetingSetting
     connected: account?.status === "CONNECTED",
     status: account?.status ?? null,
     calendarName: account?.calendarName ?? null,
+    defaultUrl: profile?.defaultMeetingUrl ?? null,
   };
+}
+
+/**
+ * Stores the teacher's standing room address.
+ *
+ * Only a real Google Meet address is accepted, matching what a session link
+ * will accept at join time. An empty value clears the field.
+ */
+export async function setDefaultMeetingUrl(userId: string, url: string): Promise<string | null> {
+  const normalized = normalizeMeetUrl(url);
+
+  if (url.trim() !== "" && !normalized) {
+    throw new MeetingError("invalid_link", "Use a Google Meet link, e.g. https://meet.google.com/abc-defg-hij.");
+  }
+
+  await db.ustadhProfile.upsert({
+    where: { userId },
+    create: { userId, defaultMeetingUrl: normalized },
+    update: { defaultMeetingUrl: normalized },
+  });
+
+  return normalized;
 }
 
 export async function setMeetingPreference(
@@ -450,13 +479,16 @@ export async function disconnectMeetingAccount(userId: string): Promise<void> {
  * the caller get an error.
  */
 export async function createLessonRoom(lesson: LessonForMeeting): Promise<LessonRoom> {
-  const manual = lesson.meetingUrl ? normalizeMeetUrl(lesson.meetingUrl) : null;
-
   const profile = await db.ustadhProfile.findUnique({
     where: { userId: lesson.teacherId },
-    select: { meetingPreference: true },
+    select: { meetingPreference: true, defaultMeetingUrl: true },
   });
   const preference = profile?.meetingPreference ?? "MANUAL";
+
+  // The session's own link wins; the teacher's standing room is the floor, so
+  // a lesson nobody pasted a link into is still joinable.
+  const fallbackSource = lesson.meetingUrl ?? profile?.defaultMeetingUrl ?? null;
+  const manual = fallbackSource ? normalizeMeetUrl(fallbackSource) : null;
 
   if (preference === "MANUAL") {
     if (!manual) {

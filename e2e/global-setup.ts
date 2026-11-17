@@ -1,6 +1,9 @@
 import { hashPassword } from "../lib/password";
 import {
   createClient,
+  E2E_BOUNDARY_FULL_EMAIL,
+  E2E_BOUNDARY_PASSWORD,
+  E2E_BOUNDARY_SHORT_EMAIL,
   E2E_COURSE_SLUG,
   E2E_HIFDH_COURSE_SLUG,
   E2E_HIFDH_PASSWORD,
@@ -9,6 +12,9 @@ import {
   E2E_PAIR_PASSWORD,
   E2E_PAIR_STUDENT_EMAIL,
   E2E_PAIR_TEACHER_EMAIL,
+  E2E_TZ_PASSWORD,
+  E2E_TZ_STUDENT_EMAIL,
+  E2E_TZ_TEACHER_EMAIL,
 } from "./database";
 
 /**
@@ -165,6 +171,114 @@ export default async function globalSetup(): Promise<void> {
       where: { userId_courseId: { userId: hifdhStudent.id, courseId: hifdhCourse.id } },
       create: { userId: hifdhStudent.id, courseId: hifdhCourse.id },
       update: {},
+    });
+
+    // The completion boundary rides the same course: one student one ayah
+    // short of the whole Quran, one on it. Writing the ledger directly keeps
+    // the test about the finish line rather than about reporting lessons.
+    await db.user.deleteMany({
+      where: { email: { in: [E2E_BOUNDARY_SHORT_EMAIL, E2E_BOUNDARY_FULL_EMAIL] } },
+    });
+    const boundaryPasswordHash = await hashPassword(E2E_BOUNDARY_PASSWORD);
+    const shortStudent = await db.user.create({
+      data: {
+        name: "Zayd Short",
+        email: E2E_BOUNDARY_SHORT_EMAIL,
+        passwordHash: boundaryPasswordHash,
+        role: "STUDENT",
+        gender: "male",
+      },
+      select: { id: true },
+    });
+    const fullStudent = await db.user.create({
+      data: {
+        name: "Zayd Full",
+        email: E2E_BOUNDARY_FULL_EMAIL,
+        passwordHash: boundaryPasswordHash,
+        role: "STUDENT",
+        gender: "male",
+      },
+      select: { id: true },
+    });
+    // 1:1 → 114:5 is every ayah but the last one: 6,235 of 6,236.
+    await db.memorizedRange.create({
+      data: { studentId: shortStudent.id, startSurah: 1, startAyah: 1, endSurah: 114, endAyah: 5 },
+    });
+    // 1:1 → 114:6 is the whole Quran: 6,236.
+    await db.memorizedRange.create({
+      data: { studentId: fullStudent.id, startSurah: 1, startAyah: 1, endSurah: 114, endAyah: 6 },
+    });
+    await db.enrollment.createMany({
+      data: [
+        { userId: shortStudent.id, courseId: hifdhCourse.id },
+        { userId: fullStudent.id, courseId: hifdhCourse.id },
+      ],
+    });
+
+    // The timezone journey needs a pairing whose only session sits on one
+    // calendar date in UTC and another in the browser's zone. 12:30 UTC is
+    // past noon, so Auckland (always UTC+12 or +13) rolls it into the next
+    // day whatever time of year the suite runs; Nairobi stays on the UTC date.
+    await db.user.deleteMany({
+      where: { email: { in: [E2E_TZ_TEACHER_EMAIL, E2E_TZ_STUDENT_EMAIL] } },
+    });
+    const tzPasswordHash = await hashPassword(E2E_TZ_PASSWORD);
+    const tzTeacher = await db.user.create({
+      data: {
+        name: "Ustadh Timezone",
+        email: E2E_TZ_TEACHER_EMAIL,
+        passwordHash: tzPasswordHash,
+        role: "TEACHER",
+        gender: "male",
+        profile: { create: { timezone: "Africa/Nairobi" } },
+        ustadhProfile: { create: { isApproved: true, availableForTeaching: true } },
+        availabilities: {
+          create: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({ dayOfWeek, startTime: "08:00", endTime: "20:00" })),
+        },
+      },
+      select: { id: true },
+    });
+    const tzStudent = await db.user.create({
+      data: {
+        name: "Yusuf Timezone",
+        email: E2E_TZ_STUDENT_EMAIL,
+        passwordHash: tzPasswordHash,
+        role: "STUDENT",
+        gender: "male",
+        profile: { create: { timezone: "Pacific/Auckland" } },
+      },
+      select: { id: true },
+    });
+    const tzMentorship = await db.mentorship.create({
+      data: { teacherId: tzTeacher.id, studentId: tzStudent.id, status: "ACTIVE" },
+      select: { id: true },
+    });
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() + 1);
+    start.setUTCHours(12, 30, 0, 0);
+    // Nairobi is UTC+3, so the appointment's UTC weekday is the mentor's too;
+    // the course page only renders the week while the pairing has a slot.
+    await db.recurringSlot.create({
+      data: {
+        mentorshipId: tzMentorship.id,
+        type: "DAILY_HIFDH",
+        dayOfWeek: start.getUTCDay(),
+        startTime: "15:30",
+        duration: 60,
+      },
+    });
+    await db.appointment.create({
+      data: {
+        mentorshipId: tzMentorship.id,
+        teacherId: tzTeacher.id,
+        startTime: start,
+        endTime: new Date(start.getTime() + 3_600_000),
+        sessionType: "DAILY_HIFDH",
+        title: "Timezone probe",
+      },
+    });
+    await db.enrollment.create({
+      data: { userId: tzStudent.id, courseId: hifdhCourse.id },
     });
   } finally {
     await db.$disconnect();

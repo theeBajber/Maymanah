@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { PendingReportRow, SessionRow } from "@/app/ui/session-cards";
 import { getSessionSchedule } from "@/lib/agenda";
 import { auth } from "@/lib/auth";
+import { HIFDH_SLUG } from "@/lib/course-completion";
 import { pendingLessonReports } from "@/lib/lesson-report";
 import { planRangeLabel } from "@/lib/live-session";
 import { SURAHS } from "@/lib/quran-meta";
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 export default async function SessionsPage() {
   const user = await getCurrentUser(await auth());
   if (!user) redirect("/login");
-  if (user.role === "STUDENT") redirect("/courses/hifdh-ul-quran");
+  if (user.role === "STUDENT") redirect(`/courses/${HIFDH_SLUG}`);
 
   const [schedule, pending] = await Promise.all([
     getSessionSchedule(user.id),

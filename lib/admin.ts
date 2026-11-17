@@ -6,6 +6,7 @@ import { auth } from "./auth";
 import { recentAuditEvents, logAuditEvent } from "./audit";
 import type { LessonPreview } from "./book-import";
 import { db } from "./db";
+import { normalizeExamQuestions } from "./question-options";
 import { pendingStandingEvents } from "./standing";
 
 /** Raised when a caller reaches an admin surface without the standing for it. */
@@ -333,27 +334,45 @@ export async function saveImportedLessons(
         result.push({ id: row.id, title: row.title, order: row.order });
 
         if (lesson.questions.length > 0) {
-          const totalMarks = lesson.questions.reduce((sum, q) => sum + q.marks, 0);
-          await tx.exam.create({
-            data: {
-              title: `${lesson.title} Quiz`,
-              courseId,
-              lessonId: row.id,
-              durationMinutes: Math.max(5, Math.ceil(lesson.questions.length * 2)),
-              passMark: 50,
-              totalMarks,
-              isPublished: true,
-              questions: {
-                create: lesson.questions.map((q, idx) => ({
-                  questionText: q.questionText,
-                  questionType: "MCQ",
-                  marks: q.marks,
-                  options: q.options,
-                  orderIndex: idx,
-                })),
-              },
-            },
+          // The model can return a question with no tick or two. A question
+          // that cannot be marked correct is dropped rather than imported, so
+          // the lesson is still usable and no one silently scores zero on it.
+          const usable = lesson.questions.flatMap((question) => {
+            const converted = normalizeExamQuestions([question]);
+            return converted.ok ? converted.questions : [];
           });
+
+          const skipped = lesson.questions.length - usable.length;
+          if (skipped > 0) {
+            console.warn(
+              `Book import dropped ${skipped} unmarkable question${skipped === 1 ? "" : "s"} from "${lesson.title}".`,
+            );
+          }
+
+          if (usable.length > 0) {
+            const totalMarks = usable.reduce((sum, q) => sum + q.marks, 0);
+            await tx.exam.create({
+              data: {
+                title: `${lesson.title} Quiz`,
+                courseId,
+                lessonId: row.id,
+                durationMinutes: Math.max(5, Math.ceil(usable.length * 2)),
+                passMark: 50,
+                totalMarks,
+                isPublished: true,
+                questions: {
+                  create: usable.map((q, idx) => ({
+                    questionText: q.questionText,
+                    questionType: "MCQ",
+                    marks: q.marks,
+                    options: q.options,
+                    correctAnswer: q.correctAnswer,
+                    orderIndex: idx,
+                  })),
+                },
+              },
+            });
+          }
         }
       }
 

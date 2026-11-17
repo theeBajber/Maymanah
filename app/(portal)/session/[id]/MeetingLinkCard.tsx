@@ -103,7 +103,9 @@ export function MeetingLinkCard({ appointmentId }: { appointmentId: string }) {
   if (settings) {
     if (settings.preference === "MANUAL") {
       badge = <StatusChip tone="info">Manual link</StatusChip>;
-      description = "Sessions use the link you add below.";
+      description = settings.defaultUrl
+        ? "Sessions use your saved lesson link from settings unless you paste a different one below."
+        : "Sessions use the link you add below. Save a standing link in settings to skip this step.";
     } else if (settings.connected && settings.status === "CONNECTED") {
       badge = <StatusChip tone="success">Google connected</StatusChip>;
       description = `A room is created in ${settings.calendarName ?? "your sessions calendar"} when either of you joins. The link below is used as a fallback.`;

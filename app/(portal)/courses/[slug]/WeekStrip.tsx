@@ -401,6 +401,11 @@ export function WeekStrip({
                             return (
                               <li
                                 key={session.id}
+                                // The raw ISO instant is the test hook for the
+                                // timezone journey: it proves the row landed
+                                // under the browser's calendar day, not the
+                                // server's.
+                                data-start={session.startTime}
                                 className="overflow-hidden rounded-xl border border-border bg-bg-primary/40"
                               >
                                 <Link

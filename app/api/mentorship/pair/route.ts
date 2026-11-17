@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { HIFDH_SLUG } from "@/lib/course-completion";
 import { createNotification } from "@/lib/notifications";
 import { pairHifdhStudent } from "@/lib/pairing";
 import { getCurrentUser } from "@/lib/session";
@@ -47,7 +48,7 @@ export async function POST(): Promise<NextResponse> {
         type: "mentorship_paired",
         title: "You've been paired with a teacher",
         body: `${schedule.teacherName} will guide your Hifdh sessions. View your schedule to see your upcoming sessions.`,
-        metadata: { mentorshipId: schedule.mentorshipId, link: "/courses/hifdh-ul-quran" },
+        metadata: { mentorshipId: schedule.mentorshipId, link: `/courses/${HIFDH_SLUG}` },
       }),
       createNotification({
         userId: schedule.teacherId,

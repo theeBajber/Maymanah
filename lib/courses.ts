@@ -115,6 +115,8 @@ export interface CourseDetail extends CourseSummary {
   certificate: { id: string } | null;
   /** Published lessons the reader has finished. */
   completedLessons: number;
+  /** Distinct ayahs in the memorisation ledger, when the course measures that. */
+  memorizedAyahs: number | null;
   /** The course's own finish line: all lessons, or the whole Quran. */
   completed: boolean;
   /** A published final exam exists, and whether the reader has passed it. */
@@ -235,6 +237,7 @@ export async function getCourseDetail(
     reviewCount: ratings.length,
     certificate,
     completedLessons,
+    memorizedAyahs: completion === "memorization" ? memorized?.uniqueAyahs ?? 0 : null,
     completed: enrolled && completionState.completed,
     hasFinalExam: Boolean(finalExam),
     finalExamPassed,

@@ -90,14 +90,47 @@ function ProfileDropdown({
   );
 }
 
+/** One row of the notifications panel, as the list endpoint returns it. */
+interface NotificationRow {
+  id: string;
+  title: string;
+  body: string | null;
+  isRead: boolean;
+  createdAt: string;
+  metadata: { link?: string } | null;
+}
+
+/** The text half of a notification row. */
+function NotificationBody({ row }: { row: NotificationRow }) {
+  return (
+    <>
+      <div className="min-w-0 flex-1">
+        <p className={`text-sm ${row.isRead ? "text-text-primary" : "font-semibold text-text-primary"}`}>
+          {row.title}
+        </p>
+        {row.body ? (
+          <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary">{row.body}</p>
+        ) : null}
+        <p className="mt-1 text-[10px] text-text-muted">
+          {new Date(row.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </p>
+      </div>
+      {row.isRead ? null : <span className="mt-2 size-2 shrink-0 rounded-full bg-primary" />}
+    </>
+  );
+}
+
 export function TopNav() {
   const { content } = useTopNavContent();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notifications, setNotifications] = useState<
-    { id: string; title: string; body: string | null; isRead: boolean; createdAt: string }[] | null
-  >(null);
+  const [notifications, setNotifications] = useState<NotificationRow[] | null>(null);
 
   const { data: session } = useSession();
   const profileRef = useRef<HTMLDivElement>(null);
@@ -126,24 +159,6 @@ export function TopNav() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!notifOpen) return;
-    let cancelled = false;
-    fetch("/api/notifications")
-      .then(async (response) => {
-        const body = (await response.json().catch(() => ({}))) as {
-          notifications?: { id: string; title: string; body: string | null; isRead: boolean; createdAt: string }[];
-        };
-        if (!cancelled) setNotifications(body.notifications ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setNotifications([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [notifOpen]);
-
   async function markAllRead() {
     await fetch("/api/notifications/read", {
       method: "PATCH",
@@ -153,6 +168,31 @@ export function TopNav() {
     setNotifications((prev) => (prev ?? []).map((row) => ({ ...row, isRead: true })));
     setUnreadCount(0);
   }
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    let cancelled = false;
+    fetch("/api/notifications")
+      .then(async (response) => {
+        const body = (await response.json().catch(() => ({}))) as {
+          notifications?: NotificationRow[];
+        };
+        if (cancelled) return;
+        const rows = body.notifications ?? [];
+        setNotifications(rows);
+        // Reading the panel is what "viewed" means, so the badge clears here
+        // rather than waiting for a click on each row.
+        if (rows.some((row) => !row.isRead)) {
+          void markAllRead();
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setNotifications([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [notifOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -219,14 +259,6 @@ export function TopNav() {
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
                   <div className="flex items-center gap-2">
-                    {(notifications ?? []).some((row) => !row.isRead) ? (
-                      <button
-                        onClick={markAllRead}
-                        className="text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
-                      >
-                        Mark all read
-                      </button>
-                    ) : null}
                     <button
                       onClick={() => setNotifOpen(false)}
                       aria-label="Close notifications"
@@ -248,32 +280,33 @@ export function TopNav() {
                   </div>
                 ) : (
                   <ul className="max-h-80 overflow-y-auto">
-                    {notifications.map((row) => (
-                      <li
-                        key={row.id}
-                        className={`flex items-start gap-3 border-b border-border/50 px-4 py-3 last:border-0 ${
-                          row.isRead ? "" : "bg-primary/5"
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className={`text-sm ${row.isRead ? "text-text-primary" : "font-semibold text-text-primary"}`}>
-                            {row.title}
-                          </p>
-                          {row.body ? (
-                            <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary">{row.body}</p>
-                          ) : null}
-                          <p className="mt-1 text-[10px] text-text-muted">
-                            {new Date(row.createdAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              hour: "numeric",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                        {row.isRead ? null : <span className="mt-2 size-2 shrink-0 rounded-full bg-primary" />}
-                      </li>
-                    ))}
+                    {notifications.map((row) => {
+                      const link = row.metadata?.link;
+                      const frame = `flex items-start gap-3 border-b border-border/50 px-4 py-3 last:border-0 ${
+                        row.isRead ? "" : "bg-primary/5"
+                      }`;
+
+                      return (
+                        <li key={row.id} className={link ? "p-0" : frame}>
+                          {/*
+                           * A notification that cannot be opened is a dead end:
+                           * every creator stores a link, so rows with one are
+                           * whole-row links and the rest stay plain.
+                           */}
+                          {link ? (
+                            <Link
+                              href={link}
+                              onClick={() => setNotifOpen(false)}
+                              className={`${frame} transition-colors hover:bg-bg-hover`}
+                            >
+                              <NotificationBody row={row} />
+                            </Link>
+                          ) : (
+                            <NotificationBody row={row} />
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>

@@ -1,0 +1,37 @@
+name: Hourly jobs
+
+# Session reminders, missed-session marking, and seat expiry all live behind
+# `/api/cron/hourly`. Vercel's cron needs a paid plan for hourly schedules, so
+# this workflow is the scheduler: it calls the endpoint every hour with the
+# shared secret.
+#
+# Requires two repository secrets:
+#   APP_URL      — the deployment root, e.g. https://maymanah.app
+#   CRON_SECRET  — the same value as the deployment's CRON_SECRET env var
+#
+# GitHub schedules can drift by several minutes, which is fine here: reminders
+# cover a one-hour window, so a late run still reaches the right sessions.
+# If Deployment Protection is enabled on the deployment, add a Protection
+# Bypass for automation or these calls will be refused before reaching the app.
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the hourly endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::warning::APP_URL or CRON_SECRET is not set; skipping the run."
+            exit 0
+          fi
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/hourly"

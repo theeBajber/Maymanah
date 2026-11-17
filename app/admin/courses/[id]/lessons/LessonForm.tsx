@@ -7,6 +7,7 @@ import { MarkdownEditor } from "@/app/ui/markdown-editor";
 import { Markdown } from "@/app/ui/markdown";
 import { QuizEditor } from "@/app/ui/QuizEditor";
 import { useToast } from "@/app/ui/toast";
+import { choiceProblemMessage, normalizeExamQuestions } from "@/lib/question-options";
 
 type Option = { text: string; isCorrect: boolean };
 type Question = {
@@ -66,6 +67,21 @@ export function LessonForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // A quiz is only scorable when every question has exactly one right
+    // answer. Catch it here so the teacher sees which question to fix, rather
+    // than losing the whole lesson to a rejected save.
+    if (form.exam && form.exam.questions.length > 0) {
+      const checked = normalizeExamQuestions(form.exam.questions);
+      if (!checked.ok) {
+        toast({
+          title: `${choiceProblemMessage(checked.problem)} Question ${checked.questionIndex + 1}.`,
+          variant: "error",
+        });
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {

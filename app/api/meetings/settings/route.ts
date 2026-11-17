@@ -3,7 +3,12 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
-import { meetingSettingsFor, setMeetingPreference } from "@/lib/meetings";
+import {
+  MeetingError,
+  meetingSettingsFor,
+  setDefaultMeetingUrl,
+  setMeetingPreference,
+} from "@/lib/meetings";
 
 async function teacher() {
   const user = await getCurrentUser(await auth());
@@ -23,14 +28,16 @@ export async function GET(): Promise<NextResponse> {
 }
 
 const patchSchema = z.object({
-  preference: z.enum(["AUTO", "MANUAL"]),
+  preference: z.enum(["AUTO", "MANUAL"]).optional(),
+  defaultUrl: z.string().max(2048).optional(),
 });
 
 /**
- * Chooses how this teacher's lesson rooms are produced.
+ * Updates how this teacher's lesson rooms are produced.
  *
- * AUTO is allowed even without a connection: rooms then fall back to the
- * teacher's own link, and the settings page explains what is missing.
+ * Either field may arrive alone. AUTO is allowed even without a connection:
+ * rooms then fall back to the teacher's own link, and the settings page
+ * explains what is missing.
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
   const result = await teacher();
@@ -45,9 +52,27 @@ export async function PATCH(request: Request): Promise<NextResponse> {
 
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Choose automatic or manual rooms" }, { status: 422 });
+    return NextResponse.json({ error: "Check the request" }, { status: 422 });
   }
 
-  await setMeetingPreference(result.user.id, parsed.data.preference);
+  const { preference, defaultUrl } = parsed.data;
+  if (preference === undefined && defaultUrl === undefined) {
+    return NextResponse.json({ error: "Nothing to change" }, { status: 422 });
+  }
+
+  try {
+    if (preference !== undefined) {
+      await setMeetingPreference(result.user.id, preference);
+    }
+    if (defaultUrl !== undefined) {
+      await setDefaultMeetingUrl(result.user.id, defaultUrl);
+    }
+  } catch (error) {
+    if (error instanceof MeetingError) {
+      return NextResponse.json({ error: error.message }, { status: 422 });
+    }
+    throw error;
+  }
+
   return NextResponse.json(await meetingSettingsFor(result.user.id));
 }

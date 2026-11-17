@@ -5,15 +5,19 @@ import { CourseOptions } from "./CourseOptions";
  * The student's Hifdh session header.
  *
  * The uppercase course kicker already names the course, so the headline is the
- * reader's own schedule. The meta line carries the progress that matters on
- * this course — how much of the Quran is memorised — without repeating "Quran
- * Hifdh" a second time. Course options stay quiet on the right; nothing
- * destructive sits next to the join button.
+ * reader's own schedule. The meta line carries a number the progress card does
+ * not — the raw ayah count, where the card shows the ring — so the two
+ * complement rather than repeat. Course options stay quiet on the right;
+ * nothing destructive sits next to the join button.
  */
 export function CourseHeader({ course }: { course: CourseDetail }) {
   const meta =
     course.completion === "memorization"
-      ? [`${course.progress}% of the Quran memorised`]
+      ? [
+          course.memorizedAyahs && course.memorizedAyahs > 0
+            ? `${course.memorizedAyahs.toLocaleString()} of 6,236 ayahs memorised`
+            : null,
+        ]
       : [
           course.lessonCount > 0
             ? `${course.lessonCount} ${course.lessonCount === 1 ? "session" : "sessions"}`

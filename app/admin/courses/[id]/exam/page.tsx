@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { ExamEditor } from "@/app/ui/ExamEditor";
 import { useToast } from "@/app/ui/toast";
+import { optionsForEditor, choiceProblemMessage, normalizeExamQuestions } from "@/lib/question-options";
 import { use } from "react";
 
 type Option = { text: string; isCorrect: boolean };
@@ -56,14 +57,14 @@ export default function AdminExamPage({
             title: data.title || "",
             description: data.description || "",
             durationMinutes: data.durationMinutes || 60,
-            passMark: data.passMark || 50,
+            passMark: data.passMark ?? 50,
             shuffleQuestions: data.shuffleQuestions ?? true,
             allowReview: data.allowReview ?? false,
             isPublished: data.isPublished ?? true,
             questions: (data.questions || []).map((q: Record<string, unknown>) => ({
               questionText: (q.questionText as string) || "",
               marks: (q.marks as number) || 1,
-              options: (q.options as Option[]) || [],
+              options: optionsForEditor(q.options, (q.correctAnswer as string | null) ?? null),
             })),
           });
         }
@@ -75,6 +76,15 @@ export default function AdminExamPage({
   }, [id]);
 
   const handleSave = async () => {
+    const checked = normalizeExamQuestions(exam.questions);
+    if (!checked.ok) {
+      toast({
+        title: `${choiceProblemMessage(checked.problem)} Question ${checked.questionIndex + 1}.`,
+        variant: "error",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const method = hasExisting ? "PUT" : "POST";

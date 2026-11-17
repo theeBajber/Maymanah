@@ -153,6 +153,30 @@ pnpm mpesa:test   # run the M-Pesa STK diagnostic script
 
 TypeScript can be checked with `pnpm exec tsc --noEmit`.
 
+### Deploying automatic lesson rooms and the hourly job
+
+A deployment with no Google integration still works — teachers save a standing
+Meet link in Settings, or paste one per session. To have rooms created
+automatically instead:
+
+1. **Google Cloud project.** Enable the Google Calendar API. Create an OAuth
+   client (type: Web application) with the redirect URI set to the deployment's
+   `APP_URL` plus `/api/meetings/google/callback`, e.g.
+   `https://maymanah.app/api/meetings/google/callback`.
+2. **Deployment environment variables.** Set `GOOGLE_CLIENT_ID`,
+   `GOOGLE_CLIENT_SECRET`, and `MEETING_TOKEN_KEY`. Generate the key with
+   `openssl rand -base64 32`. With these set, teachers can connect a calendar in
+   Settings and each lesson gets a room in that calendar.
+3. **Hourly job.** The scheduler is not Vercel cron — it is the GitHub Actions
+   workflow `.github/workflows/cron.yml`, which calls `/api/cron/hourly` every
+   hour. Add two repository secrets: `APP_URL` (the deployment root) and
+   `CRON_SECRET` (the same value as the deployment's `CRON_SECRET` env var).
+   Run the workflow once by hand from the Actions tab to confirm it goes
+   through. If Deployment Protection is enabled on the deployment, generate a
+   Protection Bypass for Automation secret and add it to the workflow's curl
+   header, or the calls will be refused before reaching the app.
+
+
 ---
 
 ## What is implemented
@@ -222,7 +246,7 @@ TypeScript can be checked with `pnpm exec tsc --noEmit`.
 - Recurring availability slots
 - Appointment creation, rescheduling and daily session flows
 - Session plans and private notes
-- Lesson rooms: a pasted Meet link, or a room created in the teacher's connected calendar, released only by the join route
+- Lesson rooms: a pasted Meet link, the teacher's saved standing link, or a room created in the teacher's connected calendar — released only by the join route
 - In-app messaging and notifications
 - Hourly housekeeping job: session reminders, missed-session marking, and seat expiry
 - Attendance standing: warnings, paused bookings, and an admin-confirmed disable queue

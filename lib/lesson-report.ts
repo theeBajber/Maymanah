@@ -71,7 +71,7 @@ export async function submitLessonReport(input: LessonReportInput): Promise<Less
   const outcome = await db.$transaction(async (tx) => {
     const existing = await tx.lessonReport.findUnique({
       where: { appointmentId: input.appointmentId },
-      select: { id: true },
+      select: { id: true, fromSurah: true, fromVerse: true, toSurah: true, toVerse: true },
     });
 
     const data = {
@@ -174,7 +174,19 @@ export async function submitLessonReport(input: LessonReportInput): Promise<Less
       data: { status: "COMPLETED", missed: false },
     });
 
-    return { reportId: report.id, created: !existing };
+    return {
+      reportId: report.id,
+      created: !existing,
+      // An edit that rewrites the memorised range is real progress the student
+      // should hear about; notes-only edits stay quiet.
+      rangeChanged:
+        !existing ||
+        (range !== null &&
+          (existing.fromSurah !== range.fromSurah ||
+            existing.fromVerse !== range.fromAyah ||
+            existing.toSurah !== range.toSurah ||
+            existing.toVerse !== range.toAyah)),
+    };
   });
 
   if (outcome.created) {
@@ -185,6 +197,14 @@ export async function submitLessonReport(input: LessonReportInput): Promise<Less
       body: range
         ? `New memorisation recorded: ${rangeLabel(range)}. Open the session to see your teacher's notes.`
         : "Open the session to see your teacher's notes and next assignment.",
+      metadata: { appointmentId: input.appointmentId, link: `/session/${input.appointmentId}` },
+    });
+  } else if (outcome.rangeChanged && range) {
+    await createNotification({
+      userId: studentId,
+      type: "lesson_report",
+      title: "Your teacher updated your progress",
+      body: `The recorded memorisation is now ${rangeLabel(range)}. Open the session for the details.`,
       metadata: { appointmentId: input.appointmentId, link: `/session/${input.appointmentId}` },
     });
   }

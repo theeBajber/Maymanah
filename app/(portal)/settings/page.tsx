@@ -1455,8 +1455,10 @@ function MeetingSettings() {
     connected: boolean;
     status: "CONNECTED" | "REAUTH_REQUIRED" | null;
     calendarName: string | null;
+    defaultUrl: string | null;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [defaultUrl, setDefaultUrl] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1480,9 +1482,38 @@ function MeetingSettings() {
 
     fetch("/api/meetings/settings")
       .then((response) => response.json())
-      .then((body) => setSettings(body))
+      .then((body) => {
+        setSettings(body);
+        setDefaultUrl(body.defaultUrl ?? "");
+      })
       .catch(() => {});
   }, [toast]);
+
+  async function saveDefaultUrl(url: string) {
+    setSaving(true);
+    try {
+      const response = await fetch("/api/meetings/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultUrl: url }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        toast({ title: body.error ?? "Could not save the link", variant: "error" });
+        return;
+      }
+      setSettings(body);
+      setDefaultUrl(body.defaultUrl ?? "");
+      toast({
+        title: body.defaultUrl ? "Your lesson link is saved" : "Your lesson link was removed",
+        variant: "success",
+      });
+    } catch {
+      toast({ title: "Could not reach the server", variant: "error" });
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function choose(preference: "AUTO" | "MANUAL") {
     if (!settings || settings.preference === preference) return;
@@ -1569,15 +1600,58 @@ function MeetingSettings() {
         >
           <p className="text-sm font-semibold text-text-primary">Use my own link</p>
           <p className="mt-1 text-xs text-text-secondary">
-            Paste a meeting link on each session page. Nothing external is connected.
+            Save a link below and every session uses it automatically. Nothing external is connected.
           </p>
         </button>
       </div>
 
+      {/* The teacher's standing room: the input that was missing entirely
+          before, which left manual preference unusable without hunting for a
+          session page first. */}
+      <div className="mt-4 rounded-xl border border-border p-4">
+        <label htmlFor="default-meeting-url" className="block text-sm font-semibold text-text-primary">
+          Your lesson link
+        </label>
+        <p className="mt-0.5 text-xs text-text-muted">
+          A Google Meet address reused for every session. A link pasted on a single session page
+          overrides this one.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            id="default-meeting-url"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            value={defaultUrl}
+            onChange={(event) => setDefaultUrl(event.target.value)}
+            placeholder="https://meet.google.com/abc-defg-hij"
+            className="min-h-11 flex-1 rounded-[10px] border border-border bg-bg-primary px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <button
+            type="button"
+            onClick={() => saveDefaultUrl(defaultUrl)}
+            disabled={saving || defaultUrl.trim() === (settings.defaultUrl ?? "")}
+            className="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-semibold text-text-inverse transition-all hover:bg-primary-dark disabled:opacity-50"
+          >
+            Save link
+          </button>
+          {settings.defaultUrl ? (
+            <button
+              type="button"
+              onClick={() => saveDefaultUrl("")}
+              disabled={saving}
+              className="inline-flex h-11 items-center justify-center rounded-[10px] border border-border px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-bg-hover hover:text-danger disabled:opacity-50"
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
+      </div>
+
       {!settings.configured ? (
         <p className="mt-4 text-xs text-text-secondary">
-          Automatic rooms are not available on this deployment. You can still add a meeting link to
-          any session.
+          Automatic rooms are not available on this deployment. Your saved link above is what
+          students join with.
         </p>
       ) : (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">

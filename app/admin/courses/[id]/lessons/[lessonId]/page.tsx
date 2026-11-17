@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getAdminLesson } from "@/lib/admin";
 import { db } from "@/lib/db";
+import { optionsForEditor } from "@/lib/question-options";
 import { LessonForm } from "../LessonForm";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,10 @@ export default async function EditLessonPage({ params }: Props) {
         questions: examRecord.questions.map((q) => ({
           questionText: q.questionText,
           marks: q.marks,
-          options: (q.options as { text: string; isCorrect: boolean }[]),
+          // Seed rows store the answer on the question, not as a tick on an
+          // option. Rebuilding the ticks here is what stops a re-save from
+          // wiping a quiz that was already correct.
+          options: optionsForEditor(q.options, q.correctAnswer),
         })),
       }
     : null;

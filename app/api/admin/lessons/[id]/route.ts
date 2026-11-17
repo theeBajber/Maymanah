@@ -4,6 +4,7 @@ import { requireAdmin, UnauthorizedError } from "@/lib/admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { logAuditEvent } from "@/lib/audit";
+import { choiceProblemMessage, normalizeExamQuestions } from "@/lib/question-options";
 
 const optionSchema = z.object({
   text: z.string().min(1),
@@ -109,6 +110,18 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const { exam, ...lessonData } = parsed.data;
 
+    // See the create route: the ticked option becomes `correctAnswer` here, or
+    // the whole save is refused.
+    const questions = exam ? normalizeExamQuestions(exam.questions) : null;
+    if (questions && !questions.ok) {
+      return NextResponse.json(
+        {
+          error: `${choiceProblemMessage(questions.problem)} Question ${questions.questionIndex + 1}.`,
+        },
+        { status: 422 },
+      );
+    }
+
     const updated = await db.$transaction(async (tx) => {
       const lsn = await tx.lesson.update({
         where: { id },
@@ -120,7 +133,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
         select: { id: true },
       });
 
-      if (exam) {
+      if (exam && questions?.ok) {
         const totalMarks =
           exam.totalMarks ||
           exam.questions.reduce((sum, q) => sum + q.marks, 0);
@@ -136,11 +149,12 @@ export async function PUT(req: Request, { params }: RouteContext) {
               passMark: exam.passMark,
               totalMarks,
               questions: {
-                create: exam.questions.map((q, idx) => ({
+                create: questions.questions.map((q, idx) => ({
                   questionText: q.questionText,
                   questionType: "MCQ",
                   marks: q.marks,
                   options: q.options,
+                  correctAnswer: q.correctAnswer,
                   orderIndex: idx,
                 })),
               },
@@ -157,11 +171,12 @@ export async function PUT(req: Request, { params }: RouteContext) {
               lessonId: id,
               isPublished: true,
               questions: {
-                create: exam.questions.map((q, idx) => ({
+                create: questions.questions.map((q, idx) => ({
                   questionText: q.questionText,
                   questionType: "MCQ",
                   marks: q.marks,
                   options: q.options,
+                  correctAnswer: q.correctAnswer,
                   orderIndex: idx,
                 })),
               },

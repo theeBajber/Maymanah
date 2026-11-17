@@ -121,6 +121,56 @@ test("a student is paired, scheduled, and can change mentor", async ({ page }) =
   await expect(page.getByText("Session time conflicts with your availability")).toBeVisible({
     timeout: 20_000,
   });
+
+  // Layout and theme guard, run while the pairing is live: the course page is
+  // the app's densest screen, and anything wider than the viewport here means
+  // a broken phone layout. Every width stop is checked in both themes, and the
+  // reschedule dialog — the heaviest overlay — gets the check too.
+  const overflows = () =>
+    page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+  // The toggle labels the mode it would switch to, so a visible button means
+  // the theme is the other one and the click is needed.
+  const ensureTheme = async (mode: "light" | "dark") => {
+    const toggle = page.getByRole("button", {
+      name: mode === "light" ? "Switch to light mode" : "Switch to dark mode",
+    });
+    if (await toggle.isVisible().catch(() => false)) {
+      await toggle.click();
+    }
+  };
+  const openRescheduleDialog = async () => {
+    const dayCell = page.getByRole("button", { name: /day, .*Upcoming/ }).first();
+    await expect(dayCell).toBeVisible({ timeout: 20_000 });
+    await dayCell.click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Reschedule", exact: true })
+      .first()
+      .click();
+    await expect(page.getByRole("heading", { name: "Reschedule Session" })).toBeVisible({
+      timeout: 20_000,
+    });
+  };
+
+  for (const theme of ["light", "dark"] as const) {
+    await ensureTheme(theme);
+    for (const width of [360, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect.poll(overflows, { message: `${theme} at ${width}px` }).toBe(false);
+    }
+  }
+
+  await page.setViewportSize({ width: 360, height: 900 });
+  await openRescheduleDialog();
+  await expect.poll(overflows, { message: "reschedule dialog at 360px dark" }).toBe(false);
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Reschedule Session" })).toBeHidden();
+  await page.setViewportSize({ width: 1280, height: 720 });
+  // Leave the page as it was found: light theme for the steps below.
+  await ensureTheme("light");
+
   await page.getByRole("button", { name: "Find a new teacher" }).click();
   await expect(page.getByRole("heading", { name: "Set Your Weekly Availability" })).toBeVisible({
     timeout: 20_000,

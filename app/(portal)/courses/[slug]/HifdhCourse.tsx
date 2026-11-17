@@ -1,4 +1,3 @@
-import { GlassCard } from "@/app/ui/glass";
 import type { SessionRow } from "@/app/ui/session-cards";
 import { getSessionSchedule } from "@/lib/agenda";
 import { auth } from "@/lib/auth";
@@ -16,8 +15,8 @@ import type { WeekSession } from "./WeekStrip";
 /**
  * The shape of the page while its live data loads.
  *
- * The page header and the lesson-grid frame paint immediately, so the layout
- * does not jump when the pairing, progress, and week arrive.
+ * The real header paints immediately and the frame stays plain: no hero
+ * pattern to swap out the moment the live panel arrives.
  */
 export function HifdhCourseLoading({ course }: { course: CourseDetail }) {
   return (
@@ -25,7 +24,7 @@ export function HifdhCourseLoading({ course }: { course: CourseDetail }) {
       <CourseHeader course={course} />
 
       <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
-        <GlassCard grade="lantern" mashrabiya className="p-5 sm:p-6">
+        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-bg-elevated p-5 sm:p-6">
           <div className="relative flex flex-col gap-4">
             <div className="h-6 w-32 rounded-full bg-bg-hover motion-safe:animate-pulse" />
             <div className="h-14 w-44 rounded-lg bg-bg-hover motion-safe:animate-pulse" />
@@ -33,7 +32,7 @@ export function HifdhCourseLoading({ course }: { course: CourseDetail }) {
             <div className="mt-2 h-10 w-40 rounded-full bg-bg-hover motion-safe:animate-pulse" />
             <div className="h-12 w-full max-w-xs rounded-[10px] bg-bg-hover motion-safe:animate-pulse" />
           </div>
-        </GlassCard>
+        </div>
         <div className="h-64 rounded-2xl border border-border bg-bg-elevated motion-safe:animate-pulse" />
       </div>
 

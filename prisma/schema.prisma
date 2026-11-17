@@ -242,6 +242,9 @@ model UstadhProfile {
   /// Where this teacher's lesson rooms come from. Manual by default, so a
   /// teacher can run lessons without connecting any external service.
   meetingPreference    MeetingPreference @default(MANUAL)
+  /// The teacher's standing room address, used when a session has no link of
+  /// its own and no automatic room. A Google Meet URL, as `normalizeMeetUrl`.
+  defaultMeetingUrl    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
